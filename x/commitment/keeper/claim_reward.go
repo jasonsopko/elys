@@ -4,7 +4,6 @@ import (
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	aptypes "github.com/elys-network/elys/x/assetprofile/types"
 	"github.com/elys-network/elys/x/commitment/types"
 )
@@ -61,6 +60,12 @@ func (k Keeper) RecordClaimReward(ctx sdk.Context, creator string, denom string,
 		if err != nil {
 			return err
 		}
+	case types.EarnType_LP_MINING_PROGRAM:
+		// Subtract the withdrawn amount from lp mining
+		err := commitments.SubRewardsUnclaimed(sdk.NewCoin(denom, amount))
+		if err != nil {
+			return err
+		}
 	default:
 		return errorsmod.Wrapf(types.ErrUnsupportedWithdrawMode, "creator: %s", creator)
 	}
@@ -70,12 +75,7 @@ func (k Keeper) RecordClaimReward(ctx sdk.Context, creator string, denom string,
 
 	withdrawCoins := sdk.NewCoins(sdk.NewCoin(denom, amount))
 
-	addr, err := sdk.AccAddressFromBech32(commitments.Creator)
-	if err != nil {
-		return errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "unable to convert address from bech32")
-	}
-
-	err = k.HandleWithdrawFromCommitment(ctx, &commitments, addr, withdrawCoins, false)
+	err := k.HandleWithdrawFromCommitment(ctx, &commitments, withdrawCoins, false, sdk.AccAddress{})
 	if err != nil {
 		return err
 	}

@@ -414,6 +414,11 @@ func NewElysApp(
 	wasmOpts []wasmmodule.Option,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *ElysApp {
+	// increase wasm size limit
+	wasmmoduletypes.MaxLabelSize = 128 * 2            // to set the maximum label size on instantiation (default 128)
+	wasmmoduletypes.MaxWasmSize = 819200 * 2          // to set the max size of compiled wasm to be accepted (default 819200)
+	wasmmoduletypes.MaxProposalWasmSize = 3145728 * 2 // to set the max size of gov proposal compiled wasm to be accepted (default 3145728)
+
 	encodingConfig := MakeEncodingConfig()
 	appCodec := encodingConfig.Marshaler
 	cdc := encodingConfig.Amino
@@ -691,6 +696,7 @@ func NewElysApp(
 		appCodec,
 		keys[oracletypes.StoreKey],
 		keys[oracletypes.MemStoreKey],
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		app.GetSubspace(oracletypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
@@ -782,6 +788,7 @@ func NewElysApp(
 		app.AmmKeeper,
 		app.OracleKeeper,
 		app.AssetprofileKeeper,
+		app.AccountedPoolKeeper,
 		app.EpochsKeeper,
 		app.StablestakeKeeper,
 		app.TokenomicsKeeper,
@@ -907,8 +914,7 @@ func NewElysApp(
 		AddRoute(govtypes.RouterKey, govv1beta1.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
 		AddRoute(upgradetypes.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.UpgradeKeeper)).
-		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientProposalHandler(app.IBCKeeper.ClientKeeper)).
-		AddRoute(oracletypes.RouterKey, oraclemodule.NewAssetInfoProposalHandler(&app.OracleKeeper))
+		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientProposalHandler(app.IBCKeeper.ClientKeeper))
 
 	// The gov proposal types can be individually enabled
 	if len(enabledProposals) != 0 {
@@ -1126,6 +1132,7 @@ func NewElysApp(
 		stakingtypes.ModuleName,
 		// Note: epochs' endblock should be "real" end of epochs, we keep epochs endblock at the end
 		epochsmoduletypes.ModuleName,
+		clockmoduletypes.ModuleName,
 		ibctransfertypes.ModuleName,
 		ibcexported.ModuleName,
 		icatypes.ModuleName,
@@ -1156,7 +1163,6 @@ func NewElysApp(
 		wasmmoduletypes.ModuleName,
 		accountedpoolmoduletypes.ModuleName,
 		transferhooktypes.ModuleName,
-		clockmoduletypes.ModuleName,
 		leveragelpmoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	)

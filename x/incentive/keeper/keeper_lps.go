@@ -9,7 +9,7 @@ import (
 )
 
 // Calculate new Eden token amounts based on LpElys committed and MElys committed
-func (k Keeper) CalculateRewardsForLPs(ctx sdk.Context, totalProxyTVL sdk.Dec, commitments ctypes.Commitments, edenAmountForLpPerDistribution math.Int, gasFeesForLPsPerDistribution sdk.Dec) (math.Int, math.Int) {
+func (k Keeper) CalcRewardsForLPs(ctx sdk.Context, totalProxyTVL sdk.Dec, commitments ctypes.Commitments, edenAmountForLpPerDistribution math.Int, gasFeesForLPsPerDistribution sdk.Dec) (math.Int, math.Int) {
 	// Method 2 - Using Proxy TVL
 	totalNewEdenAllocatedPerDistribution := sdk.ZeroInt()
 	totalDexRewardsAllocatedPerDistribution := sdk.ZeroDec()
@@ -35,7 +35,8 @@ func (k Keeper) CalculateRewardsForLPs(ctx sdk.Context, totalProxyTVL sdk.Dec, c
 		// Get pool info from incentive param
 		poolInfo, found := k.GetPoolInfo(ctx, poolId)
 		if !found {
-			return false
+			k.InitPoolParams(ctx, poolId)
+			poolInfo, _ = k.GetPoolInfo(ctx, poolId)
 		}
 
 		// Calculate Proxy TVL share considering multiplier
@@ -100,8 +101,8 @@ func (k Keeper) CalculateRewardsForLPs(ctx sdk.Context, totalProxyTVL sdk.Dec, c
 
 		//----------------------------------------------------------------
 
-		poolInfo.EdenRewardAmountGiven = poolInfo.EdenRewardAmountGiven.Add(totalNewEdenAllocatedPerDistribution)
-		poolInfo.DexRewardAmountGiven = poolInfo.DexRewardAmountGiven.Add(totalDexRewardsAllocatedPerDistribution)
+		poolInfo.EdenRewardAmountGiven = newEdenAllocatedForPool.RoundInt()
+		poolInfo.DexRewardAmountGiven = gasRewardsAllocatedForPool.Add(dexRewardsAllocatedForPool)
 		// Update Pool Info
 		k.SetPoolInfo(ctx, poolId, poolInfo)
 

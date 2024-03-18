@@ -38,6 +38,7 @@ func (oq *Querier) BuildDelegatorValidatorsResponseCW(ctx sdk.Context, validator
 	var validatorsCW []commitmenttypes.ValidatorDetail
 	for _, validator := range validators {
 		var validatorCW commitmenttypes.ValidatorDetail
+		validatorCW.Id = validator.Description.Identity
 		validatorCW.Address = validator.OperatorAddress
 		validatorCW.Name = validator.Description.Moniker
 		validatorCW.Commission = validator.GetCommission()
@@ -54,16 +55,14 @@ func (oq *Querier) BuildDelegatorValidatorsResponseCW(ctx sdk.Context, validator
 		delegations, _ := oq.stakingKeeper.GetDelegation(ctx, delAddress, valAddress)
 		shares := delegations.GetShares()
 		tokens := validator.TokensFromSharesTruncated(shares)
-		delegatedAmt := tokens.TruncateInt()
 
 		validatorCW.Staked = commitmenttypes.BalanceAvailable{
-			Amount:    delegatedAmt,
+			Amount:    tokens.TruncateInt(),
 			UsdAmount: tokens,
 		}
 
 		votingPower := sdk.NewDecFromInt(validator.Tokens).QuoInt(totalBonded).MulInt(sdk.NewInt(100))
 		validatorCW.VotingPower = votingPower
-		validatorCW.ProfilePictureSrc = validator.Description.Website
 
 		validatorsCW = append(validatorsCW, validatorCW)
 	}

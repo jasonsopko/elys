@@ -93,28 +93,31 @@ func SetupMockPools(k *keeper.Keeper, ctx sdk.Context) {
 			PoolParams: types.PoolParams{
 				UseOracle: false,
 			},
+			TotalShares: sdk.NewCoin(types.GetPoolShareDenom(1), types.OneShare),
 		},
 		{
 			PoolId: 2,
 			PoolAssets: []types.PoolAsset{
-				{Token: sdk.NewCoin("baseCurrency", sdk.NewInt(1000)), Weight: sdk.OneInt()},
+				{Token: sdk.NewCoin("uusdc", sdk.NewInt(1000)), Weight: sdk.OneInt()},
 				{Token: sdk.NewCoin("denom1", sdk.NewInt(1000)), Weight: sdk.OneInt()},
 			},
 			TotalWeight: sdk.NewInt(2),
 			PoolParams: types.PoolParams{
 				UseOracle: false,
 			},
+			TotalShares: sdk.NewCoin(types.GetPoolShareDenom(2), types.OneShare),
 		},
 		{
 			PoolId: 3,
 			PoolAssets: []types.PoolAsset{
-				{Token: sdk.NewCoin("baseCurrency", sdk.NewInt(1000)), Weight: sdk.OneInt()},
+				{Token: sdk.NewCoin("uusdc", sdk.NewInt(1000)), Weight: sdk.OneInt()},
 				{Token: sdk.NewCoin("denom3", sdk.NewInt(1000)), Weight: sdk.OneInt()},
 			},
 			TotalWeight: sdk.NewInt(2),
 			PoolParams: types.PoolParams{
 				UseOracle: false,
 			},
+			TotalShares: sdk.NewCoin(types.GetPoolShareDenom(3), types.OneShare),
 		},
 	}
 

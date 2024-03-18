@@ -28,7 +28,7 @@ func (k Keeper) UpdateTokensForValidator(ctx sdk.Context, validator string, newU
 
 // Give commissions to validators
 func (k Keeper) GiveCommissionToValidators(ctx sdk.Context, delegator string, totalDelegationAmt math.Int, newUnclaimedAmt math.Int, dexRewards sdk.Dec, baseCurrency string) (math.Int, math.Int) {
-	delAdr, err := sdk.AccAddressFromBech32(delegator)
+	delAddr, err := sdk.AccAddressFromBech32(delegator)
 	if err != nil {
 		return sdk.ZeroInt(), sdk.ZeroInt()
 	}
@@ -43,22 +43,26 @@ func (k Keeper) GiveCommissionToValidators(ctx sdk.Context, delegator string, to
 	totalDexRewardsGiven := sdk.ZeroInt()
 
 	// Iterate all delegated validators
-	k.stk.IterateDelegations(ctx, delAdr, func(index int64, del stypes.DelegationI) (stop bool) {
+	k.stk.IterateDelegations(ctx, delAddr, func(index int64, del stypes.DelegationI) (stop bool) {
 		valAddr := del.GetValidatorAddr()
 		// Get validator
 		val := k.stk.Validator(ctx, valAddr)
+		if !val.IsBonded() {
+			return
+		}
+
 		// Get commission rate
-		comm_rate := val.GetCommission()
+		commRate := val.GetCommission()
 		// Get delegator share
 		shares := del.GetShares()
 		// Get token amount delegated
-		delegatedAmt := val.TokensFromSharesTruncated(shares)
+		delAmount := val.TokensFromSharesTruncated(shares)
 
 		//-----------------------------
 		// Eden commission
 		//-----------------------------
 		// to give = delegated amount / total delegation * newly minted eden * commission rate
-		edenCommission := delegatedAmt.QuoInt(totalDelegationAmt).MulInt(newUnclaimedAmt).Mul(comm_rate)
+		edenCommission := delAmount.QuoInt(totalDelegationAmt).MulInt(newUnclaimedAmt).Mul(commRate)
 
 		// Sum total commission given
 		totalEdenGiven = totalEdenGiven.Add(edenCommission.TruncateInt())
@@ -68,7 +72,7 @@ func (k Keeper) GiveCommissionToValidators(ctx sdk.Context, delegator string, to
 		// Dex rewards commission
 		//-----------------------------
 		// to give = delegated amount / total delegation * newly minted eden * commission rate
-		dexRewardsCommission := delegatedAmt.QuoInt(totalDelegationAmt).Mul(dexRewards).Mul(comm_rate)
+		dexRewardsCommission := delAmount.QuoInt(totalDelegationAmt).Mul(dexRewards).Mul(commRate)
 		// Sum total commission given
 		totalDexRewardsGiven = totalDexRewardsGiven.Add(dexRewardsCommission.TruncateInt())
 		//-----------------------------
@@ -94,6 +98,8 @@ func (k Keeper) CalcAmountSubbucketsPerProgram(ctx sdk.Context, delegator string
 		unclaimed = commitments.GetEdenBSubBucketRewardUnclaimedForDenom(denom)
 	case commitmenttypes.EarnType_USDC_PROGRAM:
 		unclaimed = commitments.GetUsdcSubBucketRewardUnclaimedForDenom(denom)
+	case commitmenttypes.EarnType_LP_MINING_PROGRAM:
+		unclaimed = commitments.GetLPMiningSubBucketRewardUnclaimedForDenom(denom)
 	case commitmenttypes.EarnType_ALL_PROGRAM:
 		unclaimed = commitments.GetRewardUnclaimedForDenom(denom)
 	}
@@ -117,6 +123,9 @@ func (k Keeper) ProcessWithdrawRewards(ctx sdk.Context, delegator string, withdr
 	unclaimed := k.CalcAmountSubbucketsPerProgram(ctx, delegator, ptypes.Eden, withdrawType, commitments)
 	if !unclaimed.IsZero() {
 		err = k.cmk.RecordClaimReward(ctx, delegator, ptypes.Eden, unclaimed, withdrawType)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Claim EdenB
@@ -124,6 +133,9 @@ func (k Keeper) ProcessWithdrawRewards(ctx sdk.Context, delegator string, withdr
 	unclaimed = k.CalcAmountSubbucketsPerProgram(ctx, delegator, ptypes.EdenB, withdrawType, commitments)
 	if !unclaimed.IsZero() {
 		err = k.cmk.RecordClaimReward(ctx, delegator, ptypes.EdenB, unclaimed, withdrawType)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Claim USDC
@@ -134,7 +146,7 @@ func (k Keeper) ProcessWithdrawRewards(ctx sdk.Context, delegator string, withdr
 	}
 	baseCurrency := entry.Denom
 
-	// Get available usdc amount can be withdrew
+	// Get available usdc amount can be withdraw
 	unclaimedUsdc := k.CalcAmountSubbucketsPerProgram(ctx, delegator, baseCurrency, withdrawType, commitments)
 	if unclaimedUsdc.IsZero() {
 		return nil
@@ -190,12 +202,18 @@ func (k Keeper) RecordWithdrawValidatorCommission(ctx sdk.Context, delegator str
 	unclaimed := commitments.GetRewardUnclaimedForDenom(ptypes.Eden)
 	if !unclaimed.IsZero() {
 		err = k.cmk.RecordWithdrawValidatorCommission(ctx, delegator, validator, ptypes.Eden, unclaimed)
+		if err != nil {
+			return err
+		}
 	}
 
 	// EdenB
 	unclaimed = commitments.GetRewardUnclaimedForDenom(ptypes.EdenB)
 	if !unclaimed.IsZero() {
 		err = k.cmk.RecordWithdrawValidatorCommission(ctx, delegator, validator, ptypes.EdenB, unclaimed)
+		if err != nil {
+			return err
+		}
 	}
 
 	entry, found := k.assetProfileKeeper.GetEntry(ctx, ptypes.BaseCurrency)
@@ -223,7 +241,7 @@ func (k Keeper) RecordWithdrawValidatorCommission(ctx sdk.Context, delegator str
 	// This function call will deduct the accounting in commitment module only.
 	err = k.cmk.RecordClaimReward(ctx, validator, baseCurrency, unclaimedUsdc, commitmenttypes.EarnType_ALL_PROGRAM)
 	if err != nil {
-		return errorsmod.Wrapf(types.ErrIntOverflowTx, "Internal error with amount: %d", unclaimedUsdc)
+		return err
 	}
 
 	// Get Bech32 address for delegator
@@ -235,10 +253,5 @@ func (k Keeper) RecordWithdrawValidatorCommission(ctx sdk.Context, delegator str
 	// Set withdraw usdc amount
 	revenue := sdk.NewCoin(baseCurrency, unclaimedUsdc)
 	// Transfer revenue from a single wallet of DEX revenue wallet to user's wallet.
-	err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, k.dexRevCollectorName, addr, sdk.NewCoins(revenue))
-	if err != nil {
-		panic(err)
-	}
-
-	return err
+	return k.bankKeeper.SendCoinsFromModuleToAccount(ctx, k.dexRevCollectorName, addr, sdk.NewCoins(revenue))
 }

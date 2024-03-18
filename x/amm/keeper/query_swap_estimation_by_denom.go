@@ -31,11 +31,8 @@ func (k Keeper) SwapEstimationByDenom(goCtx context.Context, req *types.QuerySwa
 	if !found {
 		return nil, errorsmod.Wrapf(assetprofiletypes.ErrAssetProfileNotFound, "asset %s not found", req.DenomIn)
 	}
-	decimals := entry.Decimals
 
-	_ = baseCurrency
-
-	inRoute, outRoute, amount, spotPrice, swapFee, discount, availableLiquidity, weightBonus, priceImpact, err := k.CalcSwapEstimationByDenom(ctx, req.Amount, req.DenomIn, req.DenomOut, baseCurrency, req.Discount, sdk.ZeroDec(), decimals)
+	inRoute, outRoute, amount, spotPrice, swapFee, discount, availableLiquidity, slippage, weightBonus, priceImpact, err := k.CalcSwapEstimationByDenom(ctx, req.Amount, req.DenomIn, req.DenomOut, baseCurrency, req.Discount, sdk.ZeroDec(), entry.Decimals)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +45,7 @@ func (k Keeper) SwapEstimationByDenom(goCtx context.Context, req *types.QuerySwa
 		SwapFee:            swapFee,
 		Discount:           discount,
 		AvailableLiquidity: availableLiquidity,
+		Slippage:           slippage,
 		WeightBalanceRatio: weightBonus,
 		PriceImpact:        priceImpact,
 	}, nil

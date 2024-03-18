@@ -109,6 +109,8 @@ type ElysQuery struct {
 	AmmDenomLiquidityAll     *ammtypes.QueryAllDenomLiquidityRequest     `json:"amm_denom_liquidity_all,omitempty"`
 	AmmSwapEstimation        *ammtypes.QuerySwapEstimationRequest        `json:"amm_swap_estimation,omitempty"`
 	AmmSwapEstimationByDenom *ammtypes.QuerySwapEstimationByDenomRequest `json:"amm_swap_estimation_by_denom,omitempty"`
+	AmmJoinPoolEstimation    *ammtypes.QueryJoinPoolEstimationRequest    `json:"amm_join_pool_estimation,omitempty"`
+	AmmExitPoolEstimation    *ammtypes.QueryExitPoolEstimationRequest    `json:"amm_exit_pool_estimation,omitempty"`
 	AmmSlippageTrack         *ammtypes.QuerySlippageTrackRequest         `json:"amm_slippage_track,omitempty"`
 	AmmSlippageTrackAll      *ammtypes.QuerySlippageTrackAllRequest      `json:"amm_slippage_track_all,omitempty"`
 	AmmBalance               *ammtypes.QueryBalanceRequest               `json:"amm_balance,omitempty"`
@@ -155,6 +157,7 @@ type ElysQuery struct {
 	IncentiveParams        *incentivetypes.QueryParamsRequest        `json:"incentive_params,omitempty"`
 	IncentiveCommunityPool *incentivetypes.QueryCommunityPoolRequest `json:"incentive_community_pool,omitempty"`
 	IncentiveApr           *incentivetypes.QueryAprRequest           `json:"incentive_apr"`
+	IncentivePoolAprs      *incentivetypes.QueryPoolAprsRequest      `json:"incentive_pool_aprs"`
 
 	// leveragelp queriers
 	LeveragelpParams                   *leveragelptypes.ParamsRequest              `json:"leveragelp_params,omitempty"`
@@ -275,8 +278,8 @@ type ElysMsg struct {
 	LeveragelpClose *leveragelptypes.MsgClose `json:"leveragelp_close,omitempty"`
 
 	// perpetual messages
-	PerpetualOpen  *perpetualtypes.MsgOpen  `json:"perpetual_open,omitempty"`
-	PerpetualClose *perpetualtypes.MsgClose `json:"perpetual_close,omitempty"`
+	PerpetualOpen  *perpetualtypes.MsgBrokerOpen  `json:"perpetual_open,omitempty"`
+	PerpetualClose *perpetualtypes.MsgBrokerClose `json:"perpetual_close,omitempty"`
 
 	// oracle messages
 	// parameter messages

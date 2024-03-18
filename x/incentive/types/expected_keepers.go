@@ -1,6 +1,8 @@
 package types
 
 import (
+	context "context"
+
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -108,8 +110,8 @@ type AmmKeeper interface {
 		tokensIn sdk.Coins,
 		tokenOutDenom string,
 		swapFee sdk.Dec,
-	) (tokenOut sdk.Coin, slippageAmount sdk.Dec, weightBalanceBonus sdk.Dec, err error)
-	CalcOutAmtGivenIn(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensIn sdk.Coins, tokenOutDenom string, swapFee sdk.Dec) (sdk.Coin, error)
+	) (tokenOut sdk.Coin, slippage, slippageAmount sdk.Dec, weightBalanceBonus sdk.Dec, err error)
+	CalcOutAmtGivenIn(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensIn sdk.Coins, tokenOutDenom string, swapFee sdk.Dec) (sdk.Coin, sdk.Dec, error)
 }
 
 // OracleKeeper defines the expected interface needed to retrieve price info
@@ -137,6 +139,8 @@ type EpochsKeeper interface {
 // StableStakeKeeper defines the expected epochs keeper used for simulations (noalias)
 type StableStakeKeeper interface {
 	GetParams(ctx sdk.Context) (params stabletypes.Params)
+	BorrowRatio(goCtx context.Context, req *stabletypes.QueryBorrowRatioRequest) (*stabletypes.QueryBorrowRatioResponse, error)
+	TVL(ctx sdk.Context, oracleKeeper stabletypes.OracleKeeper, baseCurrency string) math.LegacyDec
 }
 
 // TokenomicsKeeper defines the expected tokenomics keeper used for simulations (noalias)

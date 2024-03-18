@@ -3,9 +3,8 @@
 package mocks
 
 import (
-	ammtypes "github.com/elys-network/elys/x/amm/types"
-
 	math "cosmossdk.io/math"
+	ammtypes "github.com/elys-network/elys/x/amm/types"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -142,7 +141,7 @@ func (_c *AmmKeeper_CalcOutAmtGivenIn_Call) RunAndReturn(run func(types.Context,
 }
 
 // CalcSwapEstimationByDenom provides a mock function with given fields: ctx, amount, denomIn, denomOut, baseCurrency, discount, overrideSwapFee, decimals
-func (_m *AmmKeeper) CalcSwapEstimationByDenom(ctx types.Context, amount types.Coin, denomIn string, denomOut string, baseCurrency string, discount math.LegacyDec, overrideSwapFee math.LegacyDec, decimals uint64) ([]*ammtypes.SwapAmountInRoute, []*ammtypes.SwapAmountOutRoute, types.Coin, math.LegacyDec, math.LegacyDec, math.LegacyDec, types.Coin, math.LegacyDec, math.LegacyDec, error) {
+func (_m *AmmKeeper) CalcSwapEstimationByDenom(ctx types.Context, amount types.Coin, denomIn string, denomOut string, baseCurrency string, discount math.LegacyDec, overrideSwapFee math.LegacyDec, decimals uint64) ([]*ammtypes.SwapAmountInRoute, []*ammtypes.SwapAmountOutRoute, types.Coin, math.LegacyDec, math.LegacyDec, math.LegacyDec, types.Coin, math.LegacyDec, math.LegacyDec, math.LegacyDec, error) {
 	ret := _m.Called(ctx, amount, denomIn, denomOut, baseCurrency, discount, overrideSwapFee, decimals)
 
 	var r0 []*ammtypes.SwapAmountInRoute
@@ -155,7 +154,7 @@ func (_m *AmmKeeper) CalcSwapEstimationByDenom(ctx types.Context, amount types.C
 	var r7 math.LegacyDec
 	var r8 math.LegacyDec
 	var r9 error
-	if rf, ok := ret.Get(0).(func(types.Context, types.Coin, string, string, string, math.LegacyDec, math.LegacyDec, uint64) ([]*ammtypes.SwapAmountInRoute, []*ammtypes.SwapAmountOutRoute, types.Coin, math.LegacyDec, math.LegacyDec, math.LegacyDec, types.Coin, math.LegacyDec, math.LegacyDec, error)); ok {
+	if rf, ok := ret.Get(0).(func(types.Context, types.Coin, string, string, string, math.LegacyDec, math.LegacyDec, uint64) ([]*ammtypes.SwapAmountInRoute, []*ammtypes.SwapAmountOutRoute, types.Coin, math.LegacyDec, math.LegacyDec, math.LegacyDec, types.Coin, math.LegacyDec, math.LegacyDec, math.LegacyDec, error)); ok {
 		return rf(ctx, amount, denomIn, denomOut, baseCurrency, discount, overrideSwapFee, decimals)
 	}
 	if rf, ok := ret.Get(0).(func(types.Context, types.Coin, string, string, string, math.LegacyDec, math.LegacyDec, uint64) []*ammtypes.SwapAmountInRoute); ok {
@@ -222,7 +221,7 @@ func (_m *AmmKeeper) CalcSwapEstimationByDenom(ctx types.Context, amount types.C
 		r9 = ret.Error(9)
 	}
 
-	return r0, r1, r2, r3, r4, r5, r6, r7, r8, r9
+	return r0, r1, r2, r3, r4, r5, r6, r7, r8, r8, r9
 }
 
 // AmmKeeper_CalcSwapEstimationByDenom_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CalcSwapEstimationByDenom'
@@ -304,6 +303,59 @@ func (_c *AmmKeeper_GetAllPool_Call) RunAndReturn(run func(types.Context) []ammt
 	return _c
 }
 
+// GetBestPoolWithDenoms provides a mock function with given fields: ctx, denoms
+func (_m *AmmKeeper) GetBestPoolWithDenoms(ctx types.Context, denoms []string) (ammtypes.Pool, bool) {
+	ret := _m.Called(ctx, denoms)
+
+	var r0 ammtypes.Pool
+	var r1 bool
+	if rf, ok := ret.Get(0).(func(types.Context, []string) (ammtypes.Pool, bool)); ok {
+		return rf(ctx, denoms)
+	}
+	if rf, ok := ret.Get(0).(func(types.Context, []string) ammtypes.Pool); ok {
+		r0 = rf(ctx, denoms)
+	} else {
+		r0 = ret.Get(0).(ammtypes.Pool)
+	}
+
+	if rf, ok := ret.Get(1).(func(types.Context, []string) bool); ok {
+		r1 = rf(ctx, denoms)
+	} else {
+		r1 = ret.Get(1).(bool)
+	}
+
+	return r0, r1
+}
+
+// AmmKeeper_GetBestPoolWithDenoms_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBestPoolWithDenoms'
+type AmmKeeper_GetBestPoolWithDenoms_Call struct {
+	*mock.Call
+}
+
+// GetBestPoolWithDenoms is a helper method to define mock.On call
+//   - ctx types.Context
+//   - denoms []string
+func (_e *AmmKeeper_Expecter) GetBestPoolWithDenoms(ctx interface{}, denoms interface{}) *AmmKeeper_GetBestPoolWithDenoms_Call {
+	return &AmmKeeper_GetBestPoolWithDenoms_Call{Call: _e.mock.On("GetBestPoolWithDenoms", ctx, denoms)}
+}
+
+func (_c *AmmKeeper_GetBestPoolWithDenoms_Call) Run(run func(ctx types.Context, denoms []string)) *AmmKeeper_GetBestPoolWithDenoms_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(types.Context), args[1].([]string))
+	})
+	return _c
+}
+
+func (_c *AmmKeeper_GetBestPoolWithDenoms_Call) Return(pool ammtypes.Pool, found bool) *AmmKeeper_GetBestPoolWithDenoms_Call {
+	_c.Call.Return(pool, found)
+	return _c
+}
+
+func (_c *AmmKeeper_GetBestPoolWithDenoms_Call) RunAndReturn(run func(types.Context, []string) (ammtypes.Pool, bool)) *AmmKeeper_GetBestPoolWithDenoms_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPool provides a mock function with given fields: _a0, _a1
 func (_m *AmmKeeper) GetPool(_a0 types.Context, _a1 uint64) (ammtypes.Pool, bool) {
 	ret := _m.Called(_a0, _a1)
@@ -353,59 +405,6 @@ func (_c *AmmKeeper_GetPool_Call) Return(_a0 ammtypes.Pool, _a1 bool) *AmmKeeper
 }
 
 func (_c *AmmKeeper_GetPool_Call) RunAndReturn(run func(types.Context, uint64) (ammtypes.Pool, bool)) *AmmKeeper_GetPool_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// GetBestPoolWithDenoms provides a mock function with given fields: ctx, denoms
-func (_m *AmmKeeper) GetBestPoolWithDenoms(ctx types.Context, denoms []string) (ammtypes.Pool, bool) {
-	ret := _m.Called(ctx, denoms)
-
-	var r0 ammtypes.Pool
-	var r1 bool
-	if rf, ok := ret.Get(0).(func(types.Context, []string) (ammtypes.Pool, bool)); ok {
-		return rf(ctx, denoms)
-	}
-	if rf, ok := ret.Get(0).(func(types.Context, []string) ammtypes.Pool); ok {
-		r0 = rf(ctx, denoms)
-	} else {
-		r0 = ret.Get(0).(ammtypes.Pool)
-	}
-
-	if rf, ok := ret.Get(1).(func(types.Context, []string) bool); ok {
-		r1 = rf(ctx, denoms)
-	} else {
-		r1 = ret.Get(1).(bool)
-	}
-
-	return r0, r1
-}
-
-// AmmKeeper_GetBestPoolWithDenoms_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBestPoolWithDenoms'
-type AmmKeeper_GetBestPoolWithDenoms_Call struct {
-	*mock.Call
-}
-
-// GetBestPoolWithDenoms is a helper method to define mock.On call
-//   - ctx types.Context
-//   - denoms []string
-func (_e *AmmKeeper_Expecter) GetBestPoolWithDenoms(ctx interface{}, denoms interface{}) *AmmKeeper_GetBestPoolWithDenoms_Call {
-	return &AmmKeeper_GetBestPoolWithDenoms_Call{Call: _e.mock.On("GetBestPoolWithDenoms", ctx, denoms)}
-}
-
-func (_c *AmmKeeper_GetBestPoolWithDenoms_Call) Run(run func(ctx types.Context, denoms []string)) *AmmKeeper_GetBestPoolWithDenoms_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(types.Context), args[1].([]string))
-	})
-	return _c
-}
-
-func (_c *AmmKeeper_GetBestPoolWithDenoms_Call) Return(poolId uint64, found bool) *AmmKeeper_GetBestPoolWithDenoms_Call {
-	_c.Call.Return(poolId, found)
-	return _c
-}
-
-func (_c *AmmKeeper_GetBestPoolWithDenoms_Call) RunAndReturn(run func(types.Context, []string) (uint64, bool)) *AmmKeeper_GetBestPoolWithDenoms_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"github.com/elys-network/elys/x/perpetual/keeper"
 	"github.com/elys-network/elys/x/perpetual/types"
 	"github.com/elys-network/elys/x/perpetual/types/mocks"
@@ -42,7 +43,7 @@ func TestOpenShort_PoolNotFound(t *testing.T) {
 	mockChecker.On("GetMaxLeverageParam", ctx).Return(msg.Leverage)
 	mockChecker.On("GetPool", ctx, poolId).Return(types.Pool{}, false)
 
-	_, err := k.OpenShort(ctx, poolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, poolId, msg, ptypes.BaseCurrency, false)
 
 	// Expect an error about the pool not existing
 	assert.True(t, errors.Is(err, types.ErrPoolDoesNotExist))
@@ -73,7 +74,7 @@ func TestOpenShort_PoolDisabled(t *testing.T) {
 	mockChecker.On("GetPool", ctx, poolId).Return(types.Pool{}, true)
 	mockChecker.On("IsPoolEnabled", ctx, poolId).Return(false)
 
-	_, err := k.OpenShort(ctx, poolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, poolId, msg, ptypes.BaseCurrency, false)
 
 	// Expect an error about the pool being disabled
 	assert.True(t, errors.Is(err, types.ErrMTPDisabled))
@@ -127,7 +128,7 @@ func TestOpenShort_InsufficientLiabilities(t *testing.T) {
 
 	mockChecker.On("CheckMinLiabilities", ctx, msg.Collateral, sdk.NewDec(1), ammPool, ptypes.BaseCurrency, ptypes.BaseCurrency).Return(liabilityError)
 
-	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency, false)
 
 	// Expect the custom error indicating insufficient liabilities
 	assert.True(t, errors.Is(err, liabilityError))
@@ -179,7 +180,7 @@ func TestOpenShort_InsufficientAmmPoolBalanceForCustody(t *testing.T) {
 
 	mockChecker.On("CheckMinLiabilities", ctx, msg.Collateral, eta, ammPool, ptypes.BaseCurrency, ptypes.BaseCurrency).Return(nil)
 
-	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency, false)
 
 	// Expect an error about custody amount being too high
 	assert.True(t, errors.Is(err, types.ErrBorrowTooHigh))
@@ -238,9 +239,9 @@ func TestOpenShort_ErrorsDuringOperations(t *testing.T) {
 	mtp := types.NewMTP(msg.Creator, msg.Collateral.Denom, msg.TradingAsset, msg.TradingAsset, ptypes.BaseCurrency, msg.Position, msg.Leverage, sdk.MustNewDecFromStr(types.TakeProfitPriceDefault), ammPool.PoolId)
 
 	borrowError := errors.New("borrow error")
-	mockChecker.On("Borrow", ctx, msg.Collateral.Amount, custodyAmount, mtp, &ammPool, &pool, eta, ptypes.BaseCurrency).Return(borrowError)
+	mockChecker.On("Borrow", ctx, msg.Collateral.Amount, custodyAmount, mtp, &ammPool, &pool, eta, ptypes.BaseCurrency, false).Return(borrowError)
 
-	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency, false)
 
 	// Expect the borrow error
 	assert.True(t, errors.Is(err, borrowError))
@@ -298,7 +299,7 @@ func TestOpenShort_LeverageRatioLessThanSafetyFactor(t *testing.T) {
 
 	mtp := types.NewMTP(msg.Creator, msg.Collateral.Denom, msg.TradingAsset, msg.TradingAsset, ptypes.BaseCurrency, msg.Position, msg.Leverage, sdk.MustNewDecFromStr(types.TakeProfitPriceDefault), ammPool.PoolId)
 
-	mockChecker.On("Borrow", ctx, msg.Collateral.Amount, custodyAmount, mtp, &ammPool, &pool, eta, ptypes.BaseCurrency).Return(nil)
+	mockChecker.On("Borrow", ctx, msg.Collateral.Amount, custodyAmount, mtp, &ammPool, &pool, eta, ptypes.BaseCurrency, false).Return(nil)
 	mockChecker.On("UpdatePoolHealth", ctx, &pool).Return(nil)
 	mockChecker.On("TakeInCustody", ctx, *mtp, &pool).Return(nil)
 
@@ -307,7 +308,7 @@ func TestOpenShort_LeverageRatioLessThanSafetyFactor(t *testing.T) {
 	mockChecker.On("UpdateMTPHealth", ctx, *mtp, ammPool, ptypes.BaseCurrency).Return(lr, nil)
 	mockChecker.On("GetSafetyFactor", ctx).Return(sdk.NewDec(100))
 
-	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency, false)
 
 	// Expect an error indicating MTP is unhealthy
 	assert.True(t, errors.Is(err, types.ErrMTPUnhealthy))
@@ -365,7 +366,7 @@ func TestOpenShort_Success(t *testing.T) {
 
 	mtp := types.NewMTP(msg.Creator, msg.Collateral.Denom, msg.TradingAsset, msg.TradingAsset, ptypes.BaseCurrency, msg.Position, msg.Leverage, sdk.MustNewDecFromStr(types.TakeProfitPriceDefault), ammPool.PoolId)
 
-	mockChecker.On("Borrow", ctx, msg.Collateral.Amount, custodyAmount, mtp, &ammPool, &pool, eta, ptypes.BaseCurrency).Return(nil)
+	mockChecker.On("Borrow", ctx, msg.Collateral.Amount, custodyAmount, mtp, &ammPool, &pool, eta, ptypes.BaseCurrency, false).Return(nil)
 	mockChecker.On("UpdatePoolHealth", ctx, &pool).Return(nil)
 	mockChecker.On("TakeInCustody", ctx, *mtp, &pool).Return(nil)
 
@@ -380,7 +381,7 @@ func TestOpenShort_Success(t *testing.T) {
 	mockChecker.On("CalcMTPConsolidateCollateral", ctx, mtp, ptypes.BaseCurrency).Return(nil)
 	mockChecker.On("SetMTP", ctx, mtp).Return(nil)
 
-	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency)
+	_, err := k.OpenShort(ctx, ammPool.PoolId, msg, ptypes.BaseCurrency, false)
 	// Expect no error
 	assert.Nil(t, err)
 	mockChecker.AssertExpectations(t)
@@ -395,14 +396,26 @@ func TestOpenShort_BaseCurrency_Collateral(t *testing.T) {
 	// Setup coin prices
 	SetupStableCoinPrices(ctx, oracle)
 
+	// Set asset profile
+	app.AssetprofileKeeper.SetEntry(ctx, assetprofiletypes.Entry{
+		BaseDenom: ptypes.BaseCurrency,
+		Denom:     ptypes.BaseCurrency,
+		Decimals:  6,
+	})
+	app.AssetprofileKeeper.SetEntry(ctx, assetprofiletypes.Entry{
+		BaseDenom: ptypes.ATOM,
+		Denom:     ptypes.ATOM,
+		Decimals:  6,
+	})
+
 	// Generate 1 random account with 1000stake balanced
 	addr := simapp.AddTestAddrs(app, ctx, 1, sdk.NewInt(1000000000000))
 
 	// Create a pool
 	// Mint 100000USDC
-	usdcToken := []sdk.Coin{sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(100000000000))}
+	usdcToken := []sdk.Coin{sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(200000000000))}
 	// Mint 100000ATOM
-	atomToken := []sdk.Coin{sdk.NewCoin(ptypes.ATOM, sdk.NewInt(100000000000))}
+	atomToken := []sdk.Coin{sdk.NewCoin(ptypes.ATOM, sdk.NewInt(200000000000))}
 
 	err := app.BankKeeper.MintCoins(ctx, ammtypes.ModuleName, usdcToken)
 	require.NoError(t, err)
@@ -417,11 +430,11 @@ func TestOpenShort_BaseCurrency_Collateral(t *testing.T) {
 	poolAssets := []ammtypes.PoolAsset{
 		{
 			Weight: sdk.NewInt(50),
-			Token:  sdk.NewCoin(ptypes.ATOM, sdk.NewInt(100000000000)),
+			Token:  sdk.NewCoin(ptypes.ATOM, sdk.NewInt(10000000000)),
 		},
 		{
 			Weight: sdk.NewInt(50),
-			Token:  sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(10000000000)),
+			Token:  sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(100000000000)),
 		},
 	}
 
@@ -460,34 +473,67 @@ func TestOpenShort_BaseCurrency_Collateral(t *testing.T) {
 
 	// Balance check before create a perpetual position
 	balances := app.BankKeeper.GetAllBalances(ctx, poolAddress)
-	require.Equal(t, balances.AmountOf(ptypes.BaseCurrency), sdk.NewInt(10000000000))
-	require.Equal(t, balances.AmountOf(ptypes.ATOM), sdk.NewInt(100000000000))
+	require.Equal(t, balances.AmountOf(ptypes.BaseCurrency), sdk.NewInt(100000000000))
+	require.Equal(t, balances.AmountOf(ptypes.ATOM), sdk.NewInt(10000000000))
 
 	// Create a perpetual position open msg
 	msg2 := types.NewMsgOpen(
 		addr[0].String(),
 		types.Position_SHORT,
-		sdk.NewDec(2),
+		sdk.NewDec(5),
 		ptypes.ATOM,
 		sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(100000000)),
 		sdk.MustNewDecFromStr(types.TakeProfitPriceDefault),
 	)
 
-	_, err = mk.Open(ctx, msg2)
+	_, err = mk.Open(ctx, msg2, false)
 	require.NoError(t, err)
 
 	mtps := mk.GetAllMTPs(ctx)
 	require.Equal(t, len(mtps), 1)
 
 	balances = app.BankKeeper.GetAllBalances(ctx, poolAddress)
-	require.Equal(t, balances.AmountOf(ptypes.BaseCurrency), sdk.NewInt(10100000000))
-	require.Equal(t, balances.AmountOf(ptypes.ATOM), sdk.NewInt(100000000000))
+	require.Equal(t, balances.AmountOf(ptypes.BaseCurrency), sdk.NewInt(100100000000))
+	require.Equal(t, balances.AmountOf(ptypes.ATOM), sdk.NewInt(10000000000))
 
 	_, found = mk.OpenShortChecker.GetPool(ctx, pool.PoolId)
 	require.Equal(t, found, true)
 
 	err = mk.InvariantCheck(ctx)
 	require.Equal(t, err, nil)
+
+	mtp := mtps[0]
+
+	// Check MTP
+	require.Equal(t, types.MTP{
+		Address:                        addr[0].String(),
+		CollateralAsset:                "uusdc",
+		TradingAsset:                   "uatom",
+		LiabilitiesAsset:               "uatom",
+		CustodyAsset:                   "uusdc",
+		Collateral:                     sdk.NewInt(100000000),
+		Liabilities:                    sdk.NewInt(39840637),
+		BorrowInterestPaidCollateral:   sdk.NewInt(0),
+		BorrowInterestPaidCustody:      sdk.NewInt(0),
+		BorrowInterestUnpaidCollateral: sdk.NewInt(0),
+		Custody:                        sdk.NewInt(500000000),
+		TakeProfitLiabilities:          sdk.NewInt(497512437),
+		TakeProfitCustody:              sdk.NewInt(500000000),
+		Leverage:                       sdk.NewDec(5),
+		MtpHealth:                      sdk.MustNewDecFromStr("1.250000012500000125"),
+		Position:                       types.Position_SHORT,
+		Id:                             uint64(1),
+		AmmPoolId:                      uint64(1),
+		ConsolidateLeverage:            sdk.NewDec(0),
+		SumCollateral:                  sdk.NewInt(100000000),
+		TakeProfitPrice:                sdk.MustNewDecFromStr(types.TakeProfitPriceDefault),
+		TakeProfitBorrowRate:           sdk.MustNewDecFromStr("1.0"),
+		FundingFeePaidCollateral:       sdk.NewInt(0),
+		FundingFeePaidCustody:          sdk.NewInt(0),
+		FundingFeeReceivedCollateral:   sdk.NewInt(0),
+		FundingFeeReceivedCustody:      sdk.NewInt(0),
+		OpenPrice:                      sdk.MustNewDecFromStr("9.986190535983191415"),
+	}, mtp)
 }
 
 func TestOpenShort_ATOM_Collateral(t *testing.T) {
@@ -577,7 +623,7 @@ func TestOpenShort_ATOM_Collateral(t *testing.T) {
 		sdk.MustNewDecFromStr(types.TakeProfitPriceDefault),
 	)
 
-	_, err = mk.Open(ctx, msg2)
+	_, err = mk.Open(ctx, msg2, false)
 	assert.True(t, errors.Is(err, errorsmod.Wrap(types.ErrInvalidCollateralAsset, "collateral asset cannot be the same as the borrowed asset in a short position")))
 
 	mtps := mk.GetAllMTPs(ctx)

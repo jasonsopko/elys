@@ -12,6 +12,7 @@ import "elys/amm/pool_params.proto";
 import "cosmos/base/v1beta1/coin.proto";
 import "elys/amm/denom_liquidity.proto";
 import "elys/amm/swap_route.proto";
+import "cosmos_proto/cosmos.proto";
 
 option go_package = "github.com/elys-network/elys/x/amm/types";
 
@@ -38,6 +39,14 @@ service Query {
   // Queries a list of SwapEstimation items.
   rpc SwapEstimation (QuerySwapEstimationRequest) returns (QuerySwapEstimationResponse) {
     option (google.api.http).get = "/elys-network/elys/amm/swap_estimation";
+  }
+  // Queries JoinPool estimation
+  rpc JoinPoolEstimation (QueryJoinPoolEstimationRequest) returns (QueryJoinPoolEstimationResponse) {
+    option (google.api.http).get = "/elys-network/elys/amm/join_pool_estimation";
+  }
+  // Queries ExistPool estimation
+  rpc ExitPoolEstimation (QueryExitPoolEstimationRequest) returns (QueryExitPoolEstimationResponse) {
+    option (google.api.http).get = "/elys-network/elys/amm/exit_pool_estimation";
   }
   // Queries slippage track for a week.
   rpc SlippageTrack (QuerySlippageTrackRequest) returns (QuerySlippageTrackResponse) {
@@ -117,13 +126,36 @@ message QuerySwapEstimationRequest {
            string                   discount   = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
 }
 
+message QueryJoinPoolEstimationRequest {
+           uint64                   pool_id          = 1;
+  repeated cosmos.base.v1beta1.Coin amounts_in   = 2 [(gogoproto.nullable)   = false] ;
+}
+
+message QueryJoinPoolEstimationResponse {
+  cosmos.base.v1beta1.Coin share_amount_out = 1 [ (gogoproto.nullable) = false ];
+  repeated cosmos.base.v1beta1.Coin amounts_in = 2 [(gogoproto.nullable)   = false] ;
+  string slippage = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+  string weight_balance_ratio = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+}
+
+message QueryExitPoolEstimationRequest {
+           uint64                   pool_id         = 1;
+           string                   share_amount_in = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Int", (gogoproto.nullable) = false];
+           string                   token_out_denom = 3;
+}
+
+message QueryExitPoolEstimationResponse {
+  repeated cosmos.base.v1beta1.Coin amounts_out      = 1 [(gogoproto.nullable)   = false] ;
+}
+
 message QuerySwapEstimationResponse {
   string                   spot_price = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
   cosmos.base.v1beta1.Coin token_out  = 2 [(gogoproto.nullable)   = false                                   ] ;
   string                   swap_fee   = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
   string                   discount   = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
   cosmos.base.v1beta1.Coin available_liquidity  = 5 [(gogoproto.nullable)   = false];
-  string                   weight_balance_ratio = 6 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+  string                   slippage             = 6 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+  string                   weight_balance_ratio = 7 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
 }
 
 message QuerySlippageTrackRequest {
@@ -183,7 +215,8 @@ message QuerySwapEstimationByDenomResponse {
            string                   discount   = 6 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
            cosmos.base.v1beta1.Coin available_liquidity  = 7 [(gogoproto.nullable)   = false ] ;
            string                   weight_balance_ratio = 8 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
-           string price_impact = 9 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+           string slippage     = 9 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
+           string price_impact = 10 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec", (gogoproto.nullable) = false];
 }
 
 message QueryAMMPriceRequest {

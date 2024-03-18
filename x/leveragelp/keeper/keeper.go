@@ -96,7 +96,7 @@ func (k Keeper) EstimateSwapGivenOut(ctx sdk.Context, tokenOutAmount sdk.Coin, t
 	tokensOut := sdk.Coins{tokenOutAmount}
 	// Estimate swap
 	snapshot := k.amm.GetPoolSnapshotOrSet(ctx, ammPool)
-	swapResult, err := k.amm.CalcInAmtGivenOut(ctx, ammPool.PoolId, k.oracleKeeper, &snapshot, tokensOut, tokenInDenom, sdk.ZeroDec())
+	swapResult, _, err := k.amm.CalcInAmtGivenOut(ctx, ammPool.PoolId, k.oracleKeeper, &snapshot, tokensOut, tokenInDenom, sdk.ZeroDec())
 	if err != nil {
 		return sdk.ZeroInt(), err
 	}
@@ -122,7 +122,8 @@ func (k Keeper) CalculatePoolHealth(ctx sdk.Context, pool *types.Pool) sdk.Dec {
 		return sdk.OneDec()
 	}
 
-	return sdk.NewDecFromBigInt(pool.LeveragedLpAmount.BigInt()).Quo(sdk.NewDecFromBigInt(ammPool.TotalShares.Amount.BigInt()))
+	return sdk.NewDecFromBigInt(ammPool.TotalShares.Amount.Sub(pool.LeveragedLpAmount).BigInt()).
+		Quo(sdk.NewDecFromBigInt(ammPool.TotalShares.Amount.BigInt()))
 }
 
 func (k Keeper) TakeFundPayment(ctx sdk.Context, returnAmount math.Int, returnAsset string, takePercentage sdk.Dec, fundAddr sdk.AccAddress, ammPool *ammtypes.Pool) (math.Int, error) {

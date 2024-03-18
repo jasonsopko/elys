@@ -4,15 +4,17 @@ import (
 	"fmt"
 
 	"cosmossdk.io/errors"
+	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	ammtypes "github.com/elys-network/elys/x/amm/types"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"github.com/elys-network/elys/x/perpetual/types"
 )
 
-func BeginBlockerProcessMTP(ctx sdk.Context, k Keeper, mtp *types.MTP, pool types.Pool, ammPool ammtypes.Pool, baseCurrency string) error {
+func BeginBlockerProcessMTP(ctx sdk.Context, k Keeper, mtp *types.MTP, pool types.Pool, ammPool ammtypes.Pool, baseCurrency string, baseCurrencyDecimal uint64) error {
 	defer func() {
 		if r := recover(); r != nil {
 			if msg, ok := r.(string); ok {
@@ -59,18 +61,30 @@ func BeginBlockerProcessMTP(ctx sdk.Context, k Keeper, mtp *types.MTP, pool type
 		// flag position as must force close
 		mustForceClose = true
 	} else {
-		ctx.Logger().Error(errors.Wrap(types.ErrMTPHealthy, "skipping executing force close because mtp is healthy").Error())
+		ctx.Logger().Info(errors.Wrap(types.ErrMTPHealthy, "skipping executing force close because mtp is healthy").Error())
 	}
 
-	assetPrice, err := k.EstimateSwap(ctx, sdk.NewCoin(mtp.CustodyAsset, sdk.OneInt()), baseCurrency, ammPool)
+	entry, found := k.assetProfileKeeper.GetEntryByDenom(ctx, mtp.CustodyAsset)
+	if !found {
+		ctx.Logger().Error(errorsmod.Wrapf(assetprofiletypes.ErrAssetProfileNotFound, "asset %s not found", mtp.CustodyAsset).Error())
+	}
+	custodyAssetDecimals := entry.Decimals
+
+	oneToken := math.NewIntFromBigInt(math.LegacyNewDec(10).Power(uint64(custodyAssetDecimals)).TruncateInt().BigInt())
+
+	assetPrice, err := k.EstimateSwap(ctx, sdk.NewCoin(mtp.CustodyAsset, oneToken), baseCurrency, ammPool)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("error estimating swap: %s", mtp.CustodyAsset))
 	}
-	if types.ReachedTakeProfitPrice(mtp, assetPrice) {
+
+	// divide assetPrice by 10^baseCurrencyDecimal to get the actual price in decimal
+	assetPriceDec := math.LegacyNewDecFromBigInt(assetPrice.BigInt()).Quo(math.LegacyNewDec(10).Power(uint64(baseCurrencyDecimal)))
+
+	if types.ReachedTakeProfitPrice(mtp, assetPriceDec) {
 		// flag position as must force close
 		mustForceClose = true
 	} else {
-		ctx.Logger().Error(fmt.Sprintf("skipping force close on position %s because take profit price %s <> %s", mtp.String(), mtp.TakeProfitPrice.String(), assetPrice.String()))
+		ctx.Logger().Info(fmt.Sprintf("skipping force close on position %s because take profit price %s <> %s", mtp.String(), mtp.TakeProfitPrice.String(), assetPrice.String()))
 	}
 
 	// if flag is false, then skip force close

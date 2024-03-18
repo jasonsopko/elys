@@ -127,7 +127,7 @@ func (k Keeper) EstimateSwapGivenOut(ctx sdk.Context, tokenOutAmount sdk.Coin, t
 	tokensOut := sdk.Coins{tokenOutAmount}
 	// Estimate swap
 	snapshot := k.amm.GetPoolSnapshotOrSet(ctx, ammPool)
-	swapResult, err := k.amm.CalcInAmtGivenOut(ctx, ammPool.PoolId, k.oracleKeeper, &snapshot, tokensOut, tokenInDenom, sdk.ZeroDec())
+	swapResult, _, err := k.amm.CalcInAmtGivenOut(ctx, ammPool.PoolId, k.oracleKeeper, &snapshot, tokensOut, tokenInDenom, sdk.ZeroDec())
 	if err != nil {
 		return sdk.ZeroInt(), err
 	}
@@ -138,14 +138,23 @@ func (k Keeper) EstimateSwapGivenOut(ctx sdk.Context, tokenOutAmount sdk.Coin, t
 	return swapResult.Amount, nil
 }
 
-func (k Keeper) Borrow(ctx sdk.Context, collateralAmount math.Int, custodyAmount math.Int, mtp *types.MTP, ammPool *ammtypes.Pool, pool *types.Pool, eta sdk.Dec, baseCurrency string) error {
-	mtpAddress, err := sdk.AccAddressFromBech32(mtp.Address)
+func (k Keeper) Borrow(ctx sdk.Context, collateralAmount math.Int, custodyAmount math.Int, mtp *types.MTP, ammPool *ammtypes.Pool, pool *types.Pool, eta sdk.Dec, baseCurrency string, isBroker bool) error {
+	senderAddress, err := sdk.AccAddressFromBech32(mtp.Address)
 	if err != nil {
 		return err
 	}
+	// if isBroker is true, then retrieve broker address and assign it to senderAddress
+	if isBroker {
+		brokerAddress, err := sdk.AccAddressFromBech32(k.parameterKeeper.GetParams(ctx).BrokerAddress)
+		if err != nil {
+			return err
+		}
+		senderAddress = brokerAddress
+	}
+
 	collateralCoin := sdk.NewCoin(mtp.CollateralAsset, collateralAmount)
 
-	if !k.bankKeeper.HasBalance(ctx, mtpAddress, collateralCoin) {
+	if !k.bankKeeper.HasBalance(ctx, senderAddress, collateralCoin) {
 		return types.ErrBalanceNotAvailable
 	}
 
@@ -185,7 +194,7 @@ func (k Keeper) Borrow(ctx sdk.Context, collateralAmount math.Int, custodyAmount
 	// calculate mtp take profit custody, delta y_tp_c = delta x_l / take profit price (take profit custody = liabilities / take profit price)
 	mtp.TakeProfitCustody = types.CalcMTPTakeProfitCustody(mtp)
 
-	// calculate mtp take profit liablities, delta x_tp_l = delta y_tp_c * current price (take profit liabilities = take profit custody * current price)
+	// calculate mtp take profit liabilities, delta x_tp_l = delta y_tp_c * current price (take profit liabilities = take profit custody * current price)
 	mtp.TakeProfitLiabilities, err = k.CalcMTPTakeProfitLiability(ctx, mtp, baseCurrency)
 	if err != nil {
 		return err
@@ -205,7 +214,7 @@ func (k Keeper) Borrow(ctx sdk.Context, collateralAmount math.Int, custodyAmount
 	}
 
 	collateralCoins := sdk.NewCoins(collateralCoin)
-	err = k.bankKeeper.SendCoins(ctx, mtpAddress, ammPoolAddr, collateralCoins)
+	err = k.bankKeeper.SendCoins(ctx, senderAddress, ammPoolAddr, collateralCoins)
 
 	if err != nil {
 		return err
@@ -494,7 +503,7 @@ func (k Keeper) CheckMinLiabilities(ctx sdk.Context, collateralAmount sdk.Coin, 
 
 	borrowInterestNew := borrowInterestRational.Num().Quo(borrowInterestRational.Num(), borrowInterestRational.Denom())
 	samplePayment := sdk.NewInt(borrowInterestNew.Int64())
-	if samplePayment.IsZero() && !minBorrowInterestRate.IsZero() {
+	if samplePayment.IsZero() {
 		return types.ErrBorrowTooLow
 	}
 

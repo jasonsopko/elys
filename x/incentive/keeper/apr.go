@@ -38,41 +38,39 @@ func (k Keeper) CalculateApr(ctx sdk.Context, query *types.QueryAprRequest) (mat
 
 	if query.Denom == ptypes.Eden {
 		if query.WithdrawType == commitmenttypes.EarnType_USDC_PROGRAM {
-			totalUSDCDeposit := k.bankKeeper.GetBalance(ctx, stabletypes.PoolAddress(), baseCurrency)
-			if totalUSDCDeposit.Amount.IsZero() {
+			stableTvl := k.stableKeeper.TVL(ctx, k.oracleKeeper, baseCurrency)
+			if stableTvl.IsZero() {
 				return sdk.ZeroInt(), nil
 			}
 
 			// Calculate total Proxy TVL
 			totalProxyTVL := k.CalculateProxyTVL(ctx, baseCurrency)
 
-			// Calculate stable stake pool share.
-			poolShare := k.CalculatePoolShareForStableStakeLPs(ctx, totalProxyTVL, baseCurrency)
-
 			// Eden amount for LP in 24hrs = EpochNumBlocks is the number of block for 24 hrs
-			epochEdenAmount := lpIncentive.EdenAmountPerYear.Mul(lpIncentive.EpochNumBlocks).Quo(lpIncentive.TotalBlocksPerYear)
+			epochEdenAmount := lpIncentive.EdenAmountPerYear.
+				Mul(lpIncentive.EpochNumBlocks).
+				Quo(lpIncentive.TotalBlocksPerYear)
 
-			epochLpsMaxEdenAmount := params.MaxEdenRewardAprLps.Mul(totalProxyTVL).MulInt(lpIncentive.EpochNumBlocks).QuoInt(lpIncentive.TotalBlocksPerYear)
+			edenDenomPrice := k.GetEdenDenomPrice(ctx, baseCurrency)
+			epochLpsMaxEdenAmount := params.MaxEdenRewardAprLps.
+				Mul(totalProxyTVL).
+				MulInt(lpIncentive.EpochNumBlocks).
+				QuoInt(lpIncentive.TotalBlocksPerYear).
+				Quo(edenDenomPrice)
 
 			// Use min amount (eden allocation from tokenomics and max apr based eden amount)
 			epochEdenAmount = sdk.MinInt(epochEdenAmount, epochLpsMaxEdenAmount.TruncateInt())
 
 			// Eden amount for stable stake LP in 24hrs
-			epochStableStakeEdenAmount := sdk.NewDecFromInt(epochEdenAmount).Mul(poolShare)
-
-			// Calc Eden price in usdc
-			// We put Elys as denom as Eden won't be avaialble in amm pool and has the same value as Elys
-			// TODO: replace to use spot price
-			edenPrice := k.EstimatePrice(ctx, sdk.NewCoin(ptypes.Elys, sdk.NewInt(100000)), baseCurrency)
+			stableStakePoolShare := k.CalculatePoolShareForStableStakeLPs(ctx, totalProxyTVL, baseCurrency)
+			epochStableStakeEdenAmount := sdk.NewDecFromInt(epochEdenAmount).Mul(stableStakePoolShare)
 
 			// Eden Apr for usdc earn program = {(Eden allocated for stable stake pool per day*365*price{eden/usdc}/(total usdc deposit)}*100
-			// we divide 100000 as we have use 100000elys as input in the price estimation
 			apr := epochStableStakeEdenAmount.
 				MulInt(sdk.NewInt(ptypes.DaysPerYear)).
-				MulInt(edenPrice).
+				Mul(edenDenomPrice).
 				MulInt(sdk.NewInt(100)).
-				QuoInt(totalUSDCDeposit.Amount).
-				QuoInt(sdk.NewInt(100000))
+				Quo(stableTvl)
 			return apr.TruncateInt(), nil
 		} else {
 			// Elys staking, Eden committed, EdenB committed.
@@ -112,7 +110,11 @@ func (k Keeper) CalculateApr(ctx sdk.Context, query *types.QueryAprRequest) (mat
 	} else if query.Denom == ptypes.BaseCurrency {
 		if query.WithdrawType == commitmenttypes.EarnType_USDC_PROGRAM {
 			params := k.stableKeeper.GetParams(ctx)
-			apr := params.InterestRate.MulInt(sdk.NewInt(100))
+			res, err := k.stableKeeper.BorrowRatio(ctx, &stabletypes.QueryBorrowRatioRequest{})
+			if err != nil {
+				return sdk.ZeroInt(), err
+			}
+			apr := params.InterestRate.Mul(res.BorrowRatio).MulInt(sdk.NewInt(100))
 			return apr.TruncateInt(), nil
 		} else {
 			// Elys staking, Eden committed, EdenB committed.
@@ -129,7 +131,7 @@ func (k Keeper) CalculateApr(ctx sdk.Context, query *types.QueryAprRequest) (mat
 
 			// Calc Eden price in usdc
 			// We put Elys as denom as Eden won't be avaialble in amm pool and has the same value as Elys
-			edenPrice := k.EstimatePrice(ctx, sdk.NewCoin(ptypes.Elys, sdk.NewInt(1000000)), baseCurrency)
+			edenPrice := k.EstimatePrice(ctx, ptypes.Elys, baseCurrency)
 			if edenPrice.IsZero() {
 				return sdk.ZeroInt(), nil
 			}
@@ -152,8 +154,7 @@ func (k Keeper) CalculateApr(ctx sdk.Context, query *types.QueryAprRequest) (mat
 			apr := dailyDexRewardAmount.
 				MulInt(sdk.NewInt(ptypes.DaysPerYear)).
 				MulInt(sdk.NewInt(100)).
-				MulInt(sdk.NewInt(1000000)).
-				QuoInt(edenPrice).
+				Quo(edenPrice).
 				QuoInt(totalStakedSnapshot)
 
 			return apr.TruncateInt(), nil

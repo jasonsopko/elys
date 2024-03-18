@@ -37700,6 +37700,67 @@ paths:
           type: string
       tags:
         - Query
+  /elys-network/elys/amm/exit_pool_estimation:
+    get:
+      summary: Queries ExistPool estimation
+      operationId: ElysAmmExitPoolEstimation
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              amounts_out:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    denom:
+                      type: string
+                    amount:
+                      type: string
+                  description: >-
+                    Coin defines a token with a denomination and an amount.
+
+
+                    NOTE: The amount field is an Int which implements the custom
+                    method
+
+                    signatures required by gogoproto.
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: pool_id
+          in: query
+          required: false
+          type: string
+          format: uint64
+        - name: share_amount_in
+          in: query
+          required: false
+          type: string
+        - name: token_out_denom
+          in: query
+          required: false
+          type: string
+      tags:
+        - Query
   /elys-network/elys/amm/in_route_by_denom/{denom_in}/{denom_out}:
     get:
       summary: Queries a list of InRouteByDenom items.
@@ -37747,6 +37808,78 @@ paths:
           in: path
           required: true
           type: string
+      tags:
+        - Query
+  /elys-network/elys/amm/join_pool_estimation:
+    get:
+      summary: Queries JoinPool estimation
+      operationId: ElysAmmJoinPoolEstimation
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              share_amount_out:
+                type: object
+                properties:
+                  denom:
+                    type: string
+                  amount:
+                    type: string
+                description: >-
+                  Coin defines a token with a denomination and an amount.
+
+
+                  NOTE: The amount field is an Int which implements the custom
+                  method
+
+                  signatures required by gogoproto.
+              amounts_in:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    denom:
+                      type: string
+                    amount:
+                      type: string
+                  description: >-
+                    Coin defines a token with a denomination and an amount.
+
+
+                    NOTE: The amount field is an Int which implements the custom
+                    method
+
+                    signatures required by gogoproto.
+              slippage:
+                type: string
+              weight_balance_ratio:
+                type: string
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: pool_id
+          in: query
+          required: false
+          type: string
+          format: uint64
       tags:
         - Query
   /elys-network/elys/amm/out_route_by_denom/{denom_out}/{denom_in}:
@@ -38301,6 +38434,8 @@ paths:
                   method
 
                   signatures required by gogoproto.
+              slippage:
+                type: string
               weight_balance_ratio:
                 type: string
         default:
@@ -38403,6 +38538,8 @@ paths:
 
                   signatures required by gogoproto.
               weight_balance_ratio:
+                type: string
+              slippage:
                 type: string
               price_impact:
                 type: string
@@ -39825,6 +39962,55 @@ paths:
                   additionalProperties: {}
       tags:
         - Query
+  /elys-network/elys/incentive/pool_aprs:
+    get:
+      summary: Calculate liquidity mining pool APRs
+      operationId: ElysIncentivePoolAprs
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pool_id:
+                      type: string
+                      format: uint64
+                    apr:
+                      type: string
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: pool_ids
+          in: query
+          required: false
+          type: array
+          items:
+            type: string
+            format: uint64
+          collectionFormat: multi
+      tags:
+        - Query
   /elys-network/elys/leveragelp/is-whitelisted:
     get:
       summary: Queries a list of IsWhitelisted items.
@@ -41054,6 +41240,9 @@ paths:
                   price_expiry_time:
                     type: string
                     format: uint64
+                  life_time_in_blocks:
+                    type: string
+                    format: uint64
             description: >-
               QueryParamsResponse is response type for the Query/Params RPC
               method.
@@ -41101,6 +41290,9 @@ paths:
                     provider:
                       type: string
                     timestamp:
+                      type: string
+                      format: uint64
+                    block_height:
                       type: string
                       format: uint64
               pagination:
@@ -42096,6 +42288,8 @@ paths:
                 type: string
               estimated_pnl:
                 type: string
+              estimated_pnl_denom:
+                type: string
               available_liquidity:
                 type: object
                 properties:
@@ -42111,6 +42305,8 @@ paths:
                   method
 
                   signatures required by gogoproto.
+              slippage:
+                type: string
               weight_balance_ratio:
                 type: string
               borrow_interest_rate:
@@ -82888,6 +83084,23 @@ definitions:
 
           NOTE: The amount field is an Int which implements the custom method
           signatures required by gogoproto.
+  elys.amm.QueryExitPoolEstimationResponse:
+    type: object
+    properties:
+      amounts_out:
+        type: array
+        items:
+          type: object
+          properties:
+            denom:
+              type: string
+            amount:
+              type: string
+          description: |-
+            Coin defines a token with a denomination and an amount.
+
+            NOTE: The amount field is an Int which implements the custom method
+            signatures required by gogoproto.
   elys.amm.QueryGetDenomLiquidityResponse:
     type: object
     properties:
@@ -82985,6 +83198,39 @@ definitions:
               format: uint64
             token_out_denom:
               type: string
+  elys.amm.QueryJoinPoolEstimationResponse:
+    type: object
+    properties:
+      share_amount_out:
+        type: object
+        properties:
+          denom:
+            type: string
+          amount:
+            type: string
+        description: |-
+          Coin defines a token with a denomination and an amount.
+
+          NOTE: The amount field is an Int which implements the custom method
+          signatures required by gogoproto.
+      amounts_in:
+        type: array
+        items:
+          type: object
+          properties:
+            denom:
+              type: string
+            amount:
+              type: string
+          description: |-
+            Coin defines a token with a denomination and an amount.
+
+            NOTE: The amount field is an Int which implements the custom method
+            signatures required by gogoproto.
+      slippage:
+        type: string
+      weight_balance_ratio:
+        type: string
   elys.amm.QueryOutRouteByDenomResponse:
     type: object
     properties:
@@ -83124,6 +83370,8 @@ definitions:
           signatures required by gogoproto.
       weight_balance_ratio:
         type: string
+      slippage:
+        type: string
       price_impact:
         type: string
   elys.amm.QuerySwapEstimationResponse:
@@ -83159,6 +83407,8 @@ definitions:
 
           NOTE: The amount field is an Int which implements the custom method
           signatures required by gogoproto.
+      slippage:
+        type: string
       weight_balance_ratio:
         type: string
   elys.amm.SwapAmountInRoute:
@@ -84308,6 +84558,14 @@ definitions:
           Distribution interval in blocks - number of blocks on distribution
           epoch
     description: Params defines the parameters for the module.
+  elys.incentive.PoolApr:
+    type: object
+    properties:
+      pool_id:
+        type: string
+        format: uint64
+      apr:
+        type: string
   elys.incentive.PoolInfo:
     type: object
     properties:
@@ -84524,6 +84782,19 @@ definitions:
               Distribution interval in blocks - number of blocks on distribution
               epoch
     description: QueryParamsResponse is response type for the Query/Params RPC method.
+  elys.incentive.QueryPoolAprsResponse:
+    type: object
+    properties:
+      data:
+        type: array
+        items:
+          type: object
+          properties:
+            pool_id:
+              type: string
+              format: uint64
+            apr:
+              type: string
   elys.leveragelp.IsWhitelistedResponse:
     type: object
     properties:
@@ -85027,13 +85298,23 @@ definitions:
         items:
           type: string
           format: uint64
+  elys.oracle.MsgAddAssetInfoResponse:
+    type: object
+  elys.oracle.MsgAddPriceFeedersResponse:
+    type: object
   elys.oracle.MsgDeletePriceFeederResponse:
     type: object
   elys.oracle.MsgFeedMultiplePricesResponse:
     type: object
   elys.oracle.MsgFeedPriceResponse:
     type: object
+  elys.oracle.MsgRemoveAssetInfoResponse:
+    type: object
+  elys.oracle.MsgRemovePriceFeedersResponse:
+    type: object
   elys.oracle.MsgSetPriceFeederResponse:
+    type: object
+  elys.oracle.MsgUpdateParamsResponse:
     type: object
   elys.oracle.Params:
     type: object
@@ -85079,6 +85360,9 @@ definitions:
       price_expiry_time:
         type: string
         format: uint64
+      life_time_in_blocks:
+        type: string
+        format: uint64
     description: Params defines the parameters for the module.
   elys.oracle.Price:
     type: object
@@ -85092,6 +85376,9 @@ definitions:
       provider:
         type: string
       timestamp:
+        type: string
+        format: uint64
+      block_height:
         type: string
         format: uint64
   elys.oracle.PriceFeeder:
@@ -85203,6 +85490,9 @@ definitions:
             timestamp:
               type: string
               format: uint64
+            block_height:
+              type: string
+              format: uint64
       pagination:
         type: object
         properties:
@@ -85284,6 +85574,9 @@ definitions:
           timestamp:
             type: string
             format: uint64
+          block_height:
+            type: string
+            format: uint64
   elys.oracle.QueryLastBandRequestIdResponse:
     type: object
     properties:
@@ -85339,6 +85632,9 @@ definitions:
           band_epoch:
             type: string
           price_expiry_time:
+            type: string
+            format: uint64
+          life_time_in_blocks:
             type: string
             format: uint64
     description: QueryParamsResponse is response type for the Query/Params RPC method.
@@ -86241,6 +86537,8 @@ definitions:
         type: string
       estimated_pnl:
         type: string
+      estimated_pnl_denom:
+        type: string
       available_liquidity:
         type: object
         properties:
@@ -86253,6 +86551,8 @@ definitions:
 
           NOTE: The amount field is an Int which implements the custom method
           signatures required by gogoproto.
+      slippage:
+        type: string
       weight_balance_ratio:
         type: string
       borrow_interest_rate:

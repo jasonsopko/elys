@@ -26,8 +26,8 @@ type AmmKeeper interface {
 	IterateLiquidityPools(sdk.Context, func(ammtypes.Pool) bool)
 	GetPoolSnapshotOrSet(ctx sdk.Context, pool ammtypes.Pool) (val ammtypes.Pool)
 
-	CalcOutAmtGivenIn(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensIn sdk.Coins, tokenOutDenom string, swapFee sdk.Dec) (sdk.Coin, error)
-	CalcInAmtGivenOut(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensOut sdk.Coins, tokenInDenom string, swapFee sdk.Dec) (tokenIn sdk.Coin, err error)
+	CalcOutAmtGivenIn(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensIn sdk.Coins, tokenOutDenom string, swapFee sdk.Dec) (sdk.Coin, sdk.Dec, error)
+	CalcInAmtGivenOut(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensOut sdk.Coins, tokenInDenom string, swapFee sdk.Dec) (tokenIn sdk.Coin, slippage sdk.Dec, err error)
 	JoinPoolNoSwap(ctx sdk.Context, sender sdk.AccAddress, poolId uint64, shareOutAmount math.Int, tokenInMaxs sdk.Coins) (tokenIn sdk.Coins, sharesOut math.Int, err error)
 	ExitPool(ctx sdk.Context, sender sdk.AccAddress, poolId uint64, shareInAmount math.Int, tokenOutMins sdk.Coins, tokenOutDenom string) (exitCoins sdk.Coins, err error)
 }
@@ -53,10 +53,12 @@ type BankKeeper interface {
 // StableStakeKeeper defines the expected interface needed on stablestake
 type StableStakeKeeper interface {
 	GetParams(ctx sdk.Context) stablestaketypes.Params
+	GetDepositDenom(ctx sdk.Context) string
 	GetDebt(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
 	UpdateInterestStackedByAddress(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
 	Borrow(ctx sdk.Context, addr sdk.AccAddress, amount sdk.Coin) error
 	Repay(ctx sdk.Context, addr sdk.AccAddress, amount sdk.Coin) error
+	TVL(ctx sdk.Context, oracleKeeper stablestaketypes.OracleKeeper, baseCurrency string) math.LegacyDec
 }
 
 type CommitmentKeeper interface {
