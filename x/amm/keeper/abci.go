@@ -172,9 +172,10 @@ func (k Keeper) ExecuteSwapRequests(ctx sdk.Context) []sdk.Msg {
 }
 
 func (k Keeper) ClearOutdatedSlippageTrack(ctx sdk.Context) {
+	params := k.GetParams(ctx)
 	tracks := k.AllSlippageTracks(ctx)
 	for _, track := range tracks {
-		if track.Timestamp+86400*7 < uint64(ctx.BlockTime().Unix()) {
+		if track.Timestamp+params.SlippageTrackDuration < uint64(ctx.BlockTime().Unix()) {
 			k.DeleteSlippageTrack(ctx, track)
 		}
 	}
@@ -187,7 +188,7 @@ func (k Keeper) EndBlocker(ctx sdk.Context) {
 	msgs := k.ExecuteSwapRequests(ctx)
 	if len(msgs) > 0 {
 		bz, _ := json.Marshal(msgs)
-		k.Logger(ctx).Info("Executed swap requests: " + string(bz))
+		k.Logger(ctx).Debug("Executed swap requests: " + string(bz))
 	}
 
 	k.ClearOutdatedSlippageTrack(ctx)

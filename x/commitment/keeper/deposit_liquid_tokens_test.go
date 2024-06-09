@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simapp "github.com/elys-network/elys/app"
-	aptypes "github.com/elys-network/elys/x/assetprofile/types"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"github.com/elys-network/elys/x/commitment/types"
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 	"github.com/stretchr/testify/require"
@@ -33,7 +33,7 @@ func TestDepositLiquidTokens(t *testing.T) {
 	creator := addr[0]
 
 	// Set assetprofile entry for denom
-	app.AssetprofileKeeper.SetEntry(ctx, aptypes.Entry{BaseDenom: ptypes.Eden, CommitEnabled: true})
+	app.AssetprofileKeeper.SetEntry(ctx, assetprofiletypes.Entry{BaseDenom: ptypes.Eden, CommitEnabled: true})
 
 	// Set up the commitments for the creator
 	commitments := types.Commitments{
@@ -44,8 +44,7 @@ func TestDepositLiquidTokens(t *testing.T) {
 				Amount: sdk.NewInt(50),
 			},
 		},
-		RewardsUnclaimed: sdk.Coins{},
-		Claimed:          sdk.Coins{sdk.NewCoin(ptypes.Eden, sdk.NewInt(150))},
+		Claimed: sdk.Coins{sdk.NewCoin(ptypes.Eden, sdk.NewInt(150))},
 	}
 	keeper.SetCommitments(ctx, commitments)
 

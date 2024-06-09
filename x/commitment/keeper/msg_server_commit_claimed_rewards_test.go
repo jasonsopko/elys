@@ -3,11 +3,12 @@ package keeper_test
 import (
 	"testing"
 
+	"github.com/cometbft/cometbft/crypto/ed25519"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/elys-network/elys/app"
-	aptypes "github.com/elys-network/elys/x/assetprofile/types"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	commitmentkeeper "github.com/elys-network/elys/x/commitment/keeper"
 	"github.com/elys-network/elys/x/commitment/types"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestCommitClaimedRewards(t *testing.T) {
 	msgServer := commitmentkeeper.NewMsgServerImpl(keeper)
 
 	// Define the test data
-	creator := "test_creator"
+	creator := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address()).String()
 	denom := "test_denom"
 	initialUnclaimed := sdk.NewInt(500)
 	commitAmount := sdk.NewInt(100)
@@ -32,15 +33,14 @@ func TestCommitClaimedRewards(t *testing.T) {
 	// Set up initial commitments object with sufficient unclaimed tokens
 	rewardsClaimed := sdk.NewCoin(denom, initialUnclaimed)
 	initialCommitments := types.Commitments{
-		Creator:          creator,
-		RewardsUnclaimed: sdk.Coins{},
-		Claimed:          sdk.Coins{rewardsClaimed},
+		Creator: creator,
+		Claimed: sdk.Coins{rewardsClaimed},
 	}
 
 	keeper.SetCommitments(ctx, initialCommitments)
 
 	// Set assetprofile entry for denom
-	app.AssetprofileKeeper.SetEntry(ctx, aptypes.Entry{BaseDenom: denom, CommitEnabled: true})
+	app.AssetprofileKeeper.SetEntry(ctx, assetprofiletypes.Entry{BaseDenom: denom, CommitEnabled: true})
 
 	// Call the CommitClaimedRewards function
 	msg := types.MsgCommitClaimedRewards{

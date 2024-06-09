@@ -36,6 +36,13 @@ func (oq *Querier) queryStakedPositions(ctx sdk.Context, query *commitmenttypes.
 }
 
 func (oq *Querier) BuildStakedPositionResponseCW(ctx sdk.Context, validators []stakingtypes.Validator, totalBonded cosmos_sdk_math.Int, delegatorAddress string) []commitmenttypes.StakedPosition {
+	edenDenomPrice := sdk.ZeroDec()
+
+	baseCurrency, found := oq.assetKeeper.GetUsdcDenom(ctx)
+	if found {
+		edenDenomPrice = oq.ammKeeper.GetEdenDenomPrice(ctx, baseCurrency)
+	}
+
 	var stakedPositions []commitmenttypes.StakedPosition
 	for i, validator := range validators {
 		var stakedPosition commitmenttypes.StakedPosition
@@ -75,7 +82,7 @@ func (oq *Querier) BuildStakedPositionResponseCW(ctx sdk.Context, validators []s
 		}
 		stakedPosition.Staked = commitmenttypes.BalanceAvailable{
 			Amount:    delAmount,
-			UsdAmount: tokens,
+			UsdAmount: edenDenomPrice.Mul(tokens),
 		}
 
 		stakedPositions = append(stakedPositions, stakedPosition)

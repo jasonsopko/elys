@@ -26,10 +26,11 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Params defines the parameters for the module.
 type Params struct {
-	MinCommissionRate github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,1,opt,name=min_commission_rate,json=minCommissionRate,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_commission_rate"`
-	MaxVotingPower    github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=max_voting_power,json=maxVotingPower,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"max_voting_power"`
-	MinSelfDelegation github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,3,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"min_self_delegation"`
-	BrokerAddress     string                                 `protobuf:"bytes,4,opt,name=broker_address,json=brokerAddress,proto3" json:"broker_address,omitempty"`
+	MinCommissionRate  github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,1,opt,name=min_commission_rate,json=minCommissionRate,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_commission_rate"`
+	MaxVotingPower     github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=max_voting_power,json=maxVotingPower,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"max_voting_power"`
+	MinSelfDelegation  github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,3,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"min_self_delegation"`
+	BrokerAddress      string                                 `protobuf:"bytes,4,opt,name=broker_address,json=brokerAddress,proto3" json:"broker_address,omitempty"`
+	TotalBlocksPerYear int64                                  `protobuf:"varint,5,opt,name=total_blocks_per_year,json=totalBlocksPerYear,proto3" json:"total_blocks_per_year,omitempty"`
 }
 
 func (m *Params) Reset()      { *m = Params{} }
@@ -71,34 +72,92 @@ func (m *Params) GetBrokerAddress() string {
 	return ""
 }
 
+func (m *Params) GetTotalBlocksPerYear() int64 {
+	if m != nil {
+		return m.TotalBlocksPerYear
+	}
+	return 0
+}
+
+type LegacyParams struct {
+	MinCommissionRate github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,1,opt,name=min_commission_rate,json=minCommissionRate,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_commission_rate"`
+	MaxVotingPower    github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=max_voting_power,json=maxVotingPower,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"max_voting_power"`
+	MinSelfDelegation github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,3,opt,name=min_self_delegation,json=minSelfDelegation,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"min_self_delegation"`
+	BrokerAddress     string                                 `protobuf:"bytes,4,opt,name=broker_address,json=brokerAddress,proto3" json:"broker_address,omitempty"`
+}
+
+func (m *LegacyParams) Reset()      { *m = LegacyParams{} }
+func (*LegacyParams) ProtoMessage() {}
+func (*LegacyParams) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b61780a5be327c2b, []int{1}
+}
+func (m *LegacyParams) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *LegacyParams) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_LegacyParams.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *LegacyParams) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LegacyParams.Merge(m, src)
+}
+func (m *LegacyParams) XXX_Size() int {
+	return m.Size()
+}
+func (m *LegacyParams) XXX_DiscardUnknown() {
+	xxx_messageInfo_LegacyParams.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LegacyParams proto.InternalMessageInfo
+
+func (m *LegacyParams) GetBrokerAddress() string {
+	if m != nil {
+		return m.BrokerAddress
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterType((*Params)(nil), "elys.parameter.Params")
+	proto.RegisterType((*LegacyParams)(nil), "elys.parameter.LegacyParams")
 }
 
 func init() { proto.RegisterFile("elys/parameter/params.proto", fileDescriptor_b61780a5be327c2b) }
 
 var fileDescriptor_b61780a5be327c2b = []byte{
-	// 316 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x91, 0x31, 0x4b, 0xc3, 0x40,
-	0x14, 0xc7, 0x93, 0x5a, 0x0a, 0x06, 0x2c, 0x1a, 0x1d, 0x82, 0x42, 0x2a, 0x82, 0xe2, 0xd2, 0xcb,
-	0xe0, 0xe6, 0x66, 0xed, 0xa0, 0x5b, 0xa9, 0x20, 0xe2, 0xe0, 0x71, 0x4d, 0x5e, 0xe3, 0xd1, 0xdc,
-	0xbd, 0x70, 0x77, 0xda, 0xf6, 0x5b, 0x38, 0x3a, 0xfa, 0x71, 0xba, 0xd9, 0x51, 0x1c, 0x8a, 0xb4,
-	0x5f, 0x44, 0x72, 0xd1, 0xd0, 0x55, 0xa7, 0x7b, 0xf7, 0xfe, 0x77, 0x3f, 0x7e, 0xf0, 0xf7, 0x0e,
-	0x20, 0x9b, 0xea, 0x28, 0x67, 0x8a, 0x09, 0x30, 0xa0, 0xca, 0x49, 0x93, 0x5c, 0xa1, 0x41, 0xbf,
-	0x59, 0x84, 0xa4, 0x0a, 0xf7, 0xf7, 0x52, 0x4c, 0xd1, 0x46, 0x51, 0x31, 0x95, 0xaf, 0x8e, 0xde,
-	0x6b, 0x5e, 0xa3, 0x67, 0xbf, 0xf9, 0x0f, 0xde, 0xae, 0xe0, 0x92, 0xc6, 0x28, 0x04, 0xd7, 0x9a,
-	0xa3, 0xa4, 0x8a, 0x19, 0x08, 0xdc, 0x43, 0xf7, 0x74, 0xb3, 0x43, 0x66, 0x8b, 0x96, 0xf3, 0xb9,
-	0x68, 0x9d, 0xa4, 0xdc, 0x3c, 0x3e, 0x0d, 0x48, 0x8c, 0x22, 0x8a, 0x51, 0x0b, 0xd4, 0x3f, 0x47,
-	0x5b, 0x27, 0xa3, 0xc8, 0x4c, 0x73, 0xd0, 0xa4, 0x0b, 0x71, 0x7f, 0x47, 0x70, 0x79, 0x59, 0x91,
-	0xfa, 0xcc, 0x80, 0x7f, 0xe7, 0x6d, 0x0b, 0x36, 0xa1, 0xcf, 0x68, 0xb8, 0x4c, 0x69, 0x8e, 0x63,
-	0x50, 0x41, 0xed, 0x5f, 0xf0, 0xa6, 0x60, 0x93, 0x5b, 0x8b, 0xe9, 0x15, 0x94, 0x5f, 0x73, 0x0d,
-	0xd9, 0x90, 0x26, 0x90, 0x41, 0xca, 0x0c, 0x47, 0x19, 0x6c, 0xfc, 0x19, 0x7e, 0x2d, 0x8d, 0x35,
-	0xbf, 0x81, 0x6c, 0xd8, 0xad, 0x40, 0xfe, 0xb1, 0xd7, 0x1c, 0x28, 0x1c, 0x81, 0xa2, 0x2c, 0x49,
-	0x14, 0x68, 0x1d, 0xd4, 0x0b, 0x74, 0x7f, 0xab, 0xdc, 0x5e, 0x94, 0xcb, 0xf3, 0xfa, 0xeb, 0x5b,
-	0xcb, 0xe9, 0x5c, 0xcd, 0x96, 0xa1, 0x3b, 0x5f, 0x86, 0xee, 0xd7, 0x32, 0x74, 0x5f, 0x56, 0xa1,
-	0x33, 0x5f, 0x85, 0xce, 0xc7, 0x2a, 0x74, 0xee, 0xc9, 0x9a, 0x41, 0x51, 0x4e, 0x5b, 0x82, 0x19,
-	0xa3, 0x1a, 0xd9, 0x4b, 0x34, 0x59, 0x2b, 0xd2, 0xda, 0x0c, 0x1a, 0xb6, 0xa2, 0xb3, 0xef, 0x00,
-	0x00, 0x00, 0xff, 0xff, 0xe2, 0x79, 0x2a, 0x74, 0xe7, 0x01, 0x00, 0x00,
+	// 378 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x93, 0x41, 0x4b, 0xe3, 0x40,
+	0x14, 0xc7, 0x93, 0xb6, 0x5b, 0xd8, 0xb0, 0x5b, 0x76, 0xb3, 0xbb, 0x10, 0x76, 0x21, 0x2d, 0x85,
+	0x5d, 0x7a, 0x69, 0xc2, 0xe2, 0xcd, 0x9b, 0xb5, 0x07, 0x05, 0x0f, 0x25, 0x82, 0xa8, 0x07, 0x87,
+	0x49, 0xf2, 0x1a, 0x43, 0x32, 0x79, 0x61, 0x66, 0xb4, 0xcd, 0xd5, 0x4f, 0xe0, 0xd1, 0xa3, 0x1f,
+	0xa7, 0xc7, 0x5e, 0x04, 0xf1, 0x50, 0xa4, 0xfd, 0x22, 0x92, 0x89, 0x96, 0x5e, 0x15, 0x8f, 0x9e,
+	0xe6, 0xcd, 0xfb, 0xcf, 0xfc, 0xf8, 0xf3, 0x1e, 0x7f, 0xe3, 0x0f, 0xa4, 0x85, 0x70, 0x73, 0xca,
+	0x29, 0x03, 0x09, 0xbc, 0xaa, 0x84, 0x93, 0x73, 0x94, 0x68, 0xb6, 0x4a, 0xd1, 0x59, 0x8b, 0xbf,
+	0x7f, 0x46, 0x18, 0xa1, 0x92, 0xdc, 0xb2, 0xaa, 0x5e, 0x75, 0xaf, 0xea, 0x46, 0x73, 0xa4, 0xbe,
+	0x99, 0x67, 0xc6, 0x0f, 0x16, 0x67, 0x24, 0x40, 0xc6, 0x62, 0x21, 0x62, 0xcc, 0x08, 0xa7, 0x12,
+	0x2c, 0xbd, 0xa3, 0xf7, 0x3e, 0x0f, 0x9c, 0xd9, 0xa2, 0xad, 0x3d, 0x2c, 0xda, 0xff, 0xa2, 0x58,
+	0x9e, 0x5f, 0xf8, 0x4e, 0x80, 0xcc, 0x0d, 0x50, 0x30, 0x14, 0xcf, 0x47, 0x5f, 0x84, 0x89, 0x2b,
+	0x8b, 0x1c, 0x84, 0x33, 0x84, 0xc0, 0xfb, 0xce, 0xe2, 0x6c, 0x77, 0x4d, 0xf2, 0xa8, 0x04, 0xf3,
+	0xd8, 0xf8, 0xc6, 0xe8, 0x94, 0x5c, 0xa2, 0x8c, 0xb3, 0x88, 0xe4, 0x38, 0x01, 0x6e, 0xd5, 0xde,
+	0x04, 0x6f, 0x31, 0x3a, 0x3d, 0x52, 0x98, 0x51, 0x49, 0x79, 0x71, 0x2e, 0x20, 0x1d, 0x93, 0x10,
+	0x52, 0x88, 0xa8, 0x8c, 0x31, 0xb3, 0xea, 0xaf, 0x86, 0xef, 0x67, 0x52, 0x39, 0x3f, 0x84, 0x74,
+	0x3c, 0x5c, 0x83, 0xcc, 0xbf, 0x46, 0xcb, 0xe7, 0x98, 0x00, 0x27, 0x34, 0x0c, 0x39, 0x08, 0x61,
+	0x35, 0x4a, 0xb4, 0xf7, 0xb5, 0xea, 0xee, 0x54, 0x4d, 0xf3, 0xbf, 0xf1, 0x4b, 0xa2, 0xa4, 0x29,
+	0xf1, 0x53, 0x0c, 0x12, 0x41, 0x72, 0xe0, 0xa4, 0x00, 0xca, 0xad, 0x4f, 0x1d, 0xbd, 0x57, 0xf7,
+	0x4c, 0x25, 0x0e, 0x94, 0x36, 0x02, 0x7e, 0x02, 0x94, 0x6f, 0x37, 0x6e, 0x6e, 0xdb, 0x5a, 0xf7,
+	0xae, 0x66, 0x7c, 0x39, 0x80, 0x88, 0x06, 0xc5, 0xc7, 0x2a, 0xde, 0x65, 0x15, 0xd5, 0x5c, 0x07,
+	0x7b, 0xb3, 0xa5, 0xad, 0xcf, 0x97, 0xb6, 0xfe, 0xb8, 0xb4, 0xf5, 0xeb, 0x95, 0xad, 0xcd, 0x57,
+	0xb6, 0x76, 0xbf, 0xb2, 0xb5, 0x53, 0x67, 0xc3, 0x41, 0x99, 0x93, 0x7e, 0x06, 0x72, 0x82, 0x3c,
+	0x51, 0x17, 0x77, 0xba, 0x91, 0x29, 0xe5, 0xc6, 0x6f, 0xaa, 0xb4, 0x6c, 0x3d, 0x05, 0x00, 0x00,
+	0xff, 0xff, 0x48, 0x4f, 0x3f, 0x9c, 0x72, 0x03, 0x00, 0x00,
 }
 
 func (m *Params) Marshal() (dAtA []byte, err error) {
@@ -117,6 +176,71 @@ func (m *Params) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.TotalBlocksPerYear != 0 {
+		i = encodeVarintParams(dAtA, i, uint64(m.TotalBlocksPerYear))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.BrokerAddress) > 0 {
+		i -= len(m.BrokerAddress)
+		copy(dAtA[i:], m.BrokerAddress)
+		i = encodeVarintParams(dAtA, i, uint64(len(m.BrokerAddress)))
+		i--
+		dAtA[i] = 0x22
+	}
+	{
+		size := m.MinSelfDelegation.Size()
+		i -= size
+		if _, err := m.MinSelfDelegation.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintParams(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	{
+		size := m.MaxVotingPower.Size()
+		i -= size
+		if _, err := m.MaxVotingPower.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintParams(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	{
+		size := m.MinCommissionRate.Size()
+		i -= size
+		if _, err := m.MinCommissionRate.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintParams(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *LegacyParams) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *LegacyParams) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *LegacyParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -188,6 +312,28 @@ func (m *Params) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovParams(uint64(l))
 	}
+	if m.TotalBlocksPerYear != 0 {
+		n += 1 + sovParams(uint64(m.TotalBlocksPerYear))
+	}
+	return n
+}
+
+func (m *LegacyParams) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.MinCommissionRate.Size()
+	n += 1 + l + sovParams(uint64(l))
+	l = m.MaxVotingPower.Size()
+	n += 1 + l + sovParams(uint64(l))
+	l = m.MinSelfDelegation.Size()
+	n += 1 + l + sovParams(uint64(l))
+	l = len(m.BrokerAddress)
+	if l > 0 {
+		n += 1 + l + sovParams(uint64(l))
+	}
 	return n
 }
 
@@ -224,6 +370,209 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: Params: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinCommissionRate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MinCommissionRate.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxVotingPower", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MaxVotingPower.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinSelfDelegation", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.MinSelfDelegation.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BrokerAddress", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthParams
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BrokerAddress = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalBlocksPerYear", wireType)
+			}
+			m.TotalBlocksPerYear = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.TotalBlocksPerYear |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipParams(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthParams
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *LegacyParams) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowParams
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: LegacyParams: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: LegacyParams: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

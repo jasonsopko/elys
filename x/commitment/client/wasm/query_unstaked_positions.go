@@ -35,6 +35,12 @@ func (oq *Querier) queryUnStakedPositions(ctx sdk.Context, query *commitmenttype
 }
 
 func (oq *Querier) BuildUnStakedPositionResponseCW(ctx sdk.Context, unbondingDelegations []stakingtypes.UnbondingDelegation, totalBonded cosmos_sdk_math.Int, delegatorAddress string) []commitmenttypes.UnstakedPosition {
+	edenDenomPrice := sdk.ZeroDec()
+	baseCurrency, found := oq.assetKeeper.GetUsdcDenom(ctx)
+	if found {
+		edenDenomPrice = oq.ammKeeper.GetEdenDenomPrice(ctx, baseCurrency)
+	}
+
 	var unstakedPositions []commitmenttypes.UnstakedPosition
 	i := 1
 	for _, undelegation := range unbondingDelegations {
@@ -70,7 +76,7 @@ func (oq *Querier) BuildUnStakedPositionResponseCW(ctx sdk.Context, unbondingDel
 			unstakedPosition.RemainingTime = uint64(entity.CompletionTime.Unix())
 			unstakedPosition.Unstaked = commitmenttypes.BalanceAvailable{
 				Amount:    entity.Balance,
-				UsdAmount: sdk.NewDecFromInt(entity.Balance),
+				UsdAmount: edenDenomPrice.MulInt(entity.Balance),
 			}
 
 			unstakedPositions = append(unstakedPositions, unstakedPosition)

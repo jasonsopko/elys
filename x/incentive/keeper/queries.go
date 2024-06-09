@@ -14,26 +14,6 @@ import (
 
 var _ types.QueryServer = Keeper{}
 
-func (k Keeper) CommunityPool(goCtx context.Context, req *types.QueryCommunityPoolRequest) (*types.QueryCommunityPoolResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid request")
-	}
-
-	ctx := sdk.UnwrapSDKContext(goCtx)
-	pool := k.GetFeePoolCommunityCoins(ctx)
-
-	return &types.QueryCommunityPoolResponse{Pool: pool}, nil
-}
-
-func (k Keeper) Params(goCtx context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid request")
-	}
-	ctx := sdk.UnwrapSDKContext(goCtx)
-
-	return &types.QueryParamsResponse{Params: k.GetParams(ctx)}, nil
-}
-
 func (k Keeper) Apr(goCtx context.Context, req *types.QueryAprRequest) (*types.QueryAprResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid request")
@@ -118,16 +98,6 @@ func (k Keeper) Aprs(goCtx context.Context, req *types.QueryAprsRequest) (*types
 		EdenAprElys:  edenAprElys,
 		EdenbAprElys: edenbAprElys,
 	}, nil
-}
-
-func (k Keeper) PoolAprs(goCtx context.Context, req *types.QueryPoolAprsRequest) (*types.QueryPoolAprsResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid request")
-	}
-
-	ctx := sdk.UnwrapSDKContext(goCtx)
-	data := k.CalculatePoolAprs(ctx, req.PoolIds)
-	return &types.QueryPoolAprsResponse{Data: data}, nil
 }
 
 func (k Keeper) PoolRewards(goCtx context.Context, req *types.QueryPoolRewardsRequest) (*types.QueryPoolRewardsResponse, error) {

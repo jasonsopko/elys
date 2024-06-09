@@ -10,7 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	simapp "github.com/elys-network/elys/app"
-	aptypes "github.com/elys-network/elys/x/assetprofile/types"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	commitmentkeeper "github.com/elys-network/elys/x/commitment/keeper"
 	"github.com/elys-network/elys/x/commitment/types"
 	ptypes "github.com/elys-network/elys/x/parameter/types"
@@ -38,12 +38,11 @@ func TestLiquidVestWithExceed(t *testing.T) {
 	msgServer := commitmentkeeper.NewMsgServerImpl(keeper)
 	vestingInfos := []*types.VestingInfo{
 		{
-			BaseDenom:       ptypes.Eden,
-			VestingDenom:    ptypes.Elys,
-			EpochIdentifier: "tenseconds",
-			NumEpochs:       10,
-			VestNowFactor:   sdk.NewInt(90),
-			NumMaxVestings:  10,
+			BaseDenom:      ptypes.Eden,
+			VestingDenom:   ptypes.Elys,
+			NumBlocks:      10,
+			VestNowFactor:  sdk.NewInt(90),
+			NumMaxVestings: 10,
 		},
 	}
 
@@ -69,7 +68,6 @@ func TestLiquidVestWithExceed(t *testing.T) {
 				Amount: sdk.NewInt(50),
 			},
 		},
-		RewardsUnclaimed: sdk.Coins{},
 		Claimed: sdk.Coins{
 			{
 				Denom:  ptypes.Eden,
@@ -80,7 +78,7 @@ func TestLiquidVestWithExceed(t *testing.T) {
 	keeper.SetCommitments(ctx, commitments)
 
 	// Set assetprofile entry for denom
-	app.AssetprofileKeeper.SetEntry(ctx, aptypes.Entry{BaseDenom: ptypes.Eden, CommitEnabled: true})
+	app.AssetprofileKeeper.SetEntry(ctx, assetprofiletypes.Entry{BaseDenom: ptypes.Eden, CommitEnabled: true})
 
 	// Execute the Vest function
 	_, err = msgServer.VestLiquid(ctx, vestMsg)

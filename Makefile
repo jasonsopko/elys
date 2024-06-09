@@ -64,6 +64,24 @@ build: check-version go.sum
 	@-mkdir -p $(BUILD_FOLDER) 2> /dev/null
 	@GOFLAGS=$(GOFLAGS) go build $(BUILD_FLAGS) -o $(BUILD_FOLDER) ./cmd/$(BINARY)
 
+## build-upgrade-assure: Build the binary for upgrade assure
+build-upgrade-assure: check-version go.sum
+	@echo Building Upgrade assure binary...
+	@-mkdir -p $(BUILD_FOLDER) 2> /dev/null
+	@GOFLAGS=$(GOFLAGS) go build -o $(BUILD_FOLDER) ./cmd/upgrade-assure
+
+## build-upload-snapshot: Build the binary for upload snapshot
+build-upload-snapshot: check-version go.sum
+	@echo Building Upload snapshot binary...
+	@-mkdir -p $(BUILD_FOLDER) 2> /dev/null
+	@GOFLAGS=$(GOFLAGS) go build -o $(BUILD_FOLDER) ./cmd/upload-snapshot
+
+## build-delete-snapshot: Build the binary for delete snapshot
+build-delete-snapshot: check-version go.sum
+	@echo Building Delete snapshot binary...
+	@-mkdir -p $(BUILD_FOLDER) 2> /dev/null
+	@GOFLAGS=$(GOFLAGS) go build -o $(BUILD_FOLDER) ./cmd/delete-snapshot
+
 ## build-all: Build binaries for all platforms
 build-all:
 	@echo Building Elysd binaries for all platforms...
@@ -79,7 +97,7 @@ do-checksum:
 ## build-with-checksum: Build binaries for all platforms and generate checksums
 build-with-checksum: build-all do-checksum
 
-.PHONY: install build build-all do-checksum build-with-checksum
+.PHONY: install build build-all do-checksum build-with-checksum build-upgrade-assure build-upload-snapshot build-delete-snapshot
 
 ## mocks: Generate mocks
 mocks:
@@ -95,13 +113,18 @@ test-unit:
 	@echo Running unit tests...
 	@GOFLAGS=$(GOFLAGS) go test -race -failfast -v ./...
 
+## ci-test-unit: Run unit tests
+ci-test-unit:
+	@echo Running unit tests via CI...
+	@GOFLAGS=$(GOFLAGS) go test ./...
+
 ## clean: Clean build files. Runs `go clean` internally.
 clean:
 	@echo Cleaning build cache...
 	@rm -rf $(BUILD_FOLDER) 2> /dev/null
 	@go clean ./...
 
-.PHONY: mocks test-unit clean
+.PHONY: mocks test-unit ci-test-unit clean
 
 ## go-mod-cache: Retrieve the go modules and store them in the local cache
 go-mod-cache: go.sum
@@ -163,7 +186,6 @@ stop-docker:
 
 GORELEASER_IMAGE := ghcr.io/goreleaser/goreleaser-cross:v$(GO_VERSION)
 COSMWASM_VERSION := $(shell go list -m github.com/CosmWasm/wasmvm | sed 's/.* //')
-ROCKSDB_VERSION := 8.9.1
 
 ## release: Build binaries for all platforms and generate checksums
 ifdef GITHUB_TOKEN
@@ -194,7 +216,7 @@ release-dry-run:
 		$(GORELEASER_IMAGE) \
 		release \
 		--clean \
-		--skip-publish
+		--skip=publish
 
 ## release-snapshot: Build snapshots for all platforms and generate checksums
 release-snapshot:
@@ -209,6 +231,6 @@ release-snapshot:
 		--clean \
 		--snapshot \
 		--skip-validate \
-		--skip-publish
+		--skip=publish
 
 .PHONY: release release-dry-run release-snapshot

@@ -4,8 +4,6 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	commitmentkeeper "github.com/elys-network/elys/x/commitment/keeper"
-	ctypes "github.com/elys-network/elys/x/commitment/types"
 	"github.com/elys-network/elys/x/stablestake/types"
 )
 
@@ -18,12 +16,7 @@ func (k msgServer) Unbond(goCtx context.Context, msg *types.MsgUnbond) (*types.M
 	shareDenom := types.GetShareDenom()
 
 	// Withdraw committed LP tokens
-	msgServer := commitmentkeeper.NewMsgServerImpl(*k.commitmentKeeper)
-	_, err := msgServer.UncommitTokens(sdk.WrapSDKContext(ctx), &ctypes.MsgUncommitTokens{
-		Creator: sender.String(),
-		Amount:  msg.Amount,
-		Denom:   shareDenom,
-	})
+	err := k.commitmentKeeper.UncommitTokens(ctx, sender, shareDenom, msg.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +44,13 @@ func (k msgServer) Unbond(goCtx context.Context, msg *types.MsgUnbond) (*types.M
 
 	params.TotalValue = params.TotalValue.Sub(redemptionAmount)
 	k.SetParams(ctx, params)
+
+	if k.hooks != nil {
+		err := k.hooks.AfterUnbond(ctx, msg.Creator, msg.Amount)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &types.MsgUnbondResponse{}, nil
 }

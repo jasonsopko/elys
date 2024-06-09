@@ -8,8 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simapp "github.com/elys-network/elys/app"
 
-	aptypes "github.com/elys-network/elys/x/assetprofile/types"
-	commitmentkeeper "github.com/elys-network/elys/x/commitment/keeper"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"github.com/elys-network/elys/x/commitment/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,55 +16,42 @@ import (
 
 func TestUncommitTokens(t *testing.T) {
 	app := simapp.InitElysTestApp(true)
-
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+
 	// Create a test context and keeper
 	keeper := app.CommitmentKeeper
-	msgServer := commitmentkeeper.NewMsgServerImpl(keeper)
 
 	// Generate 1 random account with 1000000uelys balanced
 	addr := simapp.AddTestAddrs(app, ctx, 1, sdk.NewInt(1000000))
 
 	// Define the test data
 	creator := addr[0].String()
-	denom := "test_denom"
-	initialUnclaimed := sdk.NewInt(400)
+	denom := "testdenom"
 	initialCommitted := sdk.NewInt(100)
 	uncommitAmount := sdk.NewInt(100)
 
 	// Set up initial commitments object with sufficient unclaimed & committed tokens
-	rewardsUnclaimed := sdk.Coin{
-		Denom:  denom,
-		Amount: initialUnclaimed,
-	}
-
 	committedTokens := types.CommittedTokens{
 		Denom:  denom,
 		Amount: initialCommitted,
 	}
 
 	initialCommitments := types.Commitments{
-		Creator:          creator,
-		RewardsUnclaimed: sdk.Coins{rewardsUnclaimed},
-		CommittedTokens:  []*types.CommittedTokens{&committedTokens},
+		Creator:         creator,
+		CommittedTokens: []*types.CommittedTokens{&committedTokens},
 	}
 
 	keeper.SetCommitments(ctx, initialCommitments)
 
 	// Set assetprofile entry for denom
-	app.AssetprofileKeeper.SetEntry(ctx, aptypes.Entry{BaseDenom: denom, CommitEnabled: true, WithdrawEnabled: true})
+	app.AssetprofileKeeper.SetEntry(ctx, assetprofiletypes.Entry{BaseDenom: denom, CommitEnabled: true, WithdrawEnabled: true})
 
 	// Add coins on commitment module
 	err := app.BankKeeper.MintCoins(ctx, types.ModuleName, sdk.Coins{sdk.NewCoin(denom, initialCommitted)})
 	require.NoError(t, err)
 
 	// Call the UncommitTokens function
-	msg := types.MsgUncommitTokens{
-		Creator: creator,
-		Amount:  uncommitAmount,
-		Denom:   denom,
-	}
-	_, err = msgServer.UncommitTokens(ctx, &msg)
+	err = keeper.UncommitTokens(ctx, addr[0], denom, uncommitAmount)
 	require.NoError(t, err)
 
 	// Check if the committed tokens have been added to the store

@@ -7,11 +7,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
 	commitmenttypes "github.com/elys-network/elys/x/commitment/types"
-	paramtypes "github.com/elys-network/elys/x/parameter/types"
+	ptypes "github.com/elys-network/elys/x/parameter/types"
 	stabletypes "github.com/elys-network/elys/x/stablestake/types"
 )
 
 func (oq *Querier) queryStakedBalanceOfDenom(ctx sdk.Context, query *ammtypes.QueryBalanceRequest) ([]byte, error) {
+	edenDenomPrice := sdk.ZeroDec()
+	baseCurrency, found := oq.assetKeeper.GetUsdcDenom(ctx)
+	if found {
+		edenDenomPrice = oq.ammKeeper.GetEdenDenomPrice(ctx, baseCurrency)
+	}
+
 	denom := query.Denom
 	addr := query.Address
 	address, err := sdk.AccAddressFromBech32(query.Address)
@@ -21,22 +27,31 @@ func (oq *Querier) queryStakedBalanceOfDenom(ctx sdk.Context, query *ammtypes.Qu
 
 	bondedAmt := oq.stakingKeeper.GetDelegatorBonded(ctx, address)
 	balance := sdk.NewCoin(denom, bondedAmt)
+	usdAmount := edenDenomPrice.MulInt(balance.Amount)
 	lockups := make([]commitmenttypes.Lockup, 0)
 
-	if denom != paramtypes.Elys {
+	if denom != ptypes.Elys {
 		commitment := oq.keeper.GetCommitments(ctx, addr)
-		if denom == paramtypes.BaseCurrency {
+		if denom == ptypes.BaseCurrency {
 			denom = stabletypes.GetShareDenom()
 		}
 
 		committedToken := commitment.GetCommittedAmountForDenom(denom)
 		lockups = commitment.GetCommittedLockUpsForDenom(denom)
 		balance = sdk.NewCoin(denom, committedToken)
+		if denom == ptypes.Eden || denom == ptypes.EdenB {
+			usdAmount = edenDenomPrice.MulInt(balance.Amount)
+		}
+
+		if denom == stabletypes.GetShareDenom() {
+			stableShareDenomPrice := oq.stableKeeper.ShareDenomPrice(ctx, oq.oracleKeeper, baseCurrency)
+			usdAmount = stableShareDenomPrice.MulInt(balance.Amount)
+		}
 	}
 
 	resp := commitmenttypes.StakedAvailable{
 		Amount:    balance.Amount,
-		UsdAmount: sdk.NewDecFromInt(balance.Amount),
+		UsdAmount: usdAmount,
 		Lockups:   lockups,
 	}
 
