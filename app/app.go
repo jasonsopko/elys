@@ -191,6 +191,10 @@ import (
 	masterchefmodulekeeper "github.com/elys-network/elys/x/masterchef/keeper"
 	masterchefmoduletypes "github.com/elys-network/elys/x/masterchef/types"
 
+	tiermodule "github.com/elys-network/elys/x/tier"
+	tiermodulekeeper "github.com/elys-network/elys/x/tier/keeper"
+	tiermoduletypes "github.com/elys-network/elys/x/tier/types"
+
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
 	"github.com/elys-network/elys/docs"
@@ -293,6 +297,7 @@ var (
 		leveragelpmodule.AppModuleBasic{},
 		masterchefmodule.AppModuleBasic{},
 		estakingmodule.AppModuleBasic{},
+		tiermodule.AppModuleBasic{},
 		// this line is used by starport scaffolding # stargate/app/moduleBasic
 	)
 
@@ -313,7 +318,7 @@ var (
 		ammmoduletypes.ModuleName:        {authtypes.Minter, authtypes.Burner, authtypes.Staking},
 		wasmmoduletypes.ModuleName:       {authtypes.Burner},
 		stablestaketypes.ModuleName:      {authtypes.Minter, authtypes.Burner},
-		masterchefmoduletypes.ModuleName: {},
+		masterchefmoduletypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		// this line is used by starport scaffolding # stargate/app/maccPerms
 	}
 )
@@ -402,6 +407,8 @@ type ElysApp struct {
 	MasterchefKeeper masterchefmodulekeeper.Keeper
 
 	EstakingKeeper estakingmodulekeeper.Keeper
+
+	TierKeeper tiermodulekeeper.Keeper
 	// this line is used by starport scaffolding # stargate/app/keeperDeclaration
 
 	// mm is the module manager
@@ -427,10 +434,6 @@ func NewElysApp(
 	wasmOpts []wasmmodule.Option,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *ElysApp {
-	// increase wasm size limit
-	wasmmoduletypes.MaxLabelSize = 128 * 2            // to set the maximum label size on instantiation (default 128)
-	wasmmoduletypes.MaxWasmSize = 819200 * 2          // to set the max size of compiled wasm to be accepted (default 819200)
-	wasmmoduletypes.MaxProposalWasmSize = 3145728 * 2 // to set the max size of gov proposal compiled wasm to be accepted (default 3145728)
 
 	encodingConfig := MakeEncodingConfig()
 	appCodec := encodingConfig.Marshaler
@@ -485,6 +488,7 @@ func NewElysApp(
 		leveragelpmoduletypes.StoreKey,
 		masterchefmoduletypes.StoreKey,
 		estakingmoduletypes.StoreKey,
+		tiermoduletypes.StoreKey,
 		// this line is used by starport scaffolding # stargate/app/storeKey
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey, ammmoduletypes.TStoreKey)
@@ -819,7 +823,7 @@ func NewElysApp(
 		app.GetSubspace(masterchefmoduletypes.ModuleName),
 		app.ParameterKeeper,
 		app.CommitmentKeeper,
-		app.AmmKeeper,
+		&app.AmmKeeper,
 		app.OracleKeeper,
 		app.AssetprofileKeeper,
 		app.AccountedPoolKeeper,
@@ -831,11 +835,6 @@ func NewElysApp(
 	)
 	masterchefModule := masterchefmodule.NewAppModule(appCodec, app.MasterchefKeeper, app.AccountKeeper, app.BankKeeper)
 
-	app.StablestakeKeeper = *app.StablestakeKeeper.SetHooks(stablestakekeeper.NewMultiStableStakeHooks(
-		app.MasterchefKeeper.StableStakeHooks(),
-	))
-	stablestakeModule := stablestake.NewAppModule(appCodec, app.StablestakeKeeper, app.AccountKeeper, app.BankKeeper)
-
 	app.IncentiveKeeper = *incentivemodulekeeper.NewKeeper(
 		appCodec,
 		keys[incentivemoduletypes.StoreKey],
@@ -845,7 +844,7 @@ func NewElysApp(
 		app.StakingKeeper,
 		app.AccountKeeper,
 		app.BankKeeper,
-		app.AmmKeeper,
+		&app.AmmKeeper,
 		app.OracleKeeper,
 		app.AssetprofileKeeper,
 		app.AccountedPoolKeeper,
@@ -866,6 +865,7 @@ func NewElysApp(
 
 		app.AccountKeeper,
 		app.BankKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	burnerModule := burnermodule.NewAppModule(appCodec, app.BurnerKeeper, app.AccountKeeper, app.BankKeeper)
 
@@ -903,6 +903,7 @@ func NewElysApp(
 			&app.TransferhookKeeper,
 			&app.MasterchefKeeper,
 			&app.EstakingKeeper,
+			&app.TierKeeper,
 		),
 		wasmOpts...,
 	)
@@ -981,7 +982,7 @@ func NewElysApp(
 		keys[perpetualmoduletypes.StoreKey],
 		keys[perpetualmoduletypes.MemStoreKey],
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-		app.AmmKeeper,
+		&app.AmmKeeper,
 		app.BankKeeper,
 		app.OracleKeeper,
 		app.AssetprofileKeeper,
@@ -1002,14 +1003,33 @@ func NewElysApp(
 		keys[leveragelpmoduletypes.StoreKey],
 		keys[leveragelpmoduletypes.MemStoreKey],
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-		app.AmmKeeper,
+		&app.AmmKeeper,
 		app.BankKeeper,
 		app.OracleKeeper,
 		app.StablestakeKeeper,
 		app.CommitmentKeeper,
 		app.AssetprofileKeeper,
+		app.MasterchefKeeper,
 	)
 	leveragelpModule := leveragelpmodule.NewAppModule(appCodec, app.LeveragelpKeeper, app.AccountKeeper, app.BankKeeper)
+
+	app.TierKeeper = *tiermodulekeeper.NewKeeper(
+		appCodec,
+		keys[tiermoduletypes.StoreKey],
+		keys[tiermoduletypes.MemStoreKey],
+		app.GetSubspace(tiermoduletypes.ModuleName),
+		app.BankKeeper,
+		app.OracleKeeper,
+		app.AssetprofileKeeper,
+		&app.AmmKeeper,
+		app.EstakingKeeper,
+		app.MasterchefKeeper,
+		app.CommitmentKeeper,
+		app.StakingKeeper,
+		app.PerpetualKeeper,
+		app.LeveragelpKeeper,
+	)
+	tierModule := tiermodule.NewAppModule(appCodec, app.TierKeeper, app.AccountKeeper, app.BankKeeper)
 
 	// this line is used by starport scaffolding # stargate/app/keeperDefinition
 
@@ -1039,12 +1059,19 @@ func NewElysApp(
 
 	// register hooks after all modules have been initialized
 
+	app.StablestakeKeeper = *app.StablestakeKeeper.SetHooks(stablestakekeeper.NewMultiStableStakeHooks(
+		app.MasterchefKeeper.StableStakeHooks(),
+		app.TierKeeper.StableStakeHooks(),
+	))
+	stablestakeModule := stablestake.NewAppModule(appCodec, app.StablestakeKeeper, app.AccountKeeper, app.BankKeeper)
+
 	app.EstakingKeeper.SetHooks(
 		stakingtypes.NewMultiStakingHooks(
 			// insert staking hooks receivers here
 			app.SlashingKeeper.Hooks(),
 			app.DistrKeeper.Hooks(),
 			app.EstakingKeeper.StakingHooks(),
+			app.TierKeeper.StakingHooks(),
 		),
 	)
 
@@ -1060,6 +1087,7 @@ func NewElysApp(
 			app.PerpetualKeeper.AmmHooks(),
 			app.LeveragelpKeeper.AmmHooks(),
 			app.MasterchefKeeper.AmmHooks(),
+			app.TierKeeper.AmmHooks(),
 		),
 	)
 	ammModule := ammmodule.NewAppModule(appCodec, app.AmmKeeper, app.AccountKeeper, app.BankKeeper)
@@ -1079,6 +1107,7 @@ func NewElysApp(
 		perpetualmoduletypes.NewMultiPerpetualHooks(
 			// insert perpetual hooks receivers here
 			app.AccountedPoolKeeper.PerpetualHooks(),
+			app.TierKeeper.PerpetualHooks(),
 		),
 	)
 	perpetualModule := perpetualmodule.NewAppModule(appCodec, app.PerpetualKeeper, app.AccountKeeper, app.BankKeeper)
@@ -1134,6 +1163,7 @@ func NewElysApp(
 		leveragelpModule,
 		masterchefModule,
 		estakingModule,
+		tierModule,
 		// this line is used by starport scaffolding # stargate/app/appModule
 	)
 
@@ -1182,6 +1212,7 @@ func NewElysApp(
 		leveragelpmoduletypes.ModuleName,
 		masterchefmoduletypes.ModuleName,
 		estakingmoduletypes.ModuleName,
+		tiermoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/beginBlockers
 	)
 
@@ -1225,6 +1256,7 @@ func NewElysApp(
 		leveragelpmoduletypes.ModuleName,
 		masterchefmoduletypes.ModuleName,
 		estakingmoduletypes.ModuleName,
+		tiermoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/endBlockers
 	)
 
@@ -1272,6 +1304,7 @@ func NewElysApp(
 		leveragelpmoduletypes.ModuleName,
 		masterchefmoduletypes.ModuleName,
 		estakingmoduletypes.ModuleName,
+		tiermoduletypes.ModuleName,
 		// this line is used by starport scaffolding # stargate/app/initGenesis
 	}
 	app.mm.SetOrderInitGenesis(genesisModuleOrder...)
@@ -1353,6 +1386,8 @@ func NewElysApp(
 			os.Exit(1)
 		}
 		ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
+		parameters := app.ParameterKeeper.GetParams(ctx)
+		wasmConfiguration(parameters)
 		// Initialize pinned codes in wasmvm as they are not persisted there
 		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
@@ -1403,6 +1438,14 @@ func (app *ElysApp) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker application updates every begin block
 func (app *ElysApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	if ctx.BlockHeight() == 8504600 {
+		ctx.Logger().Info("Reached block height 8504600, applying permissions changes to masterchef module")
+		// update permissions to masterchef module
+		oldModuleAccount := app.AccountKeeper.GetModuleAccount(ctx, masterchefmoduletypes.ModuleName)
+		oldModuleAccount.(*authtypes.ModuleAccount).Permissions = []string{authtypes.Minter, authtypes.Burner}
+		app.AccountKeeper.SetModuleAccount(ctx, oldModuleAccount)
+	}
+
 	return app.mm.BeginBlock(ctx, req)
 }
 
@@ -1568,6 +1611,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(stablestaketypes.ModuleName)
 	paramsKeeper.Subspace(leveragelpmoduletypes.ModuleName)
 	paramsKeeper.Subspace(masterchefmoduletypes.ModuleName)
+	paramsKeeper.Subspace(tiermoduletypes.ModuleName)
 	// this line is used by starport scaffolding # stargate/app/paramSubspace
 
 	return paramsKeeper
