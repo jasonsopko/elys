@@ -31,7 +31,7 @@ type AmmKeeper interface {
 	CalcOutAmtGivenIn(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensIn sdk.Coins, tokenOutDenom string, swapFee sdk.Dec) (sdk.Coin, sdk.Dec, error)
 	CalcInAmtGivenOut(ctx sdk.Context, poolId uint64, oracle ammtypes.OracleKeeper, snapshot *ammtypes.Pool, tokensOut sdk.Coins, tokenInDenom string, swapFee sdk.Dec) (tokenIn sdk.Coin, slippage sdk.Dec, err error)
 	JoinPoolNoSwap(ctx sdk.Context, sender sdk.AccAddress, poolId uint64, shareOutAmount math.Int, tokenInMaxs sdk.Coins) (tokenIn sdk.Coins, sharesOut math.Int, err error)
-	ExitPool(ctx sdk.Context, sender sdk.AccAddress, poolId uint64, shareInAmount math.Int, tokenOutMins sdk.Coins, tokenOutDenom string) (exitCoins sdk.Coins, err error)
+	ExitPool(ctx sdk.Context, sender sdk.AccAddress, poolId uint64, shareInAmount math.Int, tokenOutMins sdk.Coins, tokenOutDenom string) (exitCoins, exitCoinsAfterExitFee sdk.Coins, err error)
 }
 
 // BankKeeper defines the expected interface needed to retrieve account balances.
@@ -57,10 +57,11 @@ type StableStakeKeeper interface {
 	GetParams(ctx sdk.Context) stablestaketypes.Params
 	GetDepositDenom(ctx sdk.Context) string
 	GetDebt(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
-	UpdateInterestStackedByAddress(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
+	UpdateInterestAndGetDebt(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
 	Borrow(ctx sdk.Context, addr sdk.AccAddress, amount sdk.Coin) error
 	Repay(ctx sdk.Context, addr sdk.AccAddress, amount sdk.Coin) error
 	TVL(ctx sdk.Context, oracleKeeper stablestaketypes.OracleKeeper, baseCurrency string) math.LegacyDec
+	GetInterest(ctx sdk.Context, startBlock uint64, startTime uint64, borrowed sdk.Dec) sdk.Int
 }
 
 type CommitmentKeeper interface {

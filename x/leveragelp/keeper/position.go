@@ -2,15 +2,15 @@ package keeper
 
 import (
 	"fmt"
-	"math"
-	"time"
 
+	errorsmod "cosmossdk.io/errors"
 	cosmosMath "cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
-	ammtypes "github.com/elys-network/elys/x/amm/types"
+	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"github.com/elys-network/elys/x/leveragelp/types"
+	ptypes "github.com/elys-network/elys/x/parameter/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -40,62 +40,20 @@ func (k Keeper) SetPosition(ctx sdk.Context, position *types.Position) {
 		// increment open position count
 		openCount++
 		k.SetOpenPositionCount(ctx, openCount)
-	} else {
-		old, err := k.GetPosition(ctx, position.Address, position.Id)
-		if err == nil {
-			debt := k.stableKeeper.UpdateInterestStackedByAddress(ctx, old.GetPositionAddress())
-			liquidationKey := types.GetLiquidationSortKey(old.AmmPoolId, old.LeveragedLpAmount, debt.Borrowed, old.Id)
-			if len(liquidationKey) > 0 {
-				store.Delete(liquidationKey)
-			}
-			stopLossKey := types.GetStopLossSortKey(old.AmmPoolId, old.StopLossPrice, old.Id)
-			if len(stopLossKey) > 0 {
-				store.Delete(stopLossKey)
-			}
-		}
 	}
 
 	key := types.GetPositionKey(position.Address, position.Id)
 	store.Set(key, k.cdc.MustMarshal(position))
-
-	// Add position sort keys
-	addrId := types.AddressId{
-		Id:      position.Id,
-		Address: position.Address,
-	}
-	bz := k.cdc.MustMarshal(&addrId)
-	debt := k.stableKeeper.UpdateInterestStackedByAddress(ctx, position.GetPositionAddress())
-	liquidationKey := types.GetLiquidationSortKey(position.AmmPoolId, position.LeveragedLpAmount, debt.Borrowed, position.Id)
-	if len(liquidationKey) > 0 {
-		store.Set(liquidationKey, bz)
-	}
-	stopLossKey := types.GetStopLossSortKey(position.AmmPoolId, position.StopLossPrice, position.Id)
-	if len(stopLossKey) > 0 {
-		store.Set(stopLossKey, bz)
-	}
 }
 
 func (k Keeper) DestroyPosition(ctx sdk.Context, positionAddress string, id uint64) error {
-	key := types.GetPositionKey(positionAddress, id)
 	store := ctx.KVStore(k.storeKey)
+
+	key := types.GetPositionKey(positionAddress, id)
 	if !store.Has(key) {
 		return types.ErrPositionDoesNotExist
 	}
 	store.Delete(key)
-
-	// Remove position sort keys
-	old, err := k.GetPosition(ctx, positionAddress, id)
-	if err == nil {
-		debt := k.stableKeeper.UpdateInterestStackedByAddress(ctx, old.GetPositionAddress())
-		liquidationKey := types.GetLiquidationSortKey(old.AmmPoolId, old.LeveragedLpAmount, debt.Borrowed, old.Id)
-		if len(liquidationKey) > 0 {
-			store.Delete(liquidationKey)
-		}
-		stopLossKey := types.GetStopLossSortKey(old.AmmPoolId, old.StopLossPrice, old.Id)
-		if len(stopLossKey) > 0 {
-			store.Delete(stopLossKey)
-		}
-	}
 
 	// decrement open position count
 	openCount := k.GetOpenPositionCount(ctx)
@@ -132,6 +90,26 @@ func (k Keeper) GetPositionCount(ctx sdk.Context) uint64 {
 	return count
 }
 
+func (k Keeper) SetOffset(ctx sdk.Context, offset uint64) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.OffsetKeyPrefix, types.GetUint64Bytes(offset))
+}
+
+func (k Keeper) GetOffset(ctx sdk.Context) (uint64, bool) {
+	store := ctx.KVStore(k.storeKey)
+	if store.Has(types.OffsetKeyPrefix) {
+		res := store.Get(types.OffsetKeyPrefix)
+		return types.GetUint64FromBytes(res), true
+	} else {
+		return 0, false
+	}
+}
+
+func (k Keeper) DeleteOffset(ctx sdk.Context) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.OffsetKeyPrefix)
+}
+
 func (k Keeper) GetOpenPositionCount(ctx sdk.Context) uint64 {
 	var count uint64
 	countBz := ctx.KVStore(k.storeKey).Get(types.OpenPositionCountPrefix)
@@ -161,50 +139,12 @@ func (k Keeper) GetAllPositions(ctx sdk.Context) []types.Position {
 	for ; iterator.Valid(); iterator.Next() {
 		var position types.Position
 		bytesValue := iterator.Value()
-		k.cdc.MustUnmarshal(bytesValue, &position)
-		positions = append(positions, position)
+		err := k.cdc.Unmarshal(bytesValue, &position)
+		if err == nil {
+			positions = append(positions, position)
+		}
 	}
 	return positions
-}
-
-func (k Keeper) IteratePoolPosIdsLiquidationSorted(ctx sdk.Context, poolId uint64, fn func(posId types.AddressId) bool) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.GetLiquidationSortPrefix(poolId))
-	defer func(iterator sdk.Iterator) {
-		err := iterator.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(iterator)
-
-	for ; iterator.Valid(); iterator.Next() {
-		addrId := types.AddressId{}
-		k.cdc.MustUnmarshal(iterator.Value(), &addrId)
-		stop := fn(addrId)
-		if stop {
-			return
-		}
-	}
-}
-
-func (k Keeper) IteratePoolPosIdsStopLossSorted(ctx sdk.Context, poolId uint64, fn func(posId types.AddressId) bool) {
-	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.GetStopLossSortPrefix(poolId))
-	defer func(iterator sdk.Iterator) {
-		err := iterator.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(iterator)
-
-	for ; iterator.Valid(); iterator.Next() {
-		addrId := types.AddressId{}
-		k.cdc.MustUnmarshal(iterator.Value(), &addrId)
-		stop := fn(addrId)
-		if stop {
-			return
-		}
-	}
 }
 
 func (k Keeper) GetPositions(ctx sdk.Context, pagination *query.PageRequest) ([]*types.Position, *query.PageResponse, error) {
@@ -214,13 +154,19 @@ func (k Keeper) GetPositions(ctx sdk.Context, pagination *query.PageRequest) ([]
 
 	if pagination == nil {
 		pagination = &query.PageRequest{
-			Limit: math.MaxUint64 - 1,
+			Limit: types.MaxPageLimit,
 		}
+	}
+
+	if pagination.Limit > types.MaxPageLimit {
+		return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("page size greater than max %d", types.MaxPageLimit))
 	}
 
 	pageRes, err := query.Paginate(positionStore, pagination, func(key []byte, value []byte) error {
 		var position types.Position
-		k.cdc.MustUnmarshal(value, &position)
+		k.cdc.Unmarshal(value, &position)
+		debt := k.stableKeeper.GetDebt(ctx, position.GetPositionAddress())
+		position.Liabilities = debt.GetTotalLiablities()
 		positionList = append(positionList, &position)
 		return nil
 	})
@@ -236,17 +182,23 @@ func (k Keeper) GetPositionsForPool(ctx sdk.Context, ammPoolId uint64, paginatio
 
 	if pagination == nil {
 		pagination = &query.PageRequest{
-			Limit: math.MaxUint64 - 1,
+			Limit: types.MaxPageLimit,
 		}
 	}
+
+	if pagination.Limit > types.MaxPageLimit {
+		return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("page size greater than max %d", types.MaxPageLimit))
+	}
+
 	pageRes, err := query.FilteredPaginate(positionStore, pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		var position types.Position
-		k.cdc.MustUnmarshal(value, &position)
-		if accumulate && position.AmmPoolId == ammPoolId {
-			positions = append(positions, &position)
-			return true, nil
+		err := k.cdc.Unmarshal(value, &position)
+		if err == nil {
+			if accumulate && position.AmmPoolId == ammPoolId {
+				positions = append(positions, &position)
+				return true, nil
+			}
 		}
-
 		return false, nil
 	})
 
@@ -276,15 +228,12 @@ func (k Keeper) GetPositionsForAddress(ctx sdk.Context, positionAddress sdk.Addr
 		k.cdc.MustUnmarshal(value, &p)
 		var positionAndInterest types.PositionAndInterest
 		positionAndInterest.Position = &p
-		price, found := k.oracleKeeper.GetAssetPrice(ctx, p.Collateral.Denom)
-		if !found {
-			return fmt.Errorf("asset price not set: %s", price.Asset)
-		}
+		price := k.oracleKeeper.GetAssetPriceFromDenom(ctx, p.Collateral.Denom)
 		interestRateHour := params.InterestRate.Quo(hours)
 		positionAndInterest.InterestRateHour = interestRateHour
-		positionAndInterest.InterestRateHourUsd = interestRateHour.Mul(cosmosMath.LegacyDec(p.Liabilities.Mul(price.Price.RoundInt())))
-		debt := k.stableKeeper.UpdateInterestStackedByAddress(ctx, positionAndInterest.Position.GetPositionAddress())
-		positionAndInterest.Position.Liabilities = debt.Borrowed.Add(debt.InterestStacked).Sub(debt.InterestPaid)
+		positionAndInterest.InterestRateHourUsd = interestRateHour.Mul(cosmosMath.LegacyDec(p.Liabilities.Mul(price.RoundInt())))
+		debt := k.stableKeeper.GetDebt(ctx, positionAndInterest.Position.GetPositionAddress())
+		positionAndInterest.Position.Liabilities = debt.GetTotalLiablities()
 		positions = append(positions, &positionAndInterest)
 		return nil
 	})
@@ -295,29 +244,35 @@ func (k Keeper) GetPositionsForAddress(ctx sdk.Context, positionAddress sdk.Addr
 	return positions, pageRes, nil
 }
 
-func (k Keeper) GetPositionHealth(ctx sdk.Context, position types.Position, ammPool ammtypes.Pool) (sdk.Dec, error) {
-	debt := k.stableKeeper.GetDebt(ctx, position.GetPositionAddress())
-	xl := debt.Borrowed.Add(debt.InterestStacked).Sub(debt.InterestPaid)
-
-	if xl.IsZero() {
+func (k Keeper) GetPositionHealth(ctx sdk.Context, position types.Position) (sdk.Dec, error) {
+	debt := k.stableKeeper.UpdateInterestAndGetDebt(ctx, position.GetPositionAddress())
+	debtAmount := debt.GetTotalLiablities()
+	if debtAmount.IsZero() {
 		return sdk.ZeroDec(), nil
 	}
 
-	commitments := k.commKeeper.GetCommitments(ctx, position.GetPositionAddress().String())
-	positionVal := sdk.ZeroDec()
-	depositDenom := k.stableKeeper.GetDepositDenom(ctx)
-	for _, commitment := range commitments.CommittedTokens {
-		cacheCtx, _ := ctx.CacheContext()
-		cacheCtx = cacheCtx.WithBlockTime(cacheCtx.BlockTime().Add(time.Hour))
-		exitCoins, err := k.amm.ExitPool(cacheCtx, position.GetPositionAddress(), ammPool.PoolId, commitment.Amount, sdk.Coins{}, depositDenom)
-		if err != nil {
-			return sdk.ZeroDec(), err
-		}
-		positionVal = positionVal.Add(sdk.NewDecFromInt(exitCoins.AmountOf(depositDenom)))
+	baseCurrency, found := k.assetProfileKeeper.GetUsdcDenom(ctx)
+	if !found {
+		return sdk.Dec{}, errorsmod.Wrapf(assetprofiletypes.ErrAssetProfileNotFound, "asset %s not found", ptypes.BaseCurrency)
 	}
 
-	lr := positionVal.Quo(sdk.NewDecFromBigInt(xl.BigInt()))
-	return lr, nil
+	leveragedLpAmount := sdk.ZeroInt()
+	commitments := k.commKeeper.GetCommitments(ctx, position.GetPositionAddress().String())
+
+	for _, commitment := range commitments.CommittedTokens {
+		leveragedLpAmount = leveragedLpAmount.Add(commitment.Amount)
+	}
+
+	exitCoinsAfterFee, _, err := k.amm.ExitPoolEst(ctx, position.GetAmmPoolId(), leveragedLpAmount, baseCurrency)
+	if err != nil {
+		return sdk.Dec{}, err
+	}
+
+	exitAmountAfterFee := exitCoinsAfterFee.AmountOf(baseCurrency)
+
+	health := exitAmountAfterFee.ToLegacyDec().Quo(debtAmount.ToLegacyDec())
+
+	return health, nil
 }
 
 func (k Keeper) GetPositionWithId(ctx sdk.Context, positionAddress sdk.Address, Id uint64) (*types.Position, bool) {
@@ -330,4 +285,55 @@ func (k Keeper) GetPositionWithId(ctx sdk.Context, positionAddress sdk.Address, 
 	var position types.Position
 	k.cdc.MustUnmarshal(res, &position)
 	return &position, true
+}
+
+// TODO: remove all functions below after upgrade
+func (k Keeper) DeleteCorruptedKeys(ctx sdk.Context) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.PositionPrefix)
+	defer func(iterator sdk.Iterator) {
+		err := iterator.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(iterator)
+
+	for ; iterator.Valid(); iterator.Next() {
+		var position types.Position
+		bytesValue := iterator.Value()
+		err := k.cdc.Unmarshal(bytesValue, &position)
+		if err != nil || position.Id == 0 {
+			store.Delete(iterator.Key())
+		}
+	}
+}
+
+func (k Keeper) DeletePoolPosIdsLiquidationSorted(ctx sdk.Context, poolId uint64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.GetLiquidationSortPrefix(poolId))
+	defer func(iterator sdk.Iterator) {
+		err := iterator.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(iterator)
+
+	for ; iterator.Valid(); iterator.Next() {
+		store.Delete(iterator.Key())
+	}
+}
+
+func (k Keeper) DeletePoolPosIdsStopLossSorted(ctx sdk.Context, poolId uint64) {
+	store := ctx.KVStore(k.storeKey)
+	iterator := sdk.KVStorePrefixIterator(store, types.GetStopLossSortPrefix(poolId))
+	defer func(iterator sdk.Iterator) {
+		err := iterator.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(iterator)
+
+	for ; iterator.Valid(); iterator.Next() {
+		store.Delete(iterator.Key())
+	}
 }

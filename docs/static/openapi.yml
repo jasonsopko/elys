@@ -39963,6 +39963,59 @@ paths:
                   additionalProperties: {}
       tags:
         - Query
+  /elys-network/elys/commitment/commitment_vesting_info/{address}:
+    get:
+      summary: Queries a list of CommitmentVestingInfo items.
+      operationId: ElysCommitmentCommitmentVestingInfo
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              total:
+                type: string
+              vesting_details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    totalVesting:
+                      type: string
+                    claimed:
+                      type: string
+                    vestedSoFar:
+                      type: string
+                    remaining_blocks:
+                      type: string
+                      format: int64
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: address
+          in: path
+          required: true
+          type: string
+      tags:
+        - Query
   /elys-network/elys/commitment/committed_tokens_locked/{address}:
     get:
       summary: Queries sum of committed tokens locked and not unlockable
@@ -40896,6 +40949,77 @@ paths:
           type: string
       tags:
         - Query
+  /elys-network/elys/leveragelp/committed_tokens_locked/{address}:
+    get:
+      summary: Queries a list of CommittedTokensLocked items.
+      operationId: ElysLeveragelpCommittedTokensLocked
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              address:
+                type: string
+              locked_committed:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    denom:
+                      type: string
+                    amount:
+                      type: string
+                  description: >-
+                    Coin defines a token with a denomination and an amount.
+
+
+                    NOTE: The amount field is an Int which implements the custom
+                    method
+
+                    signatures required by gogoproto.
+              total_committed:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    denom:
+                      type: string
+                    amount:
+                      type: string
+                  description: >-
+                    Coin defines a token with a denomination and an amount.
+
+
+                    NOTE: The amount field is an Int which implements the custom
+                    method
+
+                    signatures required by gogoproto.
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: address
+          in: path
+          required: true
+          type: string
+      tags:
+        - Query
   /elys-network/elys/leveragelp/is-whitelisted:
     get:
       summary: Queries a list of IsWhitelisted items.
@@ -41525,43 +41649,51 @@ paths:
                 items:
                   type: object
                   properties:
-                    address:
-                      type: string
-                    collateral:
+                    position:
                       type: object
                       properties:
-                        denom:
+                        address:
                           type: string
-                        amount:
+                        collateral:
+                          type: object
+                          properties:
+                            denom:
+                              type: string
+                            amount:
+                              type: string
+                          description: >-
+                            Coin defines a token with a denomination and an
+                            amount.
+
+
+                            NOTE: The amount field is an Int which implements
+                            the custom method
+
+                            signatures required by gogoproto.
+                        liabilities:
                           type: string
-                      description: >-
-                        Coin defines a token with a denomination and an amount.
-
-
-                        NOTE: The amount field is an Int which implements the
-                        custom method
-
-                        signatures required by gogoproto.
-                    liabilities:
+                          title: For recording
+                        interest_paid:
+                          type: string
+                          title: For recording
+                        leverage:
+                          type: string
+                          title: For recording
+                        leveraged_lp_amount:
+                          type: string
+                        position_health:
+                          type: string
+                        id:
+                          type: string
+                          format: uint64
+                        amm_pool_id:
+                          type: string
+                          format: uint64
+                        stop_loss_price:
+                          type: string
+                    interest_rate_hour:
                       type: string
-                      title: For recording
-                    interest_paid:
-                      type: string
-                      title: For recording
-                    leverage:
-                      type: string
-                      title: For recording
-                    leveraged_lp_amount:
-                      type: string
-                    position_health:
-                      type: string
-                    id:
-                      type: string
-                      format: uint64
-                    amm_pool_id:
-                      type: string
-                      format: uint64
-                    stop_loss_price:
+                    interest_rate_hour_usd:
                       type: string
               pagination:
                 type: object
@@ -44916,7 +45048,7 @@ paths:
           type: boolean
       tags:
         - Query
-  /elys-network/elys/membershiptier/portfolio/{user}/{assetType}:
+  /elys-network/elys/membershiptier/portfolio/{user}:
     get:
       summary: Queries a list of Portfolio items.
       operationId: ElysTierPortfolio
@@ -44948,10 +45080,6 @@ paths:
                   additionalProperties: {}
       parameters:
         - name: user
-          in: path
-          required: true
-          type: string
-        - name: assetType
           in: path
           required: true
           type: string
@@ -44997,6 +45125,47 @@ paths:
           required: true
           type: integer
           format: int32
+      tags:
+        - Query
+  /elys-network/elys/tier/get_consolidated_price/{denom}:
+    get:
+      summary: Queries a list of GetConsolidatedPrice items.
+      operationId: ElysTierGetConsolidatedPrice
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              ammPrice:
+                type: string
+              oraclePrice:
+                type: string
+              oraclePriceDec:
+                type: string
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: denom
+          in: path
+          required: true
+          type: string
       tags:
         - Query
   /elys-network/elys/tier/leverage_lp_total/{user}:
@@ -45121,6 +45290,49 @@ paths:
             type: object
             properties:
               total:
+                type: string
+        default:
+          description: An unexpected error response.
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+                format: int32
+              message:
+                type: string
+              details:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    '@type':
+                      type: string
+                  additionalProperties: {}
+      parameters:
+        - name: user
+          in: path
+          required: true
+          type: string
+      tags:
+        - Query
+  /elys-network/elys/tier/staked/{user}:
+    get:
+      summary: Queries a list of Staked items.
+      operationId: ElysTierStaked
+      responses:
+        '200':
+          description: A successful response.
+          schema:
+            type: object
+            properties:
+              commitments:
+                type: string
+              delegations:
+                type: string
+              unbondings:
+                type: string
+              totalVested:
                 type: string
         default:
           description: An unexpected error response.
@@ -85981,6 +86193,8 @@ definitions:
         type: boolean
       withdraw_enabled:
         type: boolean
+  elys.assetprofile.MsgAddEntryResponse:
+    type: object
   elys.assetprofile.MsgCreateEntryResponse:
     type: object
   elys.assetprofile.MsgDeleteEntryResponse:
@@ -86450,6 +86664,27 @@ definitions:
         type: string
         format: uint64
     description: Params defines the parameters for the module.
+  elys.commitment.QueryCommitmentVestingInfoResponse:
+    type: object
+    properties:
+      total:
+        type: string
+      vesting_details:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: string
+            totalVesting:
+              type: string
+            claimed:
+              type: string
+            vestedSoFar:
+              type: string
+            remaining_blocks:
+              type: string
+              format: int64
   elys.commitment.QueryCommittedTokensLockedResponse:
     type: object
     properties:
@@ -86599,6 +86834,20 @@ definitions:
                   type: string
                   format: int64
         description: GenesisState defines the commitment module's genesis state.
+  elys.commitment.VestingDetails:
+    type: object
+    properties:
+      id:
+        type: string
+      totalVesting:
+        type: string
+      claimed:
+        type: string
+      vestedSoFar:
+        type: string
+      remaining_blocks:
+        type: string
+        format: int64
   elys.commitment.VestingInfo:
     type: object
     properties:
@@ -87099,6 +87348,8 @@ definitions:
     type: object
   elys.leveragelp.MsgClaimRewardsResponse:
     type: object
+  elys.leveragelp.MsgClosePositionsResponse:
+    type: object
   elys.leveragelp.MsgCloseResponse:
     type: object
   elys.leveragelp.MsgDewhitelistResponse:
@@ -87206,6 +87457,54 @@ definitions:
         type: string
         format: uint64
       stop_loss_price:
+        type: string
+  elys.leveragelp.PositionAndInterest:
+    type: object
+    properties:
+      position:
+        type: object
+        properties:
+          address:
+            type: string
+          collateral:
+            type: object
+            properties:
+              denom:
+                type: string
+              amount:
+                type: string
+            description: >-
+              Coin defines a token with a denomination and an amount.
+
+
+              NOTE: The amount field is an Int which implements the custom
+              method
+
+              signatures required by gogoproto.
+          liabilities:
+            type: string
+            title: For recording
+          interest_paid:
+            type: string
+            title: For recording
+          leverage:
+            type: string
+            title: For recording
+          leveraged_lp_amount:
+            type: string
+          position_health:
+            type: string
+          id:
+            type: string
+            format: uint64
+          amm_pool_id:
+            type: string
+            format: uint64
+          stop_loss_price:
+            type: string
+      interest_rate_hour:
+        type: string
+      interest_rate_hour_usd:
         type: string
   elys.leveragelp.PositionResponse:
     type: object
@@ -87333,43 +87632,50 @@ definitions:
         items:
           type: object
           properties:
-            address:
-              type: string
-            collateral:
+            position:
               type: object
               properties:
-                denom:
+                address:
                   type: string
-                amount:
+                collateral:
+                  type: object
+                  properties:
+                    denom:
+                      type: string
+                    amount:
+                      type: string
+                  description: >-
+                    Coin defines a token with a denomination and an amount.
+
+
+                    NOTE: The amount field is an Int which implements the custom
+                    method
+
+                    signatures required by gogoproto.
+                liabilities:
                   type: string
-              description: >-
-                Coin defines a token with a denomination and an amount.
-
-
-                NOTE: The amount field is an Int which implements the custom
-                method
-
-                signatures required by gogoproto.
-            liabilities:
+                  title: For recording
+                interest_paid:
+                  type: string
+                  title: For recording
+                leverage:
+                  type: string
+                  title: For recording
+                leveraged_lp_amount:
+                  type: string
+                position_health:
+                  type: string
+                id:
+                  type: string
+                  format: uint64
+                amm_pool_id:
+                  type: string
+                  format: uint64
+                stop_loss_price:
+                  type: string
+            interest_rate_hour:
               type: string
-              title: For recording
-            interest_paid:
-              type: string
-              title: For recording
-            leverage:
-              type: string
-              title: For recording
-            leveraged_lp_amount:
-              type: string
-            position_health:
-              type: string
-            id:
-              type: string
-              format: uint64
-            amm_pool_id:
-              type: string
-              format: uint64
-            stop_loss_price:
+            interest_rate_hour_usd:
               type: string
       pagination:
         type: object
@@ -87525,6 +87831,39 @@ definitions:
         type: string
       amount_returned:
         type: string
+  elys.leveragelp.QueryCommittedTokensLockedResponse:
+    type: object
+    properties:
+      address:
+        type: string
+      locked_committed:
+        type: array
+        items:
+          type: object
+          properties:
+            denom:
+              type: string
+            amount:
+              type: string
+          description: |-
+            Coin defines a token with a denomination and an amount.
+
+            NOTE: The amount field is an Int which implements the custom method
+            signatures required by gogoproto.
+      total_committed:
+        type: array
+        items:
+          type: object
+          properties:
+            denom:
+              type: string
+            amount:
+              type: string
+          description: |-
+            Coin defines a token with a denomination and an amount.
+
+            NOTE: The amount field is an Int which implements the custom method
+            signatures required by gogoproto.
   elys.leveragelp.QueryGetPoolResponse:
     type: object
     properties:
@@ -87629,6 +87968,16 @@ definitions:
       lifetime_position_count:
         type: string
         format: uint64
+  elys.leveragelp.UpdatePool:
+    type: object
+    properties:
+      pool_id:
+        type: string
+        format: uint64
+      Enabled:
+        type: boolean
+      Closed:
+        type: boolean
   elys.leveragelp.WhitelistResponse:
     type: object
     properties:
@@ -88087,6 +88436,8 @@ definitions:
   elys.oracle.MsgAddAssetInfoResponse:
     type: object
   elys.oracle.MsgAddPriceFeedersResponse:
+    type: object
+  elys.oracle.MsgCreateAssetInfoResponse:
     type: object
   elys.oracle.MsgDeletePriceFeederResponse:
     type: object
@@ -89425,6 +89776,8 @@ definitions:
     type: object
   elys.stablestake.MsgUnbondResponse:
     type: object
+  elys.stablestake.MsgUpdateParamsResponse:
+    type: object
   elys.stablestake.Params:
     type: object
     properties:
@@ -89555,6 +89908,15 @@ definitions:
     properties:
       total:
         type: string
+  elys.tier.QueryGetConsolidatedPriceResponse:
+    type: object
+    properties:
+      ammPrice:
+        type: string
+      oraclePrice:
+        type: string
+      oraclePriceDec:
+        type: string
   elys.tier.QueryGetPortfolioResponse:
     type: object
     properties:
@@ -89591,6 +89953,17 @@ definitions:
     type: object
     properties:
       total:
+        type: string
+  elys.tier.QueryStakedResponse:
+    type: object
+    properties:
+      commitments:
+        type: string
+      delegations:
+        type: string
+      unbondings:
+        type: string
+      totalVested:
         type: string
   elys.tokenomics.Airdrop:
     type: object

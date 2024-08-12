@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	query "github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -16,6 +17,7 @@ import (
 	mastercheftypes "github.com/elys-network/elys/x/masterchef/types"
 	oracletypes "github.com/elys-network/elys/x/oracle/types"
 	perpetualtypes "github.com/elys-network/elys/x/perpetual/types"
+	stablestaketypes "github.com/elys-network/elys/x/stablestake/types"
 )
 
 // AccountKeeper defines the expected account keeper used for simulations (noalias)
@@ -34,6 +36,7 @@ type BankKeeper interface {
 }
 
 type OracleKeeper interface {
+	GetAssetInfo(ctx sdk.Context, denom string) (val oracletypes.AssetInfo, found bool)
 	GetAssetPrice(ctx sdk.Context, asset string) (oracletypes.Price, bool)
 	GetAssetPriceFromDenom(ctx sdk.Context, denom string) sdk.Dec
 	GetPriceFeeder(ctx sdk.Context, feeder string) (val oracletypes.PriceFeeder, found bool)
@@ -41,6 +44,7 @@ type OracleKeeper interface {
 
 type CommitmentKeeper interface {
 	GetCommitments(ctx sdk.Context, creator string) commitmenttypes.Commitments
+	CommitmentVestingInfo(goCtx context.Context, req *commitmenttypes.QueryCommitmentVestingInfoRequest) (*commitmenttypes.QueryCommitmentVestingInfoResponse, error)
 }
 
 type PerpetualKeeper interface {
@@ -72,6 +76,7 @@ type AmmKeeper interface {
 		overrideSwapFee sdk.Dec,
 	) (sdk.Dec, sdk.Dec, sdk.Coin, sdk.Dec, sdk.Dec, sdk.Coin, sdk.Dec, sdk.Dec, error)
 	Balance(goCtx context.Context, req *ammtypes.QueryBalanceRequest) (*ammtypes.QueryBalanceResponse, error)
+	GetEdenDenomPrice(ctx sdk.Context, baseCurrency string) math.LegacyDec
 }
 
 type EstakingKeeper interface {
@@ -93,4 +98,10 @@ type StakingKeeper interface {
 
 type LeverageLpKeeper interface {
 	GetPositionsForAddress(ctx sdk.Context, positionAddress sdk.Address, pagination *query.PageRequest) ([]*leveragelptypes.PositionAndInterest, *query.PageResponse, error)
+}
+
+type StablestakeKeeper interface {
+	GetParams(ctx sdk.Context) (params stablestaketypes.Params)
+	GetDebt(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
+	UpdateInterestAndGetDebt(ctx sdk.Context, addr sdk.AccAddress) stablestaketypes.Debt
 }

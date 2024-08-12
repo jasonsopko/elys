@@ -25,6 +25,9 @@ func (k Keeper) OpenLong(ctx sdk.Context, msg *types.MsgOpen) (*types.Position, 
 	position.StopLossPrice = msg.StopLossPrice
 	k.SetPositionCount(ctx, position.Id)
 
+	openCount := k.GetOpenPositionCount(ctx)
+	k.SetOpenPositionCount(ctx, openCount+1)
+
 	// Call the function to process the open long logic.
 	return k.ProcessOpenLong(ctx, position, leverage, collateralAmountDec, msg.AmmPoolId, msg)
 }
@@ -34,7 +37,7 @@ func (k Keeper) OpenConsolidate(ctx sdk.Context, position *types.Position, msg *
 		return nil, types.ErrInvalidLeverage
 	}
 	poolId := position.AmmPoolId
-	pool, found := k.GetPool(ctx, poolId)
+	_, found := k.GetPool(ctx, poolId)
 	if !found {
 		return nil, errorsmod.Wrap(types.ErrPoolDoesNotExist, fmt.Sprintf("poolId: %d", poolId))
 	}
@@ -43,15 +46,10 @@ func (k Keeper) OpenConsolidate(ctx sdk.Context, position *types.Position, msg *
 		return nil, errorsmod.Wrap(types.ErrPositionDisabled, fmt.Sprintf("poolId: %d", poolId))
 	}
 
-	ammPool, err := k.GetAmmPool(ctx, poolId)
-	if err != nil {
-		return nil, err
-	}
-
 	collateralAmountDec := sdk.NewDecFromInt(msg.CollateralAmount)
 	position.Collateral = position.Collateral.Add(sdk.NewCoin(msg.CollateralAsset, msg.CollateralAmount))
 
-	position, err = k.ProcessOpenLong(ctx, position, position.Leverage, collateralAmountDec, poolId, msg)
+	position, err := k.ProcessOpenLong(ctx, position, position.Leverage, collateralAmountDec, poolId, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +63,6 @@ func (k Keeper) OpenConsolidate(ctx sdk.Context, position *types.Position, msg *
 		sdk.NewAttribute("health", position.PositionHealth.String()),
 	)
 	ctx.EventManager().EmitEvent(event)
-
-	if k.hooks != nil {
-		k.hooks.AfterLeveragelpPositionModified(ctx, ammPool, pool)
-	}
 
 	return &types.MsgOpenResponse{}, nil
 }
@@ -85,12 +79,6 @@ func (k Keeper) ProcessOpenLong(ctx sdk.Context, position *types.Position, lever
 		return nil, errorsmod.Wrap(types.ErrPositionDisabled, fmt.Sprintf("poolId: %d", poolId))
 	}
 
-	// Fetch the corresponding AMM (Automated Market Maker) pool.
-	ammPool, err := k.GetAmmPool(ctx, poolId)
-	if err != nil {
-		return nil, err
-	}
-
 	baseCurrency, found := k.assetProfileKeeper.GetUsdcDenom(ctx)
 	if !found {
 		return nil, errorsmod.Wrapf(assetprofiletypes.ErrAssetProfileNotFound, "asset %s not found", ptypes.BaseCurrency)
@@ -105,7 +93,7 @@ func (k Keeper) ProcessOpenLong(ctx sdk.Context, position *types.Position, lever
 
 	// send collateral coins to Position address from Position owner address
 	positionOwner := sdk.MustAccAddressFromBech32(position.Address)
-	err = k.bankKeeper.SendCoins(ctx, positionOwner, position.GetPositionAddress(), sdk.Coins{sdk.NewCoin(msg.CollateralAsset, msg.CollateralAmount)})
+	err := k.bankKeeper.SendCoins(ctx, positionOwner, position.GetPositionAddress(), sdk.Coins{sdk.NewCoin(msg.CollateralAsset, msg.CollateralAmount)})
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +116,7 @@ func (k Keeper) ProcessOpenLong(ctx sdk.Context, position *types.Position, lever
 	k.UpdatePoolHealth(ctx, &pool)
 
 	// Get the Position health.
-	lr, err := k.GetPositionHealth(ctx, *position, ammPool)
+	lr, err := k.GetPositionHealth(ctx, *position)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +131,8 @@ func (k Keeper) ProcessOpenLong(ctx sdk.Context, position *types.Position, lever
 	position.LeveragedLpAmount = position.LeveragedLpAmount.Add(shares)
 	position.Liabilities = position.Liabilities.Add(borrowCoin.Amount)
 	position.PositionHealth = lr
+	position.StopLossPrice = msg.StopLossPrice
+
 	k.SetPosition(ctx, position)
 
 	return position, nil

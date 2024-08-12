@@ -796,6 +796,7 @@ func NewElysApp(
 		appCodec,
 		keys[stablestaketypes.StoreKey],
 		keys[stablestaketypes.MemStoreKey],
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		app.GetSubspace(stablestaketypes.ModuleName),
 		app.BankKeeper,
 		&app.CommitmentKeeper,
@@ -1030,6 +1031,7 @@ func NewElysApp(
 		app.StakingKeeper,
 		app.PerpetualKeeper,
 		app.LeveragelpKeeper,
+		app.StablestakeKeeper,
 	)
 	tierModule := tiermodule.NewAppModule(appCodec, app.TierKeeper, app.AccountKeeper, app.BankKeeper)
 
@@ -1441,14 +1443,6 @@ func (app *ElysApp) Name() string { return app.BaseApp.Name() }
 
 // BeginBlocker application updates every begin block
 func (app *ElysApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	if ctx.BlockHeight() == 8504600 {
-		ctx.Logger().Info("Reached block height 8504600, applying permissions changes to masterchef module")
-		// update permissions to masterchef module
-		oldModuleAccount := app.AccountKeeper.GetModuleAccount(ctx, masterchefmoduletypes.ModuleName)
-		oldModuleAccount.(*authtypes.ModuleAccount).Permissions = []string{authtypes.Minter, authtypes.Burner}
-		app.AccountKeeper.SetModuleAccount(ctx, oldModuleAccount)
-	}
-
 	return app.mm.BeginBlock(ctx, req)
 }
 
