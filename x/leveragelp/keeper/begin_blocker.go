@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/types/errors"
+	errorsmod "cosmossdk.io/errors"
+
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
 	"github.com/elys-network/elys/x/leveragelp/types"
@@ -27,7 +29,7 @@ func (k Keeper) BeginBlocker(ctx sdk.Context) {
 		pageReq.Offset = offset
 		positions, _, err := k.GetPositions(ctx, pageReq)
 		if err != nil {
-			ctx.Logger().Error(errors.Wrap(err, fmt.Sprintf("error fetching paginated positions")).Error())
+			ctx.Logger().Error(errorsmod.Wrap(err, "error fetching paginated positions").Error())
 			return
 		}
 		if offset+uint64(params.NumberPerBlock) >= k.GetOpenPositionCount(ctx) {
@@ -39,23 +41,27 @@ func (k Keeper) BeginBlocker(ctx sdk.Context) {
 		for _, position := range positions {
 			pool, found := k.GetPool(ctx, position.AmmPoolId)
 			if !found {
+				ctx.Logger().Error(fmt.Sprintf("pool not found for id: %d", position.AmmPoolId))
 				continue
 			}
-			ammPool, err := k.GetAmmPool(ctx, pool.AmmPoolId)
-			if err != nil {
-				ctx.Logger().Error(errors.Wrap(err, fmt.Sprintf("error getting amm pool: %d", pool.AmmPoolId)).Error())
+			ammPool, poolErr := k.GetAmmPool(ctx, pool.AmmPoolId)
+			if poolErr != nil {
+				ctx.Logger().Error(fmt.Sprintf("error getting for amm pool %d: %s", position.AmmPoolId, poolErr.Error()))
 				continue
 			}
-			isHealthy, _ := k.LiquidatePositionIfUnhealthy(ctx, position, pool, ammPool)
-			if !isHealthy {
+
+			isHealthy, closeAttempted, _, err := k.CheckAndLiquidateUnhealthyPosition(ctx, position, pool, ammPool)
+			if err == nil {
 				continue
 			}
-			k.ClosePositionIfUnderStopLossPrice(ctx, position, pool, ammPool)
+			if isHealthy && !closeAttempted {
+				_, _, _ = k.CheckAndCloseAtStopLoss(ctx, position, pool, ammPool)
+			}
 		}
 	}
 }
 
-func (k Keeper) LiquidatePositionIfUnhealthy(ctx sdk.Context, position *types.Position, pool types.Pool, ammPool ammtypes.Pool) (isHealthy, earlyReturn bool) {
+func (k Keeper) CheckAndLiquidateUnhealthyPosition(ctx sdk.Context, position *types.Position, pool types.Pool, ammPool ammtypes.Pool) (isHealthy, closeAttempted bool, health math.LegacyDec, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if msg, ok := r.(string); ok {
@@ -65,36 +71,38 @@ func (k Keeper) LiquidatePositionIfUnhealthy(ctx sdk.Context, position *types.Po
 	}()
 	h, err := k.GetPositionHealth(ctx, *position)
 	if err != nil {
-		ctx.Logger().Error(errors.Wrap(err, fmt.Sprintf("error updating position health: %s", position.String())).Error())
-		return false, true
+		ctx.Logger().Error(errorsmod.Wrap(err, fmt.Sprintf("error updating position health: %s", position.String())).Error())
+		return false, false, math.LegacyZeroDec(), err
 	}
 	position.PositionHealth = h
 	k.SetPosition(ctx, position)
 
 	params := k.GetParams(ctx)
 	isHealthy = position.PositionHealth.GT(params.SafetyFactor)
-	if isHealthy {
-		return isHealthy, false
+
+	debt := k.stableKeeper.UpdateInterestAndGetDebt(ctx, position.GetPositionAddress())
+	liab := debt.GetTotalLiablities()
+	if isHealthy || liab.IsZero() {
+		return true, false, h, fmt.Errorf("position is healthy to close")
 	}
 
-	repayAmount, err := k.ForceCloseLong(ctx, *position, pool, position.LeveragedLpAmount)
+	repayAmount, err := k.ForceCloseLong(ctx, *position, pool, position.LeveragedLpAmount, true)
 	if err != nil {
-		ctx.Logger().Error(errors.Wrap(err, "error executing liquidation").Error())
-		return isHealthy, true
+		ctx.Logger().Debug(errorsmod.Wrap(err, "error executing liquidation").Error())
+		return isHealthy, true, h, err
 	}
-	ctx.EventManager().EmitEvent(sdk.NewEvent(types.EventClose,
+	ctx.EventManager().EmitEvent(sdk.NewEvent(types.EventCloseUnhealthyPosition,
 		sdk.NewAttribute("id", strconv.FormatInt(int64(position.Id), 10)),
 		sdk.NewAttribute("address", position.Address),
 		sdk.NewAttribute("collateral", position.Collateral.String()),
 		sdk.NewAttribute("repay_amount", repayAmount.String()),
-		sdk.NewAttribute("leverage", position.Leverage.String()),
 		sdk.NewAttribute("liabilities", position.Liabilities.String()),
 		sdk.NewAttribute("health", position.PositionHealth.String()),
 	))
-	return isHealthy, false
+	return isHealthy, true, h, nil
 }
 
-func (k Keeper) ClosePositionIfUnderStopLossPrice(ctx sdk.Context, position *types.Position, pool types.Pool, ammPool ammtypes.Pool) (underStopLossPrice, earlyReturn bool) {
+func (k Keeper) CheckAndCloseAtStopLoss(ctx sdk.Context, position *types.Position, pool types.Pool, ammPool ammtypes.Pool) (underStopLossPrice, closeAttempted bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if msg, ok := r.(string); ok {
@@ -104,35 +112,34 @@ func (k Keeper) ClosePositionIfUnderStopLossPrice(ctx sdk.Context, position *typ
 	}()
 	h, err := k.GetPositionHealth(ctx, *position)
 	if err != nil {
-		ctx.Logger().Error(errors.Wrap(err, fmt.Sprintf("error updating position health: %s", position.String())).Error())
-		return false, true
+		ctx.Logger().Error(errorsmod.Wrap(err, fmt.Sprintf("error updating position health: %s", position.String())).Error())
+		return false, false, err
 	}
 	position.PositionHealth = h
 	k.SetPosition(ctx, position)
 
-	lpTokenPrice, err := ammPool.LpTokenPrice(ctx, k.oracleKeeper)
+	lpTokenPrice, err := ammPool.LpTokenPrice(ctx, k.oracleKeeper, k.accountedPoolKeeper)
 	if err != nil {
-		return false, true
+		return false, false, err
 	}
 
 	underStopLossPrice = !position.StopLossPrice.IsNil() && lpTokenPrice.LTE(position.StopLossPrice)
 	if !underStopLossPrice {
-		return underStopLossPrice, false
+		return underStopLossPrice, false, fmt.Errorf("position stop loss price is not <= lp token price")
 	}
 
-	repayAmount, err := k.ForceCloseLong(ctx, *position, pool, position.LeveragedLpAmount)
+	repayAmount, err := k.ForceCloseLong(ctx, *position, pool, position.LeveragedLpAmount, false)
 	if err != nil {
-		ctx.Logger().Error(errors.Wrap(err, "error executing close for stopLossPrice").Error())
-		return underStopLossPrice, true
+		ctx.Logger().Error(errorsmod.Wrap(err, "error executing close for stopLossPrice").Error())
+		return underStopLossPrice, true, err
 	}
-	ctx.EventManager().EmitEvent(sdk.NewEvent(types.EventClose,
+	ctx.EventManager().EmitEvent(sdk.NewEvent(types.EventClosePositionStopLoss,
 		sdk.NewAttribute("id", strconv.FormatInt(int64(position.Id), 10)),
 		sdk.NewAttribute("address", position.Address),
 		sdk.NewAttribute("collateral", position.Collateral.String()),
 		sdk.NewAttribute("repay_amount", repayAmount.String()),
-		sdk.NewAttribute("leverage", position.Leverage.String()),
 		sdk.NewAttribute("liabilities", position.Liabilities.String()),
 		sdk.NewAttribute("health", position.PositionHealth.String()),
 	))
-	return underStopLossPrice, false
+	return underStopLossPrice, true, nil
 }

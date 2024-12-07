@@ -1,7 +1,9 @@
 package cli
 
 import (
+	sdkmath "cosmossdk.io/math"
 	"errors"
+	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -13,13 +15,13 @@ import (
 
 func CmdOpen() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "open [position] [leverage] [trading-asset] [collateral] [flags]",
+		Use:   "open [position] [leverage] [pool-id] [trading-asset] [collateral] [flags]",
 		Short: "Open perpetual position",
 		Example: `Infinte profitability:
-elysd tx perpetual open long 5 uatom 100000000uusdc --from=treasury --keyring-backend=test --chain-id=elystestnet-1 --yes --gas=1000000
+elysd tx perpetual open long 5 1 uatom 100000000uusdc --from=treasury --keyring-backend=test --chain-id=elystestnet-1 --yes --gas=1000000
 Finite profitability:
-elysd tx perpetual open short 5 uatom 100000000uusdc --take-profit 100 --from=treasury --keyring-backend=test --chain-id=elystestnet-1 --yes --gas=1000000`,
-		Args: cobra.ExactArgs(4),
+elysd tx perpetual open short 5 1 uatom 100000000uusdc --take-profit 100 --stop-loss 10 --from=treasury --keyring-backend=test --chain-id=elystestnet-1 --yes --gas=1000000`,
+		Args: cobra.ExactArgs(5),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
@@ -33,14 +35,19 @@ elysd tx perpetual open short 5 uatom 100000000uusdc --take-profit 100 --from=tr
 
 			argPosition := types.GetPositionFromString(args[0])
 
-			argLeverage, err := sdk.NewDecFromStr(args[1])
+			argLeverage, err := sdkmath.LegacyNewDecFromStr(args[1])
 			if err != nil {
 				return err
 			}
 
-			argTradingAsset := args[2]
+			argPoolId, err := strconv.ParseUint(args[2], 10, 64)
+			if err != nil {
+				return err
+			}
 
-			argCollateral, err := sdk.ParseCoinNormalized(args[3])
+			argTradingAsset := args[3]
+
+			argCollateral, err := sdk.ParseCoinNormalized(args[4])
 			if err != nil {
 				return err
 			}
@@ -50,29 +57,43 @@ elysd tx perpetual open short 5 uatom 100000000uusdc --take-profit 100 --from=tr
 				return err
 			}
 
-			var takeProfitPrice sdk.Dec
+			var takeProfitPrice sdkmath.LegacyDec
 			if takeProfitPriceStr != types.InfinitePriceString {
-				takeProfitPrice, err = sdk.NewDecFromStr(takeProfitPriceStr)
+				takeProfitPrice, err = sdkmath.LegacyNewDecFromStr(takeProfitPriceStr)
 				if err != nil {
 					return errors.New("invalid take profit price")
 				}
 			} else {
-				takeProfitPrice, err = sdk.NewDecFromStr(types.TakeProfitPriceDefault)
+				takeProfitPrice = types.TakeProfitPriceDefault
+			}
+
+			stopLossPriceStr, err := cmd.Flags().GetString(FlagStopLossPrice)
+			if err != nil {
+				return err
+			}
+
+			var stopLossPrice sdkmath.LegacyDec
+			if stopLossPriceStr != types.ZeroPriceString {
+				stopLossPrice, err = sdkmath.LegacyNewDecFromStr(stopLossPriceStr)
 				if err != nil {
-					return errors.New("failed to set default take profit price")
+					return errors.New("invalid stop loss price")
 				}
+			} else {
+				stopLossPrice = types.StopLossPriceDefault
 			}
 
 			msg := types.NewMsgOpen(
 				signer.String(),
 				argPosition,
 				argLeverage,
+				argPoolId,
 				argTradingAsset,
 				argCollateral,
 				takeProfitPrice,
+				stopLossPrice,
 			)
 
-			if err := msg.ValidateBasic(); err != nil {
+			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
@@ -80,6 +101,7 @@ elysd tx perpetual open short 5 uatom 100000000uusdc --take-profit 100 --from=tr
 	}
 
 	cmd.Flags().String(FlagTakeProfitPrice, types.InfinitePriceString, "Optional take profit price")
+	cmd.Flags().String(FlagStopLossPrice, types.ZeroPriceString, "Optional stop loss price")
 
 	flags.AddTxFlagsToCmd(cmd)
 

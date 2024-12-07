@@ -2,6 +2,9 @@ package cli
 
 import (
 	"errors"
+	"strconv"
+
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -12,14 +15,14 @@ import (
 
 func CmdOpenEstimation() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "open-estimation [position] [leverage] [trading-asset] [collateral]",
+		Use:     "open-estimation [position] [leverage] [trading-asset] [collateral] [pool-id]",
 		Short:   "Query open-estimation",
-		Example: "elysd q perpetual open-estimation long 5 uatom 100000000uusdc",
-		Args:    cobra.ExactArgs(4),
+		Example: "elysd q perpetual open-estimation long 5 uatom 100000000uusdc 1",
+		Args:    cobra.ExactArgs(5),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			reqPosition := types.GetPositionFromString(args[0])
 
-			reqLeverage, err := sdk.NewDecFromStr(args[1])
+			reqLeverage, err := sdkmath.LegacyNewDecFromStr(args[1])
 			if err != nil {
 				return err
 			}
@@ -31,11 +34,7 @@ func CmdOpenEstimation() *cobra.Command {
 				return err
 			}
 
-			discountStr, err := cmd.Flags().GetString(FlagDiscount)
-			if err != nil {
-				return err
-			}
-			discount, err := sdk.NewDecFromStr(discountStr)
+			reqPoolId, err := strconv.ParseUint(args[4], 10, 64)
 			if err != nil {
 				return err
 			}
@@ -45,17 +44,29 @@ func CmdOpenEstimation() *cobra.Command {
 				return err
 			}
 
-			var takeProfitPrice sdk.Dec
+			var takeProfitPrice sdkmath.LegacyDec
 			if takeProfitPriceStr != types.InfinitePriceString {
-				takeProfitPrice, err = sdk.NewDecFromStr(takeProfitPriceStr)
+				takeProfitPrice, err = sdkmath.LegacyNewDecFromStr(takeProfitPriceStr)
 				if err != nil {
 					return errors.New("invalid take profit price")
 				}
 			} else {
-				takeProfitPrice, err = sdk.NewDecFromStr(types.TakeProfitPriceDefault)
-				if err != nil {
-					return errors.New("failed to set default take profit price")
-				}
+				takeProfitPrice = types.TakeProfitPriceDefault
+			}
+
+			address, err := cmd.Flags().GetString(FlagAddress)
+			if err != nil {
+				return err
+			}
+
+			limitPriceStr, err := cmd.Flags().GetString(FlagLimitPrice)
+			if err != nil {
+				return err
+			}
+
+			limitPrice, err := sdkmath.LegacyNewDecFromStr(limitPriceStr)
+			if err != nil {
+				return errors.New("invalid limit price")
 			}
 
 			clientCtx, err := client.GetClientQueryContext(cmd)
@@ -70,8 +81,10 @@ func CmdOpenEstimation() *cobra.Command {
 				Leverage:        reqLeverage,
 				TradingAsset:    reqTradingAsset,
 				Collateral:      reqCollateral,
-				Discount:        discount,
 				TakeProfitPrice: takeProfitPrice,
+				PoolId:          reqPoolId,
+				LimitPrice:      limitPrice,
+				Address:         address,
 			}
 
 			res, err := queryClient.OpenEstimation(cmd.Context(), params)
@@ -85,8 +98,9 @@ func CmdOpenEstimation() *cobra.Command {
 
 	flags.AddQueryFlagsToCmd(cmd)
 
-	cmd.Flags().String(FlagDiscount, "0.0", "discount to apply to the swap fee")
 	cmd.Flags().String(FlagTakeProfitPrice, types.InfinitePriceString, "Optional take profit price")
+	cmd.Flags().String(FlagLimitPrice, "0.0", "limit price, default 0 which calculates at market price")
+	cmd.Flags().String(FlagAddress, "", "address of the account which will open the position")
 
 	return cmd
 }

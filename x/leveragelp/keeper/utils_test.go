@@ -3,25 +3,30 @@ package keeper_test
 import (
 	"errors"
 
+	"cosmossdk.io/math"
+
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simapp "github.com/elys-network/elys/app"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
 	"github.com/elys-network/elys/x/leveragelp/types"
 )
 
-func (suite KeeperTestSuite) TestCheckUserAuthorization() {
+func (suite *KeeperTestSuite) TestCheckUserAuthorization() {
 	// Create an instance of Keeper with the mock checker
 	k := suite.app.LeveragelpKeeper
-	msg := &types.MsgOpen{Creator: "whitelistedUser"}
+	pk := ed25519.GenPrivKey().PubKey()
+	creator := sdk.AccAddress(pk.Address())
+	msg := &types.MsgOpen{Creator: creator.String()}
 
 	params := k.GetParams(suite.ctx)
 	params.WhitelistingEnabled = true
 	k.SetParams(suite.ctx, &params)
-	k.WhitelistAddress(suite.ctx, msg.Creator)
+	k.WhitelistAddress(suite.ctx, creator)
 	err := k.CheckUserAuthorization(suite.ctx, msg)
 	suite.Require().NoError(err)
 
-	k.DewhitelistAddress(suite.ctx, msg.Creator)
+	k.DewhitelistAddress(suite.ctx, creator)
 	err = k.CheckUserAuthorization(suite.ctx, msg)
 	suite.Require().Error(err)
 
@@ -31,29 +36,29 @@ func (suite KeeperTestSuite) TestCheckUserAuthorization() {
 	suite.Require().NoError(err)
 }
 
-func (suite KeeperTestSuite) TestCheckSameAssets() {
+func (suite *KeeperTestSuite) TestCheckSameAssets() {
 	app := suite.app
 	k := app.LeveragelpKeeper
-	addr := simapp.AddTestAddrs(app, suite.ctx, 1, sdk.NewInt(1000000))
-	SetupCoinPrices(suite.ctx, suite.app.OracleKeeper)
+	addr := simapp.AddTestAddrs(app, suite.ctx, 1, math.NewInt(1000000))
+	suite.SetupCoinPrices(suite.ctx)
 
-	position := types.NewPosition(addr[0].String(), sdk.NewInt64Coin("USDC", 0), sdk.NewDec(5), 1)
+	position := types.NewPosition(addr[0].String(), sdk.NewInt64Coin("USDC", 0), 1)
 	k.SetPosition(suite.ctx, position)
 
 	msg := &types.MsgOpen{
 		Creator:          addr[0].String(),
 		CollateralAsset:  "USDC",
-		CollateralAmount: sdk.NewInt(100),
+		CollateralAmount: math.NewInt(100),
 		AmmPoolId:        1,
-		Leverage:         sdk.NewDec(1),
+		Leverage:         math.LegacyNewDec(1),
 	}
 
 	// Expect no error
-	position = k.CheckSamePosition(suite.ctx, msg)
+	position, _ = k.CheckSamePosition(suite.ctx, msg)
 	suite.Require().NotNil(position)
 }
 
-func (suite KeeperTestSuite) TestCheckPoolHealth() {
+func (suite *KeeperTestSuite) TestCheckPoolHealth() {
 	k := suite.app.LeveragelpKeeper
 	poolId := uint64(1)
 
@@ -64,7 +69,6 @@ func (suite KeeperTestSuite) TestCheckPoolHealth() {
 	// PoolDisabledOrClosed
 	suite.app.LeveragelpKeeper.SetPool(suite.ctx, types.Pool{
 		AmmPoolId: 1,
-		Enabled:   false,
 	})
 	err = k.CheckPoolHealth(suite.ctx, poolId)
 	suite.Require().Error(err)
@@ -72,8 +76,7 @@ func (suite KeeperTestSuite) TestCheckPoolHealth() {
 	// PoolHealthTooLow
 	suite.app.LeveragelpKeeper.SetPool(suite.ctx, types.Pool{
 		AmmPoolId: 1,
-		Enabled:   false,
-		Health:    sdk.NewDec(5),
+		Health:    math.LegacyNewDec(5).Quo(math.LegacyNewDec(100)),
 	})
 	err = k.CheckPoolHealth(suite.ctx, poolId)
 	suite.Require().Error(err)
@@ -81,15 +84,13 @@ func (suite KeeperTestSuite) TestCheckPoolHealth() {
 	// PoolIsHealthy
 	suite.app.LeveragelpKeeper.SetPool(suite.ctx, types.Pool{
 		AmmPoolId: 1,
-		Enabled:   true,
-		Health:    sdk.NewDec(15),
-		Closed:    false,
+		Health:    math.LegacyNewDec(15),
 	})
 	err = k.CheckPoolHealth(suite.ctx, poolId)
 	suite.Require().NoError(err)
 }
 
-func (suite KeeperTestSuite) TestCheckMaxOpenPositions() {
+func (suite *KeeperTestSuite) TestCheckMaxOpenPositions() {
 	k := suite.app.LeveragelpKeeper
 
 	params := k.GetParams(suite.ctx)
@@ -103,16 +104,16 @@ func (suite KeeperTestSuite) TestCheckMaxOpenPositions() {
 
 	//  Expect an error about max open positions
 	k.SetOpenPositionCount(suite.ctx, 10)
-	err = k.CheckMaxOpenPositions(suite.ctx)
+	_ = k.CheckMaxOpenPositions(suite.ctx)
 	suite.Require().Error(types.ErrMaxOpenPositions)
 
 	// OpenPositionsExceedMax
 	k.SetOpenPositionCount(suite.ctx, 11)
-	err = k.CheckMaxOpenPositions(suite.ctx)
+	_ = k.CheckMaxOpenPositions(suite.ctx)
 	suite.Require().Error(types.ErrMaxOpenPositions)
 }
 
-func (suite KeeperTestSuite) TestGetAmmPool() {
+func (suite *KeeperTestSuite) TestGetAmmPool() {
 	k := suite.app.LeveragelpKeeper
 
 	poolId := uint64(42)
@@ -123,7 +124,8 @@ func (suite KeeperTestSuite) TestGetAmmPool() {
 
 	// PoolFound
 	suite.app.AmmKeeper.SetPool(suite.ctx, ammtypes.Pool{
-		PoolId: poolId,
+		PoolId:  poolId,
+		Address: ammtypes.NewPoolAddress(poolId).String(),
 	})
 	_, err = k.GetAmmPool(suite.ctx, poolId)
 	suite.Require().NoError(err)

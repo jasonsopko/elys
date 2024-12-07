@@ -36,7 +36,8 @@ func (k Keeper) CloseEst(goCtx context.Context, req *types.QueryCloseEstRequest)
 	}
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	position, err := k.GetPosition(ctx, req.Owner, req.Id)
+	owner := sdk.MustAccAddressFromBech32(req.Owner)
+	position, err := k.GetPosition(ctx, owner, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +55,11 @@ func (k Keeper) CloseEst(goCtx context.Context, req *types.QueryCloseEstRequest)
 		return nil, types.ErrAmountTooLow
 	}
 
-	repayAmount := debt.GetTotalLiablities()
+	repayAmount := debt.GetTotalLiablities().Mul(req.LpAmount).Quo(position.LeveragedLpAmount)
 	userAmount := exitCoins[0].Amount.Sub(repayAmount)
 
 	return &types.QueryCloseEstResponse{
-		Liability:          position.Liabilities,
+		Liability:          repayAmount,
 		WeightBalanceRatio: weightBalanceBonus,
 		AmountReturned:     userAmount,
 	}, nil

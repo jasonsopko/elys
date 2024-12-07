@@ -25,7 +25,7 @@ func (suite *KeeperTestSuite) TestUnbond() {
 			desc:              "successful unbonding process",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(types.GetShareDenom(), 1000000)},
 			moduleInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			unbondAmount:      sdk.NewInt(1000000),
+			unbondAmount:      math.NewInt(1000000),
 			expSenderBalance:  sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)}.Sort(),
 			expPass:           true,
 		},
@@ -33,7 +33,7 @@ func (suite *KeeperTestSuite) TestUnbond() {
 			desc:              "lack of balance on the module",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(types.GetShareDenom(), 1000000)},
 			moduleInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000)},
-			unbondAmount:      sdk.NewInt(1000000),
+			unbondAmount:      math.NewInt(1000000),
 			expSenderBalance:  sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			expPass:           false,
 		},
@@ -41,7 +41,7 @@ func (suite *KeeperTestSuite) TestUnbond() {
 			desc:              "lack of sender balance",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(types.GetShareDenom(), 1000000)},
 			moduleInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			unbondAmount:      sdk.NewInt(10000000000000),
+			unbondAmount:      math.NewInt(10000000000000),
 			expSenderBalance:  sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			expPass:           false,
 		},
@@ -85,12 +85,13 @@ func (suite *KeeperTestSuite) TestUnbond() {
 			suite.Require().NoError(err)
 
 			params := suite.app.StablestakeKeeper.GetParams(suite.ctx)
-			params.TotalValue = sdk.NewInt(1000_000_000)
+			params.TotalValue = math.NewInt(1000_000)
+			params.RedemptionRate = math.LegacyNewDec(1)
 			suite.app.StablestakeKeeper.SetParams(suite.ctx, params)
 
-			msgServer := keeper.NewMsgServerImpl(suite.app.StablestakeKeeper)
+			msgServer := keeper.NewMsgServerImpl(*suite.app.StablestakeKeeper)
 			_, err = msgServer.Unbond(
-				sdk.WrapSDKContext(suite.ctx),
+				suite.ctx,
 				&types.MsgUnbond{
 					Creator: sender.String(),
 					Amount:  tc.unbondAmount,

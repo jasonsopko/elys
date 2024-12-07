@@ -6,35 +6,25 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-const TypeMsgUpdatePoolMultipliers = "update_pool_multipliers"
-
 var _ sdk.Msg = &MsgUpdatePoolMultipliers{}
-
-func (msg *MsgUpdatePoolMultipliers) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgUpdatePoolMultipliers) Type() string {
-	return TypeMsgUpdatePoolMultipliers
-}
-
-func (msg *MsgUpdatePoolMultipliers) GetSigners() []sdk.AccAddress {
-	sender, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{sender}
-}
-
-func (msg *MsgUpdatePoolMultipliers) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
 
 func (msg *MsgUpdatePoolMultipliers) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid sender address (%s)", err)
+	}
+
+	if len(msg.PoolMultipliers) == 0 {
+		return errorsmod.Wrapf(ErrInvalidPoolMultiplier, "pool multipliers is empty")
+	}
+
+	for _, multiplier := range msg.PoolMultipliers {
+		if multiplier.Multiplier.IsNil() {
+			return errorsmod.Wrapf(ErrInvalidPoolMultiplier, "multiplier is empty")
+		}
+		if multiplier.Multiplier.IsNegative() {
+			return errorsmod.Wrapf(ErrInvalidPoolMultiplier, "multiplier cannot be negative")
+		}
 	}
 
 	return nil

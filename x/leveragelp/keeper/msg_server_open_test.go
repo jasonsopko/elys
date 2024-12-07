@@ -2,10 +2,13 @@ package keeper_test
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	simapp "github.com/elys-network/elys/app"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
+	leveragelpmodulekeeper "github.com/elys-network/elys/x/leveragelp/keeper"
 	"github.com/elys-network/elys/x/leveragelp/types"
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 	stablekeeper "github.com/elys-network/elys/x/stablestake/keeper"
@@ -13,8 +16,8 @@ import (
 )
 
 func initializeForOpen(suite *KeeperTestSuite, addresses []sdk.AccAddress, asset1, asset2 string) {
-	fee := sdk.MustNewDecFromStr("0.0002")
-	issueAmount := sdk.NewInt(10_000_000_000_000)
+	fee := sdkmath.LegacyMustNewDecFromStr("0.0002")
+	issueAmount := sdkmath.NewInt(10_000_000_000_000_000)
 	for _, address := range addresses {
 		coins := sdk.NewCoins(
 			sdk.NewCoin(ptypes.ATOM, issueAmount),
@@ -32,25 +35,19 @@ func initializeForOpen(suite *KeeperTestSuite, addresses []sdk.AccAddress, asset
 	}
 	msgCreatePool := ammtypes.MsgCreatePool{
 		Sender: addresses[0].String(),
-		PoolParams: &ammtypes.PoolParams{
-			SwapFee:                     fee,
-			ExitFee:                     fee,
-			UseOracle:                   true,
-			WeightBreakingFeeMultiplier: fee,
-			WeightBreakingFeeExponent:   fee,
-			ExternalLiquidityRatio:      fee,
-			WeightRecoveryFeePortion:    fee,
-			ThresholdWeightDifference:   fee,
-			FeeDenom:                    ptypes.Elys,
+		PoolParams: ammtypes.PoolParams{
+			SwapFee:   fee,
+			UseOracle: true,
+			FeeDenom:  ptypes.Elys,
 		},
 		PoolAssets: []ammtypes.PoolAsset{
 			{
-				Token:  sdk.NewInt64Coin(asset1, 100_000_000),
-				Weight: sdk.NewInt(50),
+				Token:  sdk.NewInt64Coin(asset1, 100_000_000_000_000),
+				Weight: sdkmath.NewInt(50),
 			},
 			{
-				Token:  sdk.NewInt64Coin(asset2, 1000_000_000),
-				Weight: sdk.NewInt(50),
+				Token:  sdk.NewInt64Coin(asset2, 1000_000_000_000_000),
+				Weight: sdkmath.NewInt(50),
 			},
 		},
 	}
@@ -58,12 +55,11 @@ func initializeForOpen(suite *KeeperTestSuite, addresses []sdk.AccAddress, asset
 	if err != nil {
 		panic(err)
 	}
-	suite.app.LeveragelpKeeper.SetPool(suite.ctx, types.NewPool(poolId))
 	msgBond := stabletypes.MsgBond{
 		Creator: addresses[1].String(),
 		Amount:  issueAmount.QuoRaw(20),
 	}
-	stableStakeMsgServer := stablekeeper.NewMsgServerImpl(suite.app.StablestakeKeeper)
+	stableStakeMsgServer := stablekeeper.NewMsgServerImpl(*suite.app.StablestakeKeeper)
 	_, err = stableStakeMsgServer.Bond(suite.ctx, &msgBond)
 	if err != nil {
 		panic(err)
@@ -73,13 +69,22 @@ func initializeForOpen(suite *KeeperTestSuite, addresses []sdk.AccAddress, asset
 	if err != nil {
 		panic(err)
 	}
+
+	addPoolMsg := types.MsgAddPool{
+		Authority: authtypes.NewModuleAddress("gov").String(),
+		Pool: types.AddPool{
+			AmmPoolId:   poolId,
+			LeverageMax: sdkmath.LegacyMustNewDecFromStr("10"),
+		},
+	}
+	_, err = leveragelpmodulekeeper.NewMsgServerImpl(*suite.app.LeveragelpKeeper).AddPool(suite.ctx, &addPoolMsg)
+	suite.Require().NoError(err)
 }
 
 func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 	suite.ResetSuite()
-	SetupCoinPrices(suite.ctx, suite.app.OracleKeeper)
-	//SetupCoinPrices(suite.ctx, suite.app.OracleKeeper, []string{ptypes.Elys, ptypes.ATOM, "uusdt"})
-	addresses := simapp.AddTestAddrs(suite.app, suite.ctx, 10, sdk.NewInt(1000000))
+	suite.SetupCoinPrices(suite.ctx)
+	addresses := simapp.AddTestAddrs(suite.app, suite.ctx, 10, sdkmath.NewInt(1000000))
 	asset1 := ptypes.ATOM
 	asset2 := ptypes.BaseCurrency
 	initializeForOpen(suite, addresses, asset1, asset2)
@@ -94,10 +99,10 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  "stake",
-				CollateralAmount: sdk.NewInt(1000),
+				CollateralAmount: sdkmath.NewInt(1000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("10.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("10.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			true,
 			errorsmod.Wrap(types.ErrUnauthorised, "unauthorised").Error(),
@@ -109,13 +114,13 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  "stake",
-				CollateralAmount: sdk.NewInt(1000000000),
+				CollateralAmount: sdkmath.NewInt(1000000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("10.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("10.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			true,
-			errorsmod.Wrap(types.ErrMaxOpenPositions, "cannot open new positions").Error(),
+			"cannot open new positions, open positions 0 - max positions 0: max open",
 			func() {
 				suite.DisableWhiteListing()
 				suite.SetMaxOpenPositions(0)
@@ -125,13 +130,13 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 			input: &types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1000),
-				AmmPoolId:        10,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				CollateralAmount: sdkmath.NewInt(1000),
+				AmmPoolId:        1,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			expectErr:    true,
-			expectErrMsg: types.ErrMaxOpenPositions.Wrapf("cannot open new positions").Error(),
+			expectErrMsg: "cannot open new positions, open positions 0 - max positions 0: max open",
 			prerequisiteFunction: func() {
 			},
 		},
@@ -139,73 +144,91 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 			input: &types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1000),
+				CollateralAmount: sdkmath.NewInt(1000),
 				AmmPoolId:        100,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			expectErr:    true,
 			expectErrMsg: types.ErrPoolDoesNotExist.Wrapf("poolId: %d", 100).Error(),
 			prerequisiteFunction: func() {
-				suite.SetMaxOpenPositions(2)
+				suite.SetMaxOpenPositions(3)
+			},
+		},
+		{name: "base currency not found",
+			input: &types.MsgOpen{
+				Creator:          addresses[0].String(),
+				CollateralAsset:  ptypes.BaseCurrency,
+				CollateralAmount: sdkmath.NewInt(1000),
+				AmmPoolId:        2,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
+			},
+			expectErr:    true,
+			expectErrMsg: "pool does not exis",
+			prerequisiteFunction: func() {
+				pool := types.NewPool(2, sdkmath.LegacyMustNewDecFromStr("10"))
+				suite.app.LeveragelpKeeper.SetPool(suite.ctx, pool)
+				suite.RemovePrices(suite.ctx, []string{"uusdc"})
+				suite.SetMaxOpenPositions(20)
 			},
 		},
 		{name: "AMM Pool not found",
 			input: &types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1000),
+				CollateralAmount: sdkmath.NewInt(1000),
 				AmmPoolId:        2,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			expectErr:    true,
-			expectErrMsg: "invalid pool id",
+			expectErrMsg: "pool does not exis",
 			prerequisiteFunction: func() {
-				pool := types.NewPool(2)
-				suite.app.LeveragelpKeeper.SetPool(suite.ctx, pool)
+				suite.SetupCoinPrices(suite.ctx)
 			},
 		},
-		{"Pool Disabled",
-			&types.MsgOpen{
+		{name: "Pool not enabled",
+			input: &types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1000),
-				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				CollateralAmount: sdkmath.NewInt(1000),
+				AmmPoolId:        2,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
-			true,
-			types.ErrPositionDisabled.Wrapf("poolId: %d", 1).Error(),
-			func() {
-				suite.SetMaxOpenPositions(1000)
-				suite.DisablePool(1)
+			expectErr:    true,
+			expectErrMsg: "denom does not exist in pool",
+			prerequisiteFunction: func() {
+				pool := types.NewPool(2, sdkmath.LegacyNewDec(60))
+				suite.app.LeveragelpKeeper.SetPool(suite.ctx, pool)
+				amm_pool := ammtypes.Pool{PoolId: 2, Address: ammtypes.NewPoolAddress(2).String(), TotalShares: sdk.Coin{Amount: sdkmath.NewInt(100)}}
+				suite.app.AmmKeeper.SetPool(suite.ctx, amm_pool)
 			},
 		},
 		{"Collateral asset not equal to base currency",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.Elys,
-				CollateralAmount: sdk.NewInt(10000000),
+				CollateralAmount: sdkmath.NewInt(10000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
 			types.ErrOnlyBaseCurrencyAllowed.Error(),
 			func() {
-				suite.EnablePool(1)
-				suite.SetPoolThreshold(sdk.MustNewDecFromStr("0.2"))
+				suite.SetPoolThreshold(sdkmath.LegacyMustNewDecFromStr("0.2"))
 			},
 		},
 		{"Base currency not found",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.Elys,
-				CollateralAmount: sdk.NewInt(100000000),
+				CollateralAmount: sdkmath.NewInt(100000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
 			types.ErrOnlyBaseCurrencyAllowed.Error(),
@@ -216,107 +239,150 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(100000000),
+				CollateralAmount: sdkmath.NewInt(100000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
 			types.ErrInvalidPosition.Wrapf("pool health too low to open new positions").Error(),
 			func() {
-				AddCoinPrices(suite.ctx, suite.app.OracleKeeper, []string{ptypes.BaseCurrency})
-				suite.SetPoolThreshold(sdk.OneDec())
+				suite.AddCoinPrices(suite.ctx, []string{ptypes.BaseCurrency})
+				suite.SetPoolThreshold(sdkmath.LegacyOneDec())
 			},
 		},
 		{"Low Balance of creator",
 			&types.MsgOpen{
-				Creator:          simapp.AddTestAddrs(suite.app, suite.ctx, 1, sdk.NewInt(0))[0].String(),
+				Creator:          simapp.AddTestAddrs(suite.app, suite.ctx, 1, sdkmath.NewInt(0))[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(10000000),
+				CollateralAmount: sdkmath.NewInt(10000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
 			"insufficient funds",
 			func() {
-				suite.SetPoolThreshold(sdk.MustNewDecFromStr("0.2"))
+				suite.SetPoolThreshold(sdkmath.LegacyMustNewDecFromStr("0.2"))
 			},
 		},
 		{"Borrowing more than allowed",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1_000_000_000_000),
+				CollateralAmount: sdkmath.NewInt(1_000_000_000_000_000_000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
-			"cannot borrow more than 90%",
+			"pool is already leveraged at maximum value",
 			func() {
-				suite.SetPoolThreshold(sdk.MustNewDecFromStr("0.2"))
+				suite.SetPoolThreshold(sdkmath.LegacyMustNewDecFromStr("0.2"))
 			},
 		},
 		{"Position safety factor too low",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(10_000_000_000),
+				CollateralAmount: sdkmath.NewInt(10_000_000_000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			true,
 			types.ErrPositionUnhealthy.Error(),
 			func() {
-				suite.SetSafetyFactor(sdk.OneDec().MulInt64(10))
+				suite.SetSafetyFactor(sdkmath.LegacyOneDec().MulInt64(10))
+			},
+		},
+		{"Open new Position with leverage <=1",
+			&types.MsgOpen{
+				Creator:          addresses[0].String(),
+				CollateralAsset:  ptypes.BaseCurrency,
+				CollateralAmount: sdkmath.NewInt(1000),
+				AmmPoolId:        1,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("0.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
+			},
+			true,
+			"",
+			func() {
 			},
 		},
 		{"Open Position",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(10_000_000),
+				CollateralAmount: sdkmath.NewInt(10_000_000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			false,
 			"",
 			func() {
 				suite.ResetSuite()
-				SetupCoinPrices(suite.ctx, suite.app.OracleKeeper)
+				suite.SetupCoinPrices(suite.ctx)
 				initializeForOpen(suite, addresses, asset1, asset2)
-				suite.SetSafetyFactor(sdk.MustNewDecFromStr("1.1"))
-				suite.SetPoolThreshold(sdk.MustNewDecFromStr("0.2"))
+				suite.SetSafetyFactor(sdkmath.LegacyMustNewDecFromStr("1.1"))
+				suite.SetPoolThreshold(sdkmath.LegacyMustNewDecFromStr("0.2"))
 			},
 		},
-		{"Add on already open position Long but with different leverage",
+		{"Add on already open position Long but with different leverage 10",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1000),
+				CollateralAmount: sdkmath.NewInt(1000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("10.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("10.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
-			true,
+			false,
 			"",
 			func() {
 			},
 		},
-		{"Add on already open position Long",
+		{"Add on already open position Long but with different leverage 20",
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(1000),
+				CollateralAmount: sdkmath.NewInt(1000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("100.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("20.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
 			},
 			false,
 			"",
+			func() {
+			},
+		},
+		{"Add on already open position Long but with different leverage 1, increase position health",
+			&types.MsgOpen{
+				Creator:          addresses[0].String(),
+				CollateralAsset:  ptypes.BaseCurrency,
+				CollateralAmount: sdkmath.NewInt(1000000),
+				AmmPoolId:        1,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("1.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
+			},
+			false,
+			"",
+			func() {
+				suite.SetSafetyFactor(sdkmath.LegacyMustNewDecFromStr("2.0"))
+			},
+		},
+		{"Add on already open position Long but with different leverage 30",
+			&types.MsgOpen{
+				Creator:          addresses[0].String(),
+				CollateralAsset:  ptypes.BaseCurrency,
+				CollateralAmount: sdkmath.NewInt(1000000),
+				AmmPoolId:        1,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("30.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("100.0"),
+			},
+			true,
+			types.ErrPositionUnhealthy.Error(),
 			func() {
 			},
 		},
@@ -324,15 +390,16 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(100000000),
+				CollateralAmount: sdkmath.NewInt(100000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
 			types.ErrInvalidPosition.Wrapf("pool health too low to open new positions").Error(),
 			func() {
-				suite.SetPoolThreshold(sdk.OneDec())
+				suite.SetSafetyFactor(sdkmath.LegacyMustNewDecFromStr("1.0"))
+				suite.SetPoolThreshold(sdkmath.LegacyOneDec())
 			},
 		},
 	}
@@ -340,11 +407,19 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			tc.prerequisiteFunction()
+			portfolio_old, found := suite.app.TierKeeper.GetPortfolio(suite.ctx, sdk.MustAccAddressFromBech32(tc.input.Creator), suite.app.TierKeeper.GetDateFromContext(suite.ctx))
 			_, err := suite.app.LeveragelpKeeper.Open(suite.ctx, tc.input)
 			if tc.expectErr {
 				suite.Require().Error(err)
 				suite.Require().Contains(err.Error(), tc.expectErrMsg)
 			} else {
+				// The new value of the portfolio after the hook is called.
+				portfolio_new, _ := suite.app.TierKeeper.GetPortfolio(suite.ctx, sdk.MustAccAddressFromBech32(tc.input.Creator), suite.app.TierKeeper.GetDateFromContext(suite.ctx))
+				// Initially, there were no entries for the portfolio
+				if !found {
+					// The portfolio value changes after the hook is called.
+					suite.Require().NotEqual(portfolio_old, portfolio_new)
+				}
 				suite.Require().NoError(err)
 			}
 		})
@@ -354,8 +429,8 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithBaseCurrencyAsset() {
 func (suite *KeeperTestSuite) TestOpen_PoolWithoutBaseCurrencyAsset() {
 	suite.ResetSuite()
 	// not adding uusdc asset info and price yet
-	AddCoinPrices(suite.ctx, suite.app.OracleKeeper, []string{ptypes.Elys, ptypes.ATOM, "uusdt"})
-	addresses := simapp.AddTestAddrs(suite.app, suite.ctx, 10, sdk.NewInt(1000000))
+	suite.AddCoinPrices(suite.ctx, []string{ptypes.Elys, ptypes.ATOM, "uusdt"})
+	addresses := simapp.AddTestAddrs(suite.app, suite.ctx, 10, sdkmath.NewInt(1000000))
 	asset1 := ptypes.ATOM
 	asset2 := ptypes.Elys
 	initializeForOpen(suite, addresses, asset1, asset2)
@@ -370,14 +445,33 @@ func (suite *KeeperTestSuite) TestOpen_PoolWithoutBaseCurrencyAsset() {
 			&types.MsgOpen{
 				Creator:          addresses[0].String(),
 				CollateralAsset:  ptypes.BaseCurrency,
-				CollateralAmount: sdk.NewInt(10000000),
+				CollateralAmount: sdkmath.NewInt(10000000),
 				AmmPoolId:        1,
-				Leverage:         sdk.MustNewDecFromStr("2.0"),
-				StopLossPrice:    sdk.MustNewDecFromStr("50.0"),
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
 			},
 			true,
 			"token price not set",
 			func() {
+			},
+		},
+		{"Open Position",
+			&types.MsgOpen{
+				Creator:          addresses[0].String(),
+				CollateralAsset:  ptypes.BaseCurrency,
+				CollateralAmount: sdkmath.NewInt(10_000_000),
+				AmmPoolId:        1,
+				Leverage:         sdkmath.LegacyMustNewDecFromStr("2.0"),
+				StopLossPrice:    sdkmath.LegacyMustNewDecFromStr("50.0"),
+			},
+			true,
+			"can't find the PoolAsset",
+			func() {
+				suite.ResetSuite()
+				suite.SetupCoinPrices(suite.ctx)
+				initializeForOpen(suite, addresses, asset1, asset2)
+				suite.SetSafetyFactor(sdkmath.LegacyMustNewDecFromStr("1.1"))
+				suite.SetPoolThreshold(sdkmath.LegacyMustNewDecFromStr("0.2"))
 			},
 		},
 	}

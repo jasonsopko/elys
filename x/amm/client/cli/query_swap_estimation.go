@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strconv"
 
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -40,11 +42,11 @@ func CmdSwapEstimation() *cobra.Command {
 				})
 			}
 
-			discountStr, err := cmd.Flags().GetString(FlagDiscount)
+			discountStr, err := cmd.Flags().GetString(FlagAddress)
 			if err != nil {
 				return err
 			}
-			discount, err := sdk.NewDecFromStr(discountStr)
+			discount, err := sdkmath.LegacyNewDecFromStr(discountStr)
 			if err != nil {
 				return err
 			}
@@ -73,7 +75,7 @@ func CmdSwapEstimation() *cobra.Command {
 
 	flags.AddQueryFlagsToCmd(cmd)
 
-	cmd.Flags().String(FlagDiscount, "0.0", "discount to apply to the swap fee")
+	cmd.Flags().String(FlagAddress, "0.0", "discount to apply to the swap fee")
 
 	return cmd
 }

@@ -13,7 +13,7 @@ import (
 func setupNetwork(t *testing.T) *network.Network {
 	t.Helper()
 
-	cfg := network.DefaultConfig()
+	cfg := network.DefaultConfig(t.TempDir())
 	return network.New(t, cfg)
 }
 
@@ -33,10 +33,10 @@ func TestGovUpdateVestingInfo(t *testing.T) {
 		"--deposit=1000000uelys",
 		"--base-denom=ueden",
 		"--vesting-denom=uelys",
-		"--epoch-identifier=day",
 		"--num-epochs=100",
 		"--vest-now-factor=1",
 		"--num-max-vestings=10",
+		"--expedited=true",
 		"--from=" + val.Address.String(),
 		"-y",
 	}

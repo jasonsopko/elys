@@ -3,7 +3,9 @@ package keeper_test
 import (
 	"testing"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	sdkmath "cosmossdk.io/math"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/elys-network/elys/app"
@@ -14,18 +16,18 @@ import (
 
 func TestGetParams(t *testing.T) {
 	// Create a test context and keeper
-	testapp := app.InitElysTestApp(true)
+	testapp := app.InitElysTestApp(true, t)
 
-	ctx := testapp.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := testapp.BaseApp.NewContext(true)
 	k := testapp.CommitmentKeeper
 	require.NotNil(t, k)
 
-	vestingInfos := []*types.VestingInfo{
+	vestingInfos := []types.VestingInfo{
 		{
 			BaseDenom:      ptypes.Eden,
 			VestingDenom:   ptypes.Elys,
 			NumBlocks:      10,
-			VestNowFactor:  sdk.NewInt(90),
+			VestNowFactor:  sdkmath.NewInt(90),
 			NumMaxVestings: 10,
 		},
 	}
@@ -41,12 +43,12 @@ func TestGetParams(t *testing.T) {
 }
 
 func TestEncodeDecodeParams(t *testing.T) {
-	vestingInfos := []*types.VestingInfo{
+	vestingInfos := []types.VestingInfo{
 		{
 			BaseDenom:      ptypes.Eden,
 			VestingDenom:   ptypes.Elys,
 			NumBlocks:      10,
-			VestNowFactor:  sdk.NewInt(90),
+			VestNowFactor:  sdkmath.NewInt(90),
 			NumMaxVestings: 10,
 		},
 	}
@@ -55,12 +57,11 @@ func TestEncodeDecodeParams(t *testing.T) {
 		VestingInfos:   vestingInfos,
 		TotalCommitted: sdk.Coins{sdk.NewInt64Coin(ptypes.Eden, 10)},
 	}
-
-	encoded, err := types.ModuleCdc.MarshalJSON(&params)
+	encoded, err := codec.NewLegacyAmino().MarshalJSON(&params)
 	require.NoError(t, err)
 
 	var decoded types.Params
-	err = types.ModuleCdc.UnmarshalJSON(encoded, &decoded)
+	err = codec.NewLegacyAmino().UnmarshalJSON(encoded, &decoded)
 	require.NoError(t, err)
 
 	require.EqualValues(t, params, decoded)
@@ -68,18 +69,18 @@ func TestEncodeDecodeParams(t *testing.T) {
 
 func TestGetParamsNew(t *testing.T) {
 	// Create a test context and keeper
-	testapp := app.InitElysTestApp(true)
+	testapp := app.InitElysTestApp(true, t)
 
-	ctx := testapp.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := testapp.BaseApp.NewContext(true)
 	k := testapp.CommitmentKeeper
 	require.NotNil(t, k)
 
-	vestingInfos := []*types.VestingInfo{
+	vestingInfos := []types.VestingInfo{
 		{
 			BaseDenom:      ptypes.Eden,
 			VestingDenom:   ptypes.Elys,
 			NumBlocks:      10,
-			VestNowFactor:  sdk.NewInt(90),
+			VestNowFactor:  sdkmath.NewInt(90),
 			NumMaxVestings: 10,
 		},
 	}
@@ -91,32 +92,32 @@ func TestGetParamsNew(t *testing.T) {
 	k.SetParams(ctx, params)
 
 	// Create a new context to test GetParams
-	newCtx := testapp.BaseApp.NewContext(false, tmproto.Header{})
+	newCtx := testapp.BaseApp.NewContext(true)
 	p := k.GetParams(newCtx)
 	require.EqualValues(t, params, p)
 }
 
 func TestGetVestingInfo(t *testing.T) {
 	// Create a test context and keeper
-	testapp := app.InitElysTestApp(true)
+	testapp := app.InitElysTestApp(true, t)
 
-	ctx := testapp.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := testapp.BaseApp.NewContext(true)
 	k := testapp.CommitmentKeeper
 	require.NotNil(t, k)
 
-	vestingInfos := []*types.VestingInfo{
+	vestingInfos := []types.VestingInfo{
 		{
 			BaseDenom:      ptypes.Eden,
 			VestingDenom:   ptypes.Elys,
 			NumBlocks:      10,
-			VestNowFactor:  sdk.NewInt(90),
+			VestNowFactor:  sdkmath.NewInt(90),
 			NumMaxVestings: 10,
 		},
 		{
 			BaseDenom:      "test",
 			VestingDenom:   "test_vesting",
 			NumBlocks:      10,
-			VestNowFactor:  sdk.NewInt(90),
+			VestNowFactor:  sdkmath.NewInt(90),
 			NumMaxVestings: 10,
 		},
 	}

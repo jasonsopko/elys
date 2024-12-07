@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"cosmossdk.io/math"
 
 	"cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -107,7 +108,7 @@ func (k msgServer) ClaimAirdrop(goCtx context.Context, msg *types.MsgClaimAirdro
 	// Add commitments
 	sender := sdk.MustAccAddressFromBech32(msg.Sender)
 	commitments := k.commitmentKeeper.GetCommitments(ctx, sender)
-	commitments.AddClaimed(sdk.NewCoin(ptypes.Eden, sdk.NewInt(int64(airdrop.Amount))))
+	commitments.AddClaimed(sdk.NewCoin(ptypes.Eden, math.NewInt(int64(airdrop.Amount))))
 	k.commitmentKeeper.SetCommitments(ctx, commitments)
 
 	k.RemoveAirdrop(ctx, msg.Sender)

@@ -3,121 +3,124 @@ package keeper_test
 import (
 	"testing"
 
+	ptypes "github.com/elys-network/elys/x/parameter/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/query"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	keepertest "github.com/elys-network/elys/testutil/keeper"
-	"github.com/elys-network/elys/testutil/nullify"
+	simapp "github.com/elys-network/elys/app"
+	ammtypes "github.com/elys-network/elys/x/amm/types"
+	"github.com/elys-network/elys/x/perpetual/keeper"
 	"github.com/elys-network/elys/x/perpetual/types"
 )
 
-func TestPoolQuerySingle(t *testing.T) {
-	keeper, ctx := keepertest.PerpetualKeeper(t)
-	wctx := sdk.WrapSDKContext(ctx)
-	msgs := createNPool(keeper, ctx, 2)
-	tests := []struct {
-		desc     string
-		request  *types.QueryGetPoolRequest
-		response *types.QueryGetPoolResponse
-		err      error
-	}{
-		{
-			desc: "First",
-			request: &types.QueryGetPoolRequest{
-				Index: msgs[0].AmmPoolId,
-			},
-			response: &types.QueryGetPoolResponse{Pool: msgs[0]},
-		},
-		{
-			desc: "Second",
-			request: &types.QueryGetPoolRequest{
-				Index: msgs[1].AmmPoolId,
-			},
-			response: &types.QueryGetPoolResponse{Pool: msgs[1]},
-		},
-		{
-			desc: "KeyNotFound",
-			request: &types.QueryGetPoolRequest{
-				Index: (uint64)(100000),
-			},
-			err: status.Error(codes.NotFound, "not found"),
-		},
-		{
-			desc: "InvalidRequest",
-			err:  status.Error(codes.InvalidArgument, "invalid request"),
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.desc, func(t *testing.T) {
-			response, err := keeper.Pool(wctx, tc.request)
-			if tc.err != nil {
-				require.ErrorIs(t, err, tc.err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t,
-					nullify.Fill(tc.response),
-					nullify.Fill(response),
-				)
-			}
-		})
-	}
+func TestPools_InvalidRequest(t *testing.T) {
+	k := keeper.NewKeeper(nil, nil, "cosmos1ysxv266l8w76lq0vy44ktzajdr9u9yhlxzlvga", nil, nil, nil, nil, nil, nil)
+	ctx := sdk.Context{}
+	_, err := k.Pools(ctx, nil)
+
+	assert.ErrorIs(t, err, status.Error(codes.InvalidArgument, "invalid request"))
 }
 
-func TestPoolQueryPaginated(t *testing.T) {
-	keeper, ctx := keepertest.PerpetualKeeper(t)
-	wctx := sdk.WrapSDKContext(ctx)
-	msgs := createNPool(keeper, ctx, 5)
+func TestPools_ErrPoolDoesNotExist(t *testing.T) {
 
-	request := func(next []byte, offset, limit uint64, total bool) *types.QueryAllPoolRequest {
-		return &types.QueryAllPoolRequest{
-			Pagination: &query.PageRequest{
-				Key:        next,
-				Offset:     offset,
-				Limit:      limit,
-				CountTotal: total,
+	app := simapp.InitElysTestApp(true, t)
+	ctx := app.BaseApp.NewContext(true)
+
+	app.PerpetualKeeper.SetPool(ctx, types.Pool{
+		AmmPoolId: uint64(23),
+	})
+
+	_, err := app.PerpetualKeeper.Pools(ctx, &types.QueryAllPoolRequest{})
+	assert.Equal(t, "rpc error: code = Internal desc = perpetual pool does not exist", err.Error())
+}
+
+func (suite *PerpetualKeeperTestSuite) TestPools_Success() {
+	suite.ResetSuite()
+	suite.SetupCoinPrices()
+	app := suite.app
+	ctx := suite.ctx
+
+	app.PerpetualKeeper.SetPool(ctx, types.Pool{
+		AmmPoolId: uint64(1),
+		PoolAssetsLong: []types.PoolAsset{
+			{
+				AssetDenom: ptypes.ATOM,
 			},
-		}
-	}
-	t.Run("ByOffset", func(t *testing.T) {
-		step := 2
-		for i := 0; i < len(msgs); i += step {
-			resp, err := keeper.Pools(wctx, request(nil, uint64(i), uint64(step), false))
-			require.NoError(t, err)
-			require.LessOrEqual(t, len(resp.Pool), step)
-			require.Subset(t,
-				nullify.Fill(msgs),
-				nullify.Fill(resp.Pool),
-			)
-		}
+			{
+				AssetDenom: ptypes.BaseCurrency,
+			},
+		},
 	})
-	t.Run("ByKey", func(t *testing.T) {
-		step := 2
-		var next []byte
-		for i := 0; i < len(msgs); i += step {
-			resp, err := keeper.Pools(wctx, request(next, 0, uint64(step), false))
-			require.NoError(t, err)
-			require.LessOrEqual(t, len(resp.Pool), step)
-			require.Subset(t,
-				nullify.Fill(msgs),
-				nullify.Fill(resp.Pool),
-			)
-			next = resp.Pagination.NextKey
-		}
+
+	app.PerpetualKeeper.SetPool(ctx, types.Pool{
+		AmmPoolId: uint64(2),
+		PoolAssetsLong: []types.PoolAsset{
+			{
+				AssetDenom: ptypes.ATOM,
+			},
+			{
+				AssetDenom: ptypes.BaseCurrency,
+			},
+		},
 	})
-	t.Run("Total", func(t *testing.T) {
-		resp, err := keeper.Pools(wctx, request(nil, 0, 0, true))
-		require.NoError(t, err)
-		require.Equal(t, len(msgs), int(resp.Pagination.Total))
-		require.ElementsMatch(t,
-			nullify.Fill(msgs),
-			nullify.Fill(resp.Pool),
-		)
+
+	app.AmmKeeper.SetPool(ctx, ammtypes.Pool{
+		PoolId:  uint64(1),
+		Address: ammtypes.NewPoolAddress(1).String(),
+		PoolParams: ammtypes.PoolParams{
+			UseOracle: true,
+		},
+		PoolAssets: make([]ammtypes.PoolAsset, 2),
 	})
-	t.Run("InvalidRequest", func(t *testing.T) {
-		_, err := keeper.Pools(wctx, nil)
-		require.ErrorIs(t, err, status.Error(codes.InvalidArgument, "invalid request"))
+
+	app.AmmKeeper.SetPool(ctx, ammtypes.Pool{
+		PoolId:  uint64(2),
+		Address: ammtypes.NewPoolAddress(2).String(),
+		PoolParams: ammtypes.PoolParams{
+			UseOracle: false,
+		},
+		PoolAssets: make([]ammtypes.PoolAsset, 2),
 	})
+
+	response, err := app.PerpetualKeeper.Pools(ctx, &types.QueryAllPoolRequest{})
+	suite.Require().NoError(err)
+	suite.Require().Len(response.Pool, 1)
+
+}
+
+func (suite *PerpetualKeeperTestSuite) TestPooolQuerySingle() {
+	suite.ResetSuite()
+	suite.SetupCoinPrices()
+	app := suite.app
+	ctx := suite.ctx
+
+	app.PerpetualKeeper.SetPool(ctx, types.Pool{
+		AmmPoolId: uint64(1),
+		PoolAssetsLong: []types.PoolAsset{
+			{
+				AssetDenom: ptypes.ATOM,
+			},
+			{
+				AssetDenom: ptypes.BaseCurrency,
+			},
+		},
+	})
+
+	_, err := app.PerpetualKeeper.Pool(ctx, &types.QueryGetPoolRequest{
+		Index: uint64(1),
+	})
+
+	_, errNotFound := app.PerpetualKeeper.Pool(ctx, &types.QueryGetPoolRequest{
+		Index: uint64(2),
+	})
+
+	_, errInvalidRequest := app.PerpetualKeeper.Pool(ctx, nil)
+
+	suite.Require().NoError(err)
+	suite.Require().Error(errNotFound)
+	suite.Require().ErrorIs(errInvalidRequest, status.Error(codes.InvalidArgument, "invalid request"))
+
 }

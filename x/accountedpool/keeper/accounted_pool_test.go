@@ -8,7 +8,6 @@ import (
 	"github.com/elys-network/elys/testutil/nullify"
 	"github.com/elys-network/elys/x/accountedpool/keeper"
 	"github.com/elys-network/elys/x/accountedpool/types"
-	ammtypes "github.com/elys-network/elys/x/amm/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,9 +15,6 @@ func createNAccountedPool(keeper *keeper.Keeper, ctx sdk.Context, n int) []types
 	items := make([]types.AccountedPool, n)
 	for i := range items {
 		items[i].PoolId = (uint64)(i)
-		items[i].TotalShares = sdk.NewCoin("lpshare", sdk.ZeroInt())
-		items[i].PoolAssets = []ammtypes.PoolAsset{}
-		items[i].TotalWeight = sdk.ZeroInt()
 
 		keeper.SetAccountedPool(ctx, items[i])
 	}

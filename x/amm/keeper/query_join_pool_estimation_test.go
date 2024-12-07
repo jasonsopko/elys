@@ -3,7 +3,6 @@ package keeper_test
 import (
 	"testing"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simapp "github.com/elys-network/elys/app"
 	"github.com/elys-network/elys/x/amm/types"
@@ -11,12 +10,12 @@ import (
 )
 
 func TestJoinPoolEstimation(t *testing.T) {
-	app := simapp.InitElysTestApp(initChain)
-	ctx := app.BaseApp.NewContext(initChain, tmproto.Header{})
+	app := simapp.InitElysTestApp(initChain, t)
+	ctx := app.BaseApp.NewContext(initChain)
 	k := app.AmmKeeper
 
 	// Setup mock pools and assets
-	SetupMockPools(&k, ctx)
+	SetupMockPools(k, ctx)
 
 	// Test single coin join pool
 	resp, err := k.JoinPoolEstimation(ctx, &types.QueryJoinPoolEstimationRequest{
@@ -33,6 +32,7 @@ func TestJoinPoolEstimation(t *testing.T) {
 		AmountsIn: sdk.NewCoins(sdk.NewInt64Coin("denom1", 100), sdk.NewInt64Coin("denom2", 200)),
 	})
 	require.NoError(t, err)
-	require.Equal(t, sdk.Coins(resp.AmountsIn).String(), "100denom1,200denom2")
+	// Pool ratio is 1:1, so join pool will accept only 100denom1,100denom2
+	require.Equal(t, sdk.Coins(resp.AmountsIn).String(), "100denom1,100denom2")
 	require.Equal(t, resp.ShareAmountOut.String(), "100000000000000000amm/pool/1")
 }

@@ -10,11 +10,11 @@ import (
 	"github.com/elys-network/elys/x/amm/types"
 )
 
-// SwapExactAmountOut is a method for swapping to get an exact number of tokens out of a pool,
+// InternalSwapExactAmountOut is a method for swapping to get an exact number of tokens out of a pool,
 // using the provided swapFee.
 // This is intended to allow different swap fees as determined by multi-hops,
 // or when recovering from chain liveness failures.
-func (k Keeper) SwapExactAmountOut(
+func (k Keeper) InternalSwapExactAmountOut(
 	ctx sdk.Context,
 	sender sdk.AccAddress,
 	recipient sdk.AccAddress,
@@ -22,7 +22,7 @@ func (k Keeper) SwapExactAmountOut(
 	tokenInDenom string,
 	tokenInMaxAmount math.Int,
 	tokenOut sdk.Coin,
-	swapFee sdk.Dec,
+	swapFee math.LegacyDec,
 ) (tokenInAmount math.Int, err error) {
 	if tokenInDenom == tokenOut.Denom {
 		return math.Int{}, errors.New("cannot trade the same denomination in and out")
@@ -40,22 +40,23 @@ func (k Keeper) SwapExactAmountOut(
 		return math.Int{}, errorsmod.Wrapf(types.ErrTooManyTokensOut, "cannot get more tokens out than there are tokens in the pool")
 	}
 
-	snapshot := k.GetPoolSnapshotOrSet(ctx, pool)
-	tokenIn, _, slippageAmount, weightBalanceBonus, err := pool.SwapInAmtGivenOut(ctx, k.oracleKeeper, &snapshot, sdk.Coins{tokenOut}, tokenInDenom, swapFee, k.accountedPoolKeeper)
+	params := k.GetParams(ctx)
+	snapshot := k.GetAccountedPoolSnapshotOrSet(ctx, pool)
+	tokenIn, _, slippageAmount, weightBalanceBonus, oracleInAmount, err := pool.SwapInAmtGivenOut(ctx, k.oracleKeeper, &snapshot, sdk.Coins{tokenOut}, tokenInDenom, swapFee, k.accountedPoolKeeper, math.LegacyOneDec(), params)
 	if err != nil {
 		return math.Int{}, err
 	}
 	tokenInAmount = tokenIn.Amount
 
-	if tokenInAmount.LTE(sdk.ZeroInt()) {
-		return math.Int{}, errorsmod.Wrapf(types.ErrInvalidMathApprox, "token amount is zero or negative")
+	if tokenInAmount.LTE(math.ZeroInt()) {
+		return math.Int{}, types.ErrTokenOutAmountZero
 	}
 
 	if tokenInAmount.GT(tokenInMaxAmount) {
 		return math.Int{}, errorsmod.Wrapf(types.ErrLimitMaxAmount, "swap requires %s, which is greater than the amount %s", tokenIn, tokenInMaxAmount)
 	}
 
-	swapOutFee, err := k.UpdatePoolForSwap(ctx, pool, sender, recipient, tokenIn, tokenOut, swapFee, sdk.ZeroDec(), weightBalanceBonus)
+	err = k.UpdatePoolForSwap(ctx, pool, sender, recipient, tokenIn, tokenOut, swapFee, oracleInAmount.TruncateInt(), math.ZeroInt(), weightBalanceBonus, true)
 	if err != nil {
 		return math.Int{}, err
 	}
@@ -63,6 +64,5 @@ func (k Keeper) SwapExactAmountOut(
 	// track slippage
 	k.TrackSlippage(ctx, pool.PoolId, sdk.NewCoin(tokenIn.Denom, slippageAmount.RoundInt()))
 
-	// Subtract swap out fee from the token out amount.
-	return tokenInAmount.Sub(swapOutFee), nil
+	return tokenInAmount, nil
 }

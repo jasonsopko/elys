@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"fmt"
+	assetprofilemoduletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"strconv"
 	"testing"
 
@@ -20,7 +21,7 @@ import (
 
 func networkWithAirdropObjects(t *testing.T, n int) (*network.Network, []types.Airdrop) {
 	t.Helper()
-	cfg := network.DefaultConfig()
+	cfg := network.DefaultConfig(t.TempDir())
 	state := types.GenesisState{}
 	require.NoError(t, cfg.Codec.UnmarshalJSON(cfg.GenesisState[types.ModuleName], &state))
 
@@ -34,6 +35,33 @@ func networkWithAirdropObjects(t *testing.T, n int) (*network.Network, []types.A
 	buf, err := cfg.Codec.MarshalJSON(&state)
 	require.NoError(t, err)
 	cfg.GenesisState[types.ModuleName] = buf
+
+	assetProfileGenesisState := assetprofilemoduletypes.DefaultGenesis()
+	usdcEntry := assetprofilemoduletypes.Entry{
+		BaseDenom:                "uusdc",
+		Decimals:                 6,
+		Denom:                    "uusdc",
+		Path:                     "",
+		IbcChannelId:             "",
+		IbcCounterpartyChannelId: "",
+		DisplayName:              "",
+		DisplaySymbol:            "",
+		Network:                  "",
+		Address:                  "",
+		ExternalSymbol:           "",
+		TransferLimit:            "",
+		Permissions:              nil,
+		UnitDenom:                "",
+		IbcCounterpartyDenom:     "",
+		IbcCounterpartyChainId:   "",
+		Authority:                "",
+		CommitEnabled:            true,
+		WithdrawEnabled:          true,
+	}
+	assetProfileGenesisState.EntryList = []assetprofilemoduletypes.Entry{usdcEntry}
+	buf, err = cfg.Codec.MarshalJSON(assetProfileGenesisState)
+	require.NoError(t, err)
+	cfg.GenesisState[assetprofilemoduletypes.ModuleName] = buf
 	return network.New(t, cfg), state.AirdropList
 }
 

@@ -3,7 +3,10 @@ package keeper
 import (
 	"context"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
+	"github.com/cosmos/cosmos-sdk/runtime"
+
+	"cosmossdk.io/math"
+	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	"github.com/elys-network/elys/x/amm/types"
@@ -12,11 +15,17 @@ import (
 )
 
 func (k Keeper) PoolExtraInfo(ctx sdk.Context, pool types.Pool) types.PoolExtraInfo {
-	tvl, _ := pool.TVL(ctx, k.oracleKeeper)
-	lpTokenPrice, _ := pool.LpTokenPrice(ctx, k.oracleKeeper)
+	tvl, _ := pool.TVL(ctx, k.oracleKeeper, k.accountedPoolKeeper)
+	lpTokenPrice, _ := pool.LpTokenPrice(ctx, k.oracleKeeper, k.accountedPoolKeeper)
+	avg := k.GetWeightBreakingSlippageAvg(ctx, pool.PoolId)
+	apr := math.LegacyZeroDec()
+	if tvl.IsPositive() {
+		apr = avg.Mul(math.LegacyNewDec(52)).Quo(tvl)
+	}
 	return types.PoolExtraInfo{
 		Tvl:          tvl,
 		LpTokenPrice: lpTokenPrice,
+		LpSavedApr:   apr,
 	}
 }
 
@@ -29,7 +38,7 @@ func (k Keeper) PoolAll(goCtx context.Context, req *types.QueryAllPoolRequest) (
 	var extraInfos []types.PoolExtraInfo
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	store := ctx.KVStore(k.storeKey)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 	poolStore := prefix.NewStore(store, types.KeyPrefix(types.PoolKeyPrefix))
 
 	pageRes, err := query.Paginate(poolStore, req.Pagination, func(key []byte, value []byte) error {

@@ -10,15 +10,10 @@ import (
 )
 
 func (m Migrator) V8Migration(ctx sdk.Context) error {
+
 	// Traverse positions and update lp amount and health
 	// Update data structure
 	positions := m.keeper.GetAllPositions(ctx)
-	pools := m.keeper.GetAllPools(ctx)
-	for _, pool := range pools {
-		m.keeper.DeletePoolPosIdsLiquidationSorted(ctx, pool.AmmPoolId)
-		m.keeper.DeletePoolPosIdsStopLossSorted(ctx, pool.AmmPoolId)
-	}
-	m.keeper.DeleteCorruptedKeys(ctx)
 
 	openCount := uint64(0)
 	for _, position := range positions {
@@ -31,7 +26,7 @@ func (m Migrator) V8Migration(ctx sdk.Context) error {
 			ctx.Logger().Error(errors.Wrap(err, fmt.Sprintf("error getting amm pool: %d", pool.AmmPoolId)).Error())
 			continue
 		}
-		isHealthy, _ := m.keeper.LiquidatePositionIfUnhealthy(ctx, &position, pool, ammPool)
+		isHealthy, _, _, _ := m.keeper.CheckAndLiquidateUnhealthyPosition(ctx, &position, pool, ammPool)
 		if isHealthy {
 			openCount++
 		}
@@ -51,6 +46,16 @@ func (m Migrator) V8Migration(ctx sdk.Context) error {
 		FallbackEnabled:     false,
 		NumberPerBlock:      100,
 	}
-	m.keeper.SetParams(ctx, &params)
+	err := m.keeper.SetParams(ctx, &params)
+	if err != nil {
+		return err
+	}
+
+	// keys migrations after deleting corrupted keys
+	positions = m.keeper.GetAllPositions(ctx)
+	for _, position := range positions {
+		m.keeper.SetPosition(ctx, &position)
+	}
+
 	return nil
 }

@@ -23,7 +23,7 @@ import (
 // - Minting LP shares to pool creator
 // - Setting metadata for the shares
 func (k Keeper) CreatePool(ctx sdk.Context, msg *types.MsgCreatePool) (uint64, error) {
-	sender := msg.GetSigners()[0]
+	sender := sdk.MustAccAddressFromBech32(msg.Sender)
 
 	baseCurrency, found := k.assetProfileKeeper.GetUsdcDenom(ctx)
 	if !found {
@@ -38,12 +38,8 @@ func (k Keeper) CreatePool(ctx sdk.Context, msg *types.MsgCreatePool) (uint64, e
 	// Get the next pool ID and increment the pool ID counter
 	// Create the pool with the given pool ID
 	poolId := k.GetNextPoolId(ctx)
-	pool, err := types.NewBalancerPool(poolId, *msg.PoolParams, msg.PoolAssets, ctx.BlockTime())
+	pool, err := types.NewBalancerPool(poolId, msg.PoolParams, msg.PoolAssets, ctx.BlockTime())
 	if err != nil {
-		return 0, err
-	}
-
-	if err := pool.Validate(poolId); err != nil {
 		return 0, err
 	}
 
@@ -53,7 +49,8 @@ func (k Keeper) CreatePool(ctx sdk.Context, msg *types.MsgCreatePool) (uint64, e
 	}
 
 	// create and save the pool's module account to the account keeper
-	if err := utils.CreateModuleAccount(ctx, k.accountKeeper, address); err != nil {
+	poolAccountModuleName := types.GetPoolIdModuleName(pool.PoolId)
+	if err := utils.CreateModuleAccount(ctx, k.accountKeeper, address, poolAccountModuleName); err != nil {
 		return 0, fmt.Errorf("creating pool module account for id %d: %w", poolId, err)
 	}
 
@@ -71,7 +68,10 @@ func (k Keeper) CreatePool(ctx sdk.Context, msg *types.MsgCreatePool) (uint64, e
 
 	// Increase liquidty amount
 	for _, asset := range msg.PoolAssets {
-		k.RecordTotalLiquidityIncrease(ctx, sdk.Coins{asset.Token})
+		err = k.RecordTotalLiquidityIncrease(ctx, sdk.Coins{asset.Token})
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	// emitCreatePoolEvents(ctx, poolId, msg)
@@ -85,22 +85,22 @@ func (k Keeper) CreatePool(ctx sdk.Context, msg *types.MsgCreatePool) (uint64, e
 // - Records total liquidity increase
 // - Calls the AfterPoolCreated hook
 func (k Keeper) InitializePool(ctx sdk.Context, pool *types.Pool, sender sdk.AccAddress) (err error) {
-	tvl, err := pool.TVL(ctx, k.oracleKeeper)
+	tvl, err := pool.TVL(ctx, k.oracleKeeper, k.accountedPoolKeeper)
 	if err != nil {
 		return err
 	}
 
 	if tvl.IsPositive() {
-		pool.TotalShares = sdk.NewCoin(pool.TotalShares.Denom, tvl.Mul(sdk.NewDecFromInt(types.OneShare)).RoundInt())
+		pool.TotalShares = sdk.NewCoin(pool.TotalShares.Denom, tvl.Mul(types.OneShare.ToLegacyDec()).RoundInt())
 	}
 
-	// Mint the initial pool shares share token to the sender
+	// Mint the initial pool shares token to the sender
 	err = k.MintPoolShareToAccount(ctx, *pool, sender, pool.GetTotalShares().Amount)
 	if err != nil {
 		return err
 	}
 
-	// Finally, add the share token's meta data to the bank keeper.
+	// Finally, add the share token's metadata to the bank keeper.
 	poolShareBaseDenom := types.GetPoolShareDenom(pool.GetPoolId())
 	poolShareDisplayDenom := fmt.Sprintf("AMM-%d", pool.GetPoolId())
 	k.bankKeeper.SetDenomMetaData(ctx, banktypes.Metadata{
@@ -121,14 +121,17 @@ func (k Keeper) InitializePool(ctx sdk.Context, pool *types.Pool, sender sdk.Acc
 		},
 		Base:    poolShareBaseDenom,
 		Display: poolShareDisplayDenom,
+		Name:    poolShareBaseDenom,
+		Symbol:  poolShareDisplayDenom,
 	})
 
-	if err := k.SetPool(ctx, *pool); err != nil {
-		return err
-	}
+	k.SetPool(ctx, *pool)
 
 	if k.hooks != nil {
-		k.hooks.AfterPoolCreated(ctx, sender, *pool)
+		err = k.hooks.AfterPoolCreated(ctx, sender, *pool)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

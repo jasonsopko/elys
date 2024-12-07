@@ -1,6 +1,9 @@
-package types
+package types_test
 
 import (
+	sdkmath "cosmossdk.io/math"
+	"github.com/elys-network/elys/x/oracle/types"
+	ptypes "github.com/elys-network/elys/x/parameter/types"
 	"testing"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -11,19 +14,24 @@ import (
 func TestMsgFeedPrice_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name string
-		msg  MsgFeedPrice
+		msg  types.MsgFeedPrice
 		err  error
 	}{
 		{
 			name: "invalid address",
-			msg: MsgFeedPrice{
+			msg: types.MsgFeedPrice{
 				Provider: "invalid_address",
 			},
 			err: sdkerrors.ErrInvalidAddress,
 		}, {
 			name: "valid address",
-			msg: MsgFeedPrice{
+			msg: types.MsgFeedPrice{
 				Provider: sample.AccAddress(),
+				FeedPrice: types.FeedPrice{
+					Price:  sdkmath.LegacyMustNewDecFromStr("100"),
+					Asset:  ptypes.ATOM,
+					Source: "source",
+				},
 			},
 		},
 	}

@@ -3,7 +3,8 @@ package keeper_test
 import (
 	"testing"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	sdkmath "cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simapp "github.com/elys-network/elys/app"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
@@ -15,89 +16,91 @@ import (
 )
 
 func TestAccountedPoolUpdate(t *testing.T) {
-	app := simapp.InitElysTestApp(true)
-	ctx := app.BaseApp.NewContext(true, tmproto.Header{})
+	app := simapp.InitElysTestApp(true, t)
+	ctx := app.BaseApp.NewContext(true)
 
 	apk := app.AccountedPoolKeeper
 
+	err := simapp.SetStakingParam(app, ctx)
+	require.NoError(t, err)
+
 	// Generate 1 random account with 1000stake balanced
-	addr := simapp.AddTestAddrs(app, ctx, 1, sdk.NewInt(1000000))
+	addr := simapp.AddTestAddrs(app, ctx, 1, sdkmath.NewInt(1000000))
 
 	// Initiate pool
 	ammPool := ammtypes.Pool{
 		PoolId:      0,
 		Address:     addr[0].String(),
 		PoolParams:  ammtypes.PoolParams{},
-		TotalShares: sdk.NewCoin("lp-token", sdk.NewInt(100)),
+		TotalShares: sdk.NewCoin("lp-token", sdkmath.NewInt(100)),
 		PoolAssets: []ammtypes.PoolAsset{
-			{Token: sdk.NewCoin(ptypes.ATOM, sdk.NewInt(100))},
-			{Token: sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(1000))},
+			{Token: sdk.NewCoin(ptypes.ATOM, sdkmath.NewInt(5000))},
+			{Token: sdk.NewCoin(ptypes.BaseCurrency, sdkmath.NewInt(1000))},
 		},
-		TotalWeight:       sdk.NewInt(100),
+		TotalWeight:       sdkmath.NewInt(100),
 		RebalanceTreasury: addr[0].String(),
 	}
 	// Initiate pool
 	accountedPool := types.AccountedPool{
-		PoolId:      0,
-		TotalShares: ammPool.TotalShares,
-		PoolAssets:  []ammtypes.PoolAsset{},
-		TotalWeight: ammPool.TotalWeight,
+		PoolId:           0,
+		TotalTokens:      []sdk.Coin{},
+		NonAmmPoolTokens: []sdk.Coin{},
 	}
 
 	for _, asset := range ammPool.PoolAssets {
-		accountedPool.PoolAssets = append(accountedPool.PoolAssets, asset)
+		accountedPool.TotalTokens = append(accountedPool.TotalTokens, asset.Token)
 	}
+
 	// Set accounted pool
 	apk.SetAccountedPool(ctx, accountedPool)
 
 	perpetualPool := perpetualtypes.Pool{
 		AmmPoolId:          0,
-		Health:             sdk.NewDec(1),
-		Enabled:            true,
-		Closed:             false,
-		BorrowInterestRate: sdk.NewDec(1),
+		Health:             sdkmath.LegacyNewDec(1),
+		BorrowInterestRate: sdkmath.LegacyNewDec(1),
 		PoolAssetsLong: []perpetualtypes.PoolAsset{
 			{
-				Liabilities:         sdk.NewInt(400),
-				Custody:             sdk.NewInt(0),
-				AssetBalance:        sdk.NewInt(100),
-				BlockBorrowInterest: sdk.NewInt(0),
-				AssetDenom:          ptypes.BaseCurrency,
+				Liabilities:           sdkmath.NewInt(400),
+				Custody:               sdkmath.NewInt(50),
+				TakeProfitCustody:     sdkmath.NewInt(10),
+				TakeProfitLiabilities: sdkmath.NewInt(20),
+				AssetDenom:            ptypes.BaseCurrency,
 			},
 			{
-				Liabilities:         sdk.NewInt(0),
-				Custody:             sdk.NewInt(50),
-				AssetBalance:        sdk.NewInt(0),
-				BlockBorrowInterest: sdk.NewInt(0),
-				AssetDenom:          ptypes.ATOM,
+				Liabilities:           sdkmath.NewInt(0),
+				Custody:               sdkmath.NewInt(50),
+				TakeProfitCustody:     sdkmath.ZeroInt(),
+				TakeProfitLiabilities: sdkmath.ZeroInt(),
+				AssetDenom:            ptypes.ATOM,
 			},
 		},
 		PoolAssetsShort: []perpetualtypes.PoolAsset{
 			{
-				Liabilities:         sdk.NewInt(400),
-				Custody:             sdk.NewInt(0),
-				AssetBalance:        sdk.NewInt(100),
-				BlockBorrowInterest: sdk.NewInt(0),
-				AssetDenom:          ptypes.BaseCurrency,
+				Liabilities:           sdkmath.NewInt(400),
+				Custody:               sdkmath.NewInt(70),
+				TakeProfitCustody:     sdkmath.ZeroInt(),
+				TakeProfitLiabilities: sdkmath.ZeroInt(),
+				AssetDenom:            ptypes.BaseCurrency,
 			},
 			{
-				Liabilities:         sdk.NewInt(0),
-				Custody:             sdk.NewInt(50),
-				AssetBalance:        sdk.NewInt(0),
-				BlockBorrowInterest: sdk.NewInt(0),
-				AssetDenom:          ptypes.ATOM,
+				Liabilities:           sdkmath.NewInt(0),
+				Custody:               sdkmath.NewInt(50),
+				TakeProfitCustody:     sdkmath.ZeroInt(),
+				TakeProfitLiabilities: sdkmath.ZeroInt(),
+				AssetDenom:            ptypes.ATOM,
 			},
 		},
 	}
 	// Update accounted pool
-	apk.UpdateAccountedPool(ctx, ammPool, perpetualPool)
+	err = apk.PerpetualUpdates(ctx, ammPool, perpetualPool, false)
+	require.NoError(t, err)
 
 	apool, found := apk.GetAccountedPool(ctx, (uint64)(0))
 	require.Equal(t, found, true)
 	require.Equal(t, apool.PoolId, (uint64)(0))
 
 	usdcBalance := apk.GetAccountedBalance(ctx, (uint64)(0), ptypes.BaseCurrency)
-	require.Equal(t, usdcBalance, sdk.NewInt(1000+400+100+400+100))
+	require.Equal(t, usdcBalance, sdkmath.NewInt(1000+400-50+400-70))
 	atomBalance := apk.GetAccountedBalance(ctx, (uint64)(0), ptypes.ATOM)
-	require.Equal(t, atomBalance, sdk.NewInt(100))
+	require.Equal(t, atomBalance, sdkmath.NewInt(5000-50-50))
 }

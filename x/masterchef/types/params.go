@@ -1,18 +1,20 @@
 package types
 
 import (
-	fmt "fmt"
+	sdkmath "cosmossdk.io/math"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"gopkg.in/yaml.v2"
 )
 
 // NewParams creates a new Params instance
 func NewParams(
 	lpIncentives *IncentiveInfo,
-	rewardPortionForLps sdk.Dec,
-	rewardPortionForStakers sdk.Dec,
-	maxEdenRewardAprLps sdk.Dec,
+	rewardPortionForLps sdkmath.LegacyDec,
+	rewardPortionForStakers sdkmath.LegacyDec,
+	maxEdenRewardAprLps sdkmath.LegacyDec,
 	protocolRevenueAddress string,
 ) Params {
 	return Params{
@@ -29,80 +31,76 @@ func NewParams(
 func DefaultParams() Params {
 	return NewParams(
 		nil,
-		sdk.NewDecWithPrec(60, 2),
-		sdk.NewDecWithPrec(25, 2),
-		sdk.NewDecWithPrec(5, 1),
-		"elys10d07y265gmmuvt4z0w9aw880jnsr700j6z2zm3",
+		sdkmath.LegacyNewDecWithPrec(60, 2),
+		sdkmath.LegacyNewDecWithPrec(25, 2),
+		sdkmath.LegacyNewDecWithPrec(5, 1),
+		authtypes.NewModuleAddress("protocol-revenue-address").String(), // TODO: Change it in genesis in mainnet launch
 	)
 }
 
 // Validate validates the set of params
 func (p Params) Validate() error {
-	if err := validateRewardPortionForLps(p.RewardPortionForLps); err != nil {
-		return err
+	if p.RewardPortionForLps.IsNil() {
+		return fmt.Errorf("reward percent for lp must not be nil")
+	}
+	if p.RewardPortionForLps.IsNegative() {
+		return fmt.Errorf("reward percent for lp must be positive: %s", p.RewardPortionForLps.String())
+	}
+	if p.RewardPortionForLps.GT(sdkmath.LegacyOneDec()) {
+		return fmt.Errorf("reward percent for lp too large: %s", p.RewardPortionForLps.String())
 	}
 
-	if err := validateLPIncentives(p.LpIncentives); err != nil {
-		return err
+	if p.RewardPortionForStakers.IsNil() {
+		return fmt.Errorf("reward percent for stakers must not be nil")
+	}
+	if p.RewardPortionForStakers.IsNegative() {
+		return fmt.Errorf("reward percent for stakers must be positive: %s", p.RewardPortionForStakers.String())
+	}
+	if p.RewardPortionForStakers.GT(sdkmath.LegacyOneDec()) {
+		return fmt.Errorf("reward percent for stakers too large: %s", p.RewardPortionForStakers.String())
+	}
+
+	if p.RewardPortionForStakers.Add(p.RewardPortionForLps).GT(sdkmath.LegacyOneDec()) {
+		return fmt.Errorf("reward percent for stakers + lp too large: %s", p.RewardPortionForStakers.Add(p.RewardPortionForLps).String())
+	}
+
+	if p.MaxEdenRewardAprLps.IsNil() {
+		return fmt.Errorf("MaxEdenRewardAprLps must not be nil")
+	}
+	if p.MaxEdenRewardAprLps.IsNegative() {
+		return fmt.Errorf("MaxEdenRewardAprLps must be positive: %s", p.MaxEdenRewardAprLps.String())
+	}
+
+	if p.LpIncentives != nil && p.LpIncentives.EdenAmountPerYear.LTE(sdkmath.ZeroInt()) {
+		return fmt.Errorf("invalid eden amount per year: %v", p.LpIncentives.String())
+	}
+
+	if p.LpIncentives != nil && p.LpIncentives.BlocksDistributed < 0 {
+		return fmt.Errorf("invalid BlocksDistributed: %v", p.LpIncentives.String())
+	}
+
+	_, err := sdk.AccAddressFromBech32(p.ProtocolRevenueAddress)
+	if err != nil {
+		return fmt.Errorf("invalid ProtocolRevenueAddress %s: %s", p.ProtocolRevenueAddress, err.Error())
+	}
+
+	for _, supportedRewardDenom := range p.SupportedRewardDenoms {
+		if err = sdk.ValidateDenom(supportedRewardDenom.Denom); err != nil {
+			return fmt.Errorf("invalid reward denom %s: %v", supportedRewardDenom.Denom, err)
+		}
+		if supportedRewardDenom.MinAmount.IsNil() {
+			return fmt.Errorf("reward denom minimum amount cannot be nil: %s", supportedRewardDenom.Denom)
+		}
+		if supportedRewardDenom.MinAmount.IsNegative() {
+			return fmt.Errorf("reward denom(%s) minimum amount cannot be negative: %s", supportedRewardDenom.Denom, supportedRewardDenom.MinAmount.String())
+		}
 	}
 
 	return nil
 }
 
 // String implements the Stringer interface.
-func (p Params) String() string {
+func (p LegacyParams) String() string {
 	out, _ := yaml.Marshal(p)
 	return string(out)
-}
-
-func validateRewardPortionForLps(i interface{}) error {
-	v, ok := i.(sdk.Dec)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if v.IsNil() {
-		return fmt.Errorf("reward percent for lp must be not nil")
-	}
-	if v.IsNegative() {
-		return fmt.Errorf("reward percent for lp must be positive: %s", v)
-	}
-	if v.GT(sdk.OneDec()) {
-		return fmt.Errorf("reward percent for lp too large: %s", v)
-	}
-
-	return nil
-}
-
-func validateLPIncentives(i interface{}) error {
-	vv, ok := i.(*IncentiveInfo)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-	if vv == nil {
-		return nil
-	}
-
-	if vv.EdenAmountPerYear.LTE(sdk.ZeroInt()) {
-		return fmt.Errorf("invalid eden amount per year: %v", vv)
-	}
-
-	if vv.BlocksDistributed.LT(sdk.NewInt(0)) {
-		return fmt.Errorf("invalid BlocksDistributed: %v", vv)
-	}
-
-	if vv.DistributionStartBlock.LT(sdk.NewInt(0)) {
-		return fmt.Errorf("invalid DistributionStartBlock: %v", vv)
-	}
-
-	return nil
-}
-
-func validateDexRewardsLps(i interface{}) error {
-	_, ok := i.(DexRewardsTracker)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	return nil
 }

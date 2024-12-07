@@ -1,24 +1,18 @@
 package keeper
 
 import (
-	"fmt"
+	"cosmossdk.io/core/store"
 
-	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cosmos/cosmos-sdk/codec"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	estakingkeeper "github.com/elys-network/elys/x/estaking/keeper"
 
 	"github.com/elys-network/elys/x/masterchef/types"
 )
 
 type (
 	Keeper struct {
-		cdc        codec.BinaryCodec
-		storeKey   storetypes.StoreKey
-		memKey     storetypes.StoreKey
-		paramstore paramtypes.Subspace
-
+		cdc                 codec.BinaryCodec
+		storeService        store.KVStoreService
 		parameterKeeper     types.ParameterKeeper
 		commitmentKeeper    types.CommitmentKeeper
 		amm                 types.AmmKeeper
@@ -29,6 +23,7 @@ type (
 		tokenomicsKeeper    types.TokenomicsKeeper
 		authKeeper          types.AccountKeeper
 		bankKeeper          types.BankKeeper
+		estakingKeeper      *estakingkeeper.Keeper
 
 		authority string // gov module addresss
 	}
@@ -36,9 +31,7 @@ type (
 
 func NewKeeper(
 	cdc codec.BinaryCodec,
-	storeKey,
-	memKey storetypes.StoreKey,
-	ps paramtypes.Subspace,
+	storeService store.KVStoreService,
 	parameterKeeper types.ParameterKeeper,
 	ck types.CommitmentKeeper,
 	amm types.AmmKeeper,
@@ -49,13 +42,12 @@ func NewKeeper(
 	tokenomicsKeeper types.TokenomicsKeeper,
 	ak types.AccountKeeper,
 	bk types.BankKeeper,
+	estakingKeeper *estakingkeeper.Keeper,
 	authority string,
 ) *Keeper {
 	return &Keeper{
 		cdc:                 cdc,
-		storeKey:            storeKey,
-		memKey:              memKey,
-		paramstore:          ps,
+		storeService:        storeService,
 		parameterKeeper:     parameterKeeper,
 		commitmentKeeper:    ck,
 		amm:                 amm,
@@ -66,10 +58,7 @@ func NewKeeper(
 		tokenomicsKeeper:    tokenomicsKeeper,
 		authKeeper:          ak,
 		bankKeeper:          bk,
+		estakingKeeper:      estakingKeeper,
 		authority:           authority,
 	}
-}
-
-func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	ptypes "github.com/elys-network/elys/x/parameter/types"
 	"github.com/elys-network/elys/x/perpetual/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -16,10 +17,25 @@ func (k Keeper) MTP(goCtx context.Context, req *types.MTPRequest) (*types.MTPRes
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	mtp, err := k.GetMTP(ctx, req.Address, req.Id)
+	creator, err := sdk.AccAddressFromBech32(req.Address)
 	if err != nil {
-		return &types.MTPResponse{}, nil
+		return &types.MTPResponse{}, err
+	}
+	mtp, err := k.GetMTP(ctx, creator, req.Id)
+	if err != nil {
+		return &types.MTPResponse{}, err
 	}
 
-	return &types.MTPResponse{Mtp: &mtp}, nil
+	entry, found := k.assetProfileKeeper.GetEntry(ctx, ptypes.BaseCurrency)
+	if !found {
+		return &types.MTPResponse{}, status.Error(codes.NotFound, "base currency not found")
+	}
+	baseCurrency := entry.Denom
+
+	mtpAndPrice, err := k.fillMTPData(ctx, mtp, baseCurrency)
+	if err != nil {
+		return &types.MTPResponse{}, err
+	}
+
+	return &types.MTPResponse{Mtp: mtpAndPrice}, nil
 }

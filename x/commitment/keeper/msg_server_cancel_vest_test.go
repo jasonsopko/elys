@@ -1,9 +1,10 @@
 package keeper_test
 
 import (
+	"fmt"
 	"testing"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	sdkmath "cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/elys-network/elys/app"
@@ -14,20 +15,20 @@ import (
 )
 
 func TestCancelVest(t *testing.T) {
-	app := app.InitElysTestApp(true)
+	app := app.InitElysTestApp(true, t)
 
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(true)
 	// Create a test context and keeper
 	keeper := app.CommitmentKeeper
 
-	msgServer := commitmentkeeper.NewMsgServerImpl(keeper)
+	msgServer := commitmentkeeper.NewMsgServerImpl(*keeper)
 
-	vestingInfos := []*types.VestingInfo{
+	vestingInfos := []types.VestingInfo{
 		{
 			BaseDenom:      ptypes.Eden,
 			VestingDenom:   ptypes.Elys,
 			NumBlocks:      10,
-			VestNowFactor:  sdk.NewInt(90),
+			VestNowFactor:  sdkmath.NewInt(90),
 			NumMaxVestings: 10,
 		},
 	}
@@ -49,7 +50,7 @@ func TestCancelVest(t *testing.T) {
 	cancelVestMsg := &types.MsgCancelVest{
 		Creator: creator.String(),
 		Denom:   ptypes.Eden,
-		Amount:  sdk.NewInt(25),
+		Amount:  sdkmath.NewInt(25),
 	}
 
 	// Set up the commitments for the creator
@@ -58,8 +59,8 @@ func TestCancelVest(t *testing.T) {
 		VestingTokens: []*types.VestingTokens{
 			{
 				Denom:         ptypes.Elys,
-				TotalAmount:   sdk.NewInt(100),
-				ClaimedAmount: sdk.NewInt(1),
+				TotalAmount:   sdkmath.NewInt(100),
+				ClaimedAmount: sdkmath.NewInt(1),
 				NumBlocks:     100,
 				StartBlock:    0,
 			},
@@ -74,14 +75,75 @@ func TestCancelVest(t *testing.T) {
 	// Check if the vesting tokens were updated correctly
 	newCommitments := keeper.GetCommitments(ctx, creator)
 	require.Len(t, newCommitments.VestingTokens, 1, "vesting tokens were not updated correctly")
-	require.Equal(t, sdk.NewInt(75), newCommitments.VestingTokens[0].TotalAmount, "total amount was not updated correctly")
-	require.Equal(t, sdk.NewInt(1), newCommitments.VestingTokens[0].ClaimedAmount, "claimed amount was not updated correctly")
+	require.Equal(t, sdkmath.NewInt(75), newCommitments.VestingTokens[0].TotalAmount, "total amount was not updated correctly")
+	require.Equal(t, sdkmath.NewInt(1), newCommitments.VestingTokens[0].ClaimedAmount, "claimed amount was not updated correctly")
 	// check if the unclaimed tokens were updated correctly
-	require.Equal(t, sdk.NewInt(25), newCommitments.GetClaimedForDenom(ptypes.Eden))
+	require.Equal(t, sdkmath.NewInt(25), newCommitments.GetClaimedForDenom(ptypes.Eden))
 
 	// Try to cancel an amount that exceeds the unvested amount
-	cancelVestMsg.Amount = sdk.NewInt(100)
+	cancelVestMsg.Amount = sdkmath.NewInt(100)
 	_, err = msgServer.CancelVest(ctx, cancelVestMsg)
 	require.Error(t, err, "should throw an error when trying to cancel more tokens than available")
 	require.True(t, types.ErrInsufficientVestingTokens.Is(err), "error should be insufficient vesting tokens")
+}
+
+// TestCancelVestIncorrectDenom tests the CancelVest function with an incorrect denom
+func TestCancelVestIncorrectDenom(t *testing.T) {
+	app := app.InitElysTestApp(true, t)
+
+	ctx := app.BaseApp.NewContext(false)
+	// Create a test context and keeper
+	keeper := app.CommitmentKeeper
+
+	msgServer := commitmentkeeper.NewMsgServerImpl(*keeper)
+
+	// Create a new account
+	creator, _ := sdk.AccAddressFromBech32("cosmos1xv9tklw7d82sezh9haa573wufgy59vmwe6xxe5")
+	acc := app.AccountKeeper.GetAccount(ctx, creator)
+	if acc == nil {
+		acc = app.AccountKeeper.NewAccountWithAddress(ctx, creator)
+		app.AccountKeeper.SetAccount(ctx, acc)
+	}
+	// Create a cancel vesting message
+	cancelVestMsg := &types.MsgCancelVest{
+		Creator: creator.String(),
+		Denom:   "incorrect",
+		Amount:  sdkmath.NewInt(25),
+	}
+
+	// Execute the CancelVest function
+	_, err := msgServer.CancelVest(ctx, cancelVestMsg)
+	require.Error(t, err, "should throw an error when trying to cancel tokens with an incorrect denom")
+	require.True(t, types.ErrInvalidDenom.Is(err), "error should be invalid denom")
+}
+
+// TestCancelVestNoVestingInfo tests the CancelVest function with no vesting info
+func TestCancelVestNoVestingInfo(t *testing.T) {
+	app := app.InitElysTestApp(true, t)
+
+	ctx := app.BaseApp.NewContext(false)
+	// Create a test context and keeper
+	keeper := app.CommitmentKeeper
+
+	msgServer := commitmentkeeper.NewMsgServerImpl(*keeper)
+
+	// Create a new account
+	creator, _ := sdk.AccAddressFromBech32("cosmos1xv9tklw7d82sezh9haa573wufgy59vmwe6xxe5")
+	acc := app.AccountKeeper.GetAccount(ctx, creator)
+	if acc == nil {
+		acc = app.AccountKeeper.NewAccountWithAddress(ctx, creator)
+		app.AccountKeeper.SetAccount(ctx, acc)
+	}
+	// Create a cancel vesting message
+	cancelVestMsg := &types.MsgCancelVest{
+		Creator: creator.String(),
+		Denom:   ptypes.Eden,
+		Amount:  sdkmath.NewInt(25),
+	}
+
+	// Execute the CancelVest function
+	_, err := msgServer.CancelVest(ctx, cancelVestMsg)
+	require.Error(t, err, "should throw an error when trying to cancel tokens with no vesting info")
+	fmt.Println(err.Error())
+	require.True(t, types.ErrInsufficientVestingTokens.Is(err), "error should be invalid denom")
 }

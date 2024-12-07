@@ -3,6 +3,8 @@ package types_test
 import (
 	"time"
 
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/elys-network/elys/x/amm/types"
@@ -14,12 +16,12 @@ func (suite *TestSuite) TestSwapInAmtGivenOut() {
 		desc                   string
 		poolAssets             []types.PoolAsset
 		useOracle              bool
-		externalLiquidityRatio sdk.Dec
-		thresholdWeightDiff    sdk.Dec
+		externalLiquidityRatio sdkmath.LegacyDec
+		thresholdWeightDiff    sdkmath.LegacyDec
 		tokenOut               sdk.Coin
 		inTokenDenom           string
-		swapFee                sdk.Dec
-		expRecoveryBonus       sdk.Dec
+		swapFee                sdkmath.LegacyDec
+		expRecoveryBonus       sdkmath.LegacyDec
 		expTokenIn             sdk.Coin
 		expErr                 bool
 	}{
@@ -39,22 +41,24 @@ func (suite *TestSuite) TestSwapInAmtGivenOut() {
 			desc: "oracle pool scenario1",
 			poolAssets: []types.PoolAsset{
 				{
-					Token:  sdk.NewInt64Coin(ptypes.BaseCurrency, 1000_000_000), // 1000 USDT
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin(ptypes.BaseCurrency, 1000_000_000), // 1000 USDT
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 				{
-					Token:  sdk.NewInt64Coin("uusdt", 1000_000_000), // 1000 USDC
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin("uusdt", 1000_000_000), // 1000 USDC
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 			},
 			useOracle:              true,
-			externalLiquidityRatio: sdk.NewDec(10),                                     // 10x
-			thresholdWeightDiff:    sdk.NewDecWithPrec(20, 2),                          // 20%
+			externalLiquidityRatio: sdkmath.LegacyNewDec(10),                           // 10x
+			thresholdWeightDiff:    sdkmath.LegacyNewDecWithPrec(20, 2),                // 20%
 			tokenOut:               sdk.NewInt64Coin(ptypes.BaseCurrency, 100_000_000), // 100 USDC
 			inTokenDenom:           "uusdt",
-			swapFee:                sdk.ZeroDec(),
-			expRecoveryBonus:       sdk.MustNewDecFromStr("-0.000330373444662133"),
-			expTokenIn:             sdk.NewInt64Coin("uusdt", 100134081),
+			swapFee:                sdkmath.LegacyZeroDec(),
+			expRecoveryBonus:       sdkmath.LegacyMustNewDecFromStr("-0.000330373444662133"),
+			expTokenIn:             sdk.NewInt64Coin("uusdt", 100134093),
 			expErr:                 false,
 		},
 		// scenario2 - oracle based
@@ -73,22 +77,24 @@ func (suite *TestSuite) TestSwapInAmtGivenOut() {
 			desc: "oracle pool scenario2",
 			poolAssets: []types.PoolAsset{
 				{
-					Token:  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000), // 1000 USDT
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000), // 1000 USDT
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 				{
-					Token:  sdk.NewInt64Coin("uusdt", 1500_000_000), // 1000 USDC
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin("uusdt", 1500_000_000), // 1000 USDC
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 			},
 			useOracle:              true,
-			externalLiquidityRatio: sdk.NewDec(10),                                     // 10x
-			thresholdWeightDiff:    sdk.NewDecWithPrec(20, 2),                          // 20%
+			externalLiquidityRatio: sdkmath.LegacyNewDec(10),                           // 10x
+			thresholdWeightDiff:    sdkmath.LegacyNewDecWithPrec(20, 2),                // 20%
 			tokenOut:               sdk.NewInt64Coin(ptypes.BaseCurrency, 100_000_000), // 100 USDC
 			inTokenDenom:           "uusdt",
-			swapFee:                sdk.ZeroDec(),
-			expRecoveryBonus:       sdk.MustNewDecFromStr("-0.006401354515992492"),
-			expTokenIn:             sdk.NewInt64Coin("uusdt", 100776445),
+			swapFee:                sdkmath.LegacyZeroDec(),
+			expRecoveryBonus:       sdkmath.LegacyMustNewDecFromStr("-0.006401354515992492"),
+			expTokenIn:             sdk.NewInt64Coin("uusdt", 100780576),
 			expErr:                 false,
 		},
 		// scenario3 - oracle based
@@ -107,21 +113,23 @@ func (suite *TestSuite) TestSwapInAmtGivenOut() {
 			desc: "oracle pool scenario3",
 			poolAssets: []types.PoolAsset{
 				{
-					Token:  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000), // 1000 USDT
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000), // 1000 USDT
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 				{
-					Token:  sdk.NewInt64Coin("uusdt", 1500_000_000), // 1000 USDC
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin("uusdt", 1500_000_000), // 1000 USDC
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 			},
 			useOracle:              true,
-			externalLiquidityRatio: sdk.NewDec(10),                         // 10x
-			thresholdWeightDiff:    sdk.NewDecWithPrec(20, 2),              // 20%
+			externalLiquidityRatio: sdkmath.LegacyNewDec(10),               // 10x
+			thresholdWeightDiff:    sdkmath.LegacyNewDecWithPrec(20, 2),    // 20%
 			tokenOut:               sdk.NewInt64Coin("uusdt", 100_000_000), // 100 USDC
 			inTokenDenom:           ptypes.BaseCurrency,
-			swapFee:                sdk.ZeroDec(),
-			expRecoveryBonus:       sdk.MustNewDecFromStr("0.000010009437463773"),
+			swapFee:                sdkmath.LegacyZeroDec(),
+			expRecoveryBonus:       sdkmath.LegacyMustNewDecFromStr("0.001558845726811990"),
 			expTokenIn:             sdk.NewInt64Coin(ptypes.BaseCurrency, 100134830),
 			expErr:                 false,
 		},
@@ -141,23 +149,48 @@ func (suite *TestSuite) TestSwapInAmtGivenOut() {
 			desc: "non-oracle pool scenario1",
 			poolAssets: []types.PoolAsset{
 				{
-					Token:  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000), // 1000 USDT
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000), // 1000 USDT
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 				{
-					Token:  sdk.NewInt64Coin("uusdt", 1500_000_000), // 1000 USDC
-					Weight: sdk.NewInt(50),
+					Token:                  sdk.NewInt64Coin("uusdt", 1500_000_000), // 1000 USDC
+					Weight:                 sdkmath.NewInt(50),
+					ExternalLiquidityRatio: sdkmath.LegacyNewDec(10),
 				},
 			},
 			useOracle:              false,
-			externalLiquidityRatio: sdk.NewDec(10),                         // 10x
-			thresholdWeightDiff:    sdk.NewDecWithPrec(20, 2),              // 20%
+			externalLiquidityRatio: sdkmath.LegacyNewDec(10),               // 10x
+			thresholdWeightDiff:    sdkmath.LegacyNewDecWithPrec(20, 2),    // 20%
 			tokenOut:               sdk.NewInt64Coin("uusdt", 100_000_000), // 100 USDC
 			inTokenDenom:           ptypes.BaseCurrency,
-			swapFee:                sdk.NewDecWithPrec(1, 2), // 1%
-			expRecoveryBonus:       sdk.ZeroDec(),
+			swapFee:                sdkmath.LegacyNewDecWithPrec(1, 2), // 1%
+			expRecoveryBonus:       sdkmath.LegacyZeroDec(),
 			expTokenIn:             sdk.NewInt64Coin(ptypes.BaseCurrency, 36075037),
 			expErr:                 false,
+		},
+
+		{
+			desc: "tokenOut is zero",
+			poolAssets: []types.PoolAsset{
+				{
+					Token:  sdk.NewInt64Coin(ptypes.BaseCurrency, 500_000_000),
+					Weight: sdkmath.NewInt(50),
+				},
+				{
+					Token:  sdk.NewInt64Coin("uusdt", 1500_000_000),
+					Weight: sdkmath.NewInt(50),
+				},
+			},
+			useOracle:              false,
+			externalLiquidityRatio: sdkmath.LegacyNewDec(10),
+			thresholdWeightDiff:    sdkmath.LegacyNewDecWithPrec(20, 2),
+			tokenOut:               sdk.NewInt64Coin("uusdt", 0),
+			inTokenDenom:           ptypes.BaseCurrency,
+			swapFee:                sdkmath.LegacyNewDecWithPrec(1, 2),
+			expRecoveryBonus:       sdkmath.LegacyZeroDec(),
+			expTokenIn:             sdk.NewInt64Coin(ptypes.BaseCurrency, 0),
+			expErr:                 true,
 		},
 	} {
 		suite.Run(tc.desc, func() {
@@ -179,20 +212,23 @@ func (suite *TestSuite) TestSwapInAmtGivenOut() {
 				Address:           poolAddr.String(),
 				RebalanceTreasury: treasuryAddr.String(),
 				PoolParams: types.PoolParams{
-					SwapFee:                     sdk.ZeroDec(),
-					UseOracle:                   tc.useOracle,
-					ExternalLiquidityRatio:      tc.externalLiquidityRatio,
-					ThresholdWeightDifference:   tc.thresholdWeightDiff,
-					WeightBreakingFeeMultiplier: sdk.NewDecWithPrec(2, 4),  // 0.02%
-					WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
+					SwapFee:   sdkmath.LegacyZeroDec(),
+					UseOracle: tc.useOracle,
+					FeeDenom:  ptypes.BaseCurrency,
 				},
-				TotalShares: sdk.Coin{},
+				TotalShares: sdk.NewCoin(types.GetPoolShareDenom(1), sdkmath.ZeroInt()),
 				PoolAssets:  tc.poolAssets,
-				TotalWeight: sdk.ZeroInt(),
+				TotalWeight: sdkmath.ZeroInt(),
 			}
-			tokenOut, _, _, weightBonus, err := pool.SwapInAmtGivenOut(suite.ctx, suite.app.OracleKeeper, &pool, sdk.Coins{tc.tokenOut}, tc.inTokenDenom, tc.swapFee, suite.app.AccountedPoolKeeper)
+			params := suite.app.AmmKeeper.GetParams(suite.ctx)
+			params.ThresholdWeightDifference = tc.thresholdWeightDiff
+			params.WeightBreakingFeeMultiplier = sdkmath.LegacyNewDecWithPrec(2, 4)
+			params.WeightBreakingFeeExponent = sdkmath.LegacyNewDecWithPrec(25, 1) // 2.5
+			params.WeightRecoveryFeePortion = sdkmath.LegacyNewDecWithPrec(50, 2)  // 50%
+			tokenOut, _, _, weightBonus, _, err := pool.SwapInAmtGivenOut(suite.ctx, suite.app.OracleKeeper, &pool, sdk.Coins{tc.tokenOut}, tc.inTokenDenom, tc.swapFee, suite.app.AccountedPoolKeeper, sdkmath.LegacyOneDec(), params)
 			if tc.expErr {
 				suite.Require().Error(err)
+				suite.Require().EqualError(err, "amount too low")
 			} else {
 				suite.Require().NoError(err)
 				suite.Require().Equal(tokenOut.String(), tc.expTokenIn.String())

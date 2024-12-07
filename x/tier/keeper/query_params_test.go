@@ -3,19 +3,32 @@ package keeper_test
 import (
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	testkeeper "github.com/elys-network/elys/testutil/keeper"
 	"github.com/elys-network/elys/x/tier/types"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-func TestParamsQuery(t *testing.T) {
+func TestParamsQueryRequest(t *testing.T) {
 	keeper, ctx := testkeeper.MembershiptierKeeper(t)
-	wctx := sdk.WrapSDKContext(ctx)
+
 	params := types.DefaultParams()
 	keeper.SetParams(ctx, params)
 
-	response, err := keeper.Params(wctx, &types.QueryParamsRequest{})
+	_, err := keeper.Params(ctx, nil)
+	want := status.Error(codes.InvalidArgument, "invalid request")
+
+	require.ErrorIs(t, err, want)
+}
+
+func TestParamsQuery(t *testing.T) {
+	keeper, ctx := testkeeper.MembershiptierKeeper(t)
+
+	params := types.DefaultParams()
+	keeper.SetParams(ctx, params)
+
+	response, err := keeper.Params(ctx, &types.QueryParamsRequest{})
 	require.NoError(t, err)
 	require.Equal(t, &types.QueryParamsResponse{Params: params}, response)
 }

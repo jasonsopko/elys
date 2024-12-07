@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/elys-network/elys/x/transferhook/types"
@@ -8,11 +9,20 @@ import (
 
 // GetParams get all parameters as types.Params
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	k.paramstore.GetParamSet(ctx, &params)
-	return params
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+
+	b := store.Get(types.ParamKeyPrefix)
+	if b == nil {
+		return
+	}
+
+	k.Cdc.MustUnmarshal(b, &params)
+	return
 }
 
 // SetParams set the params
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
-	k.paramstore.SetParamSet(ctx, &params)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	b := k.Cdc.MustMarshal(&params)
+	store.Set(types.ParamKeyPrefix, b)
 }

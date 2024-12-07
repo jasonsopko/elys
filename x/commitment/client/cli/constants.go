@@ -7,4 +7,6 @@ const (
 	FlagNumEpochs       = "num-epochs"
 	FlagVestNowFactor   = "vest-now-factor"
 	FlagNumMaxVestings  = "num-max-vestings"
+	FlagExpedited       = "expedited"
+	FlagEnableVestNow   = "enable-vest-now"
 )

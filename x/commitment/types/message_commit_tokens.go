@@ -7,8 +7,6 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-const TypeMsgCommitClaimedRewards = "commit_tokens"
-
 var _ sdk.Msg = &MsgCommitClaimedRewards{}
 
 func NewMsgCommitClaimedRewards(creator string, amount math.Int, denom string) *MsgCommitClaimedRewards {
@@ -19,35 +17,22 @@ func NewMsgCommitClaimedRewards(creator string, amount math.Int, denom string) *
 	}
 }
 
-func (msg *MsgCommitClaimedRewards) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgCommitClaimedRewards) Type() string {
-	return TypeMsgCommitClaimedRewards
-}
-
-func (msg *MsgCommitClaimedRewards) GetSigners() []sdk.AccAddress {
-	creator, err := sdk.AccAddressFromBech32(msg.Creator)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{creator}
-}
-
-func (msg *MsgCommitClaimedRewards) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgCommitClaimedRewards) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid creator address: %v", err)
 	}
 
-	if msg.Amount.IsNegative() {
-		return errorsmod.Wrapf(ErrInvalidAmount, "Amount cannot be negative")
+	if err = sdk.ValidateDenom(msg.Denom); err != nil {
+		return errorsmod.Wrapf(ErrInvalidDenom, msg.Denom)
+	}
+
+	if msg.Amount.IsNil() {
+		return errorsmod.Wrapf(ErrInvalidAmount, "Amount can not be nil")
+	}
+
+	if msg.Amount.IsNegative() || msg.Amount.IsZero() {
+		return errorsmod.Wrapf(ErrInvalidAmount, "Amount can not be negative")
 	}
 
 	return nil

@@ -1,10 +1,13 @@
 package types
 
 import (
+	"cosmossdk.io/math"
+	"fmt"
 	"testing"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/elys-network/elys/testutil/sample"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,23 +21,67 @@ func TestMsgBond_ValidateBasic(t *testing.T) {
 			name: "invalid address",
 			msg: MsgBond{
 				Creator: "invalid_address",
+				Amount:  math.NewInt(100),
 			},
 			err: sdkerrors.ErrInvalidAddress,
 		}, {
 			name: "valid address",
 			msg: MsgBond{
 				Creator: sample.AccAddress(),
+				Amount:  math.NewInt(100),
 			},
+		},
+		{
+			name: "negative amount",
+			msg: MsgBond{
+				Creator: sample.AccAddress(),
+				Amount:  math.NewInt(-100),
+			},
+			err: fmt.Errorf("amount should be positive"),
+		},
+		{
+			name: "nil amount",
+			msg: MsgBond{
+				Creator: sample.AccAddress(),
+				Amount:  math.Int{},
+			},
+			err: fmt.Errorf("amount cannot be nil"),
+		},
+		{
+			name: "zero amount",
+			msg: MsgBond{
+				Creator: sample.AccAddress(),
+				Amount:  math.NewInt(0),
+			},
+			err: fmt.Errorf("amount should be positive"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.msg.ValidateBasic()
 			if tt.err != nil {
-				require.ErrorIs(t, err, tt.err)
+				require.ErrorContains(t, err, tt.err.Error())
 				return
 			}
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestNewMsgBond(t *testing.T) {
+
+	accAdress := sample.AccAddress()
+	amount := math.NewInt(200)
+
+	got := NewMsgBond(
+		accAdress,
+		amount,
+	)
+
+	want := &MsgBond{
+		Creator: accAdress,
+		Amount:  amount,
+	}
+
+	assert.Equal(t, want, got)
 }

@@ -1,9 +1,11 @@
 package types
 
 import (
+	"fmt"
+
 	errorsmod "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/address"
 )
 
 func GetPositionFromString(s string) Position {
@@ -17,35 +19,34 @@ func GetPositionFromString(s string) Position {
 	}
 }
 
-func NewMTP(signer, collateralAsset, tradingAsset, liabilitiesAsset, custodyAsset string, position Position, leverage, takeProfitPrice sdk.Dec, poolId uint64) *MTP {
+func NewMTP(ctx sdk.Context, signer, collateralAsset, tradingAsset, liabilitiesAsset, custodyAsset string, position Position, takeProfitPrice sdkmath.LegacyDec, poolId uint64) *MTP {
 	return &MTP{
-		Address:                        signer,
-		CollateralAsset:                collateralAsset,
-		TradingAsset:                   tradingAsset,
-		LiabilitiesAsset:               liabilitiesAsset,
-		CustodyAsset:                   custodyAsset,
-		Collateral:                     sdk.ZeroInt(),
-		Liabilities:                    sdk.ZeroInt(),
-		BorrowInterestPaidCollateral:   sdk.ZeroInt(),
-		BorrowInterestPaidCustody:      sdk.ZeroInt(),
-		BorrowInterestUnpaidCollateral: sdk.ZeroInt(),
-		Custody:                        sdk.ZeroInt(),
-		TakeProfitLiabilities:          sdk.ZeroInt(),
-		TakeProfitCustody:              sdk.ZeroInt(),
-		Leverage:                       leverage,
-		MtpHealth:                      sdk.ZeroDec(),
-		Position:                       position,
-		Id:                             0,
-		AmmPoolId:                      poolId,
-		ConsolidateLeverage:            leverage,
-		SumCollateral:                  sdk.ZeroInt(),
-		TakeProfitPrice:                takeProfitPrice,
-		TakeProfitBorrowRate:           sdk.OneDec(),
-		FundingFeePaidCollateral:       sdk.ZeroInt(),
-		FundingFeePaidCustody:          sdk.ZeroInt(),
-		FundingFeeReceivedCollateral:   sdk.ZeroInt(),
-		FundingFeeReceivedCustody:      sdk.ZeroInt(),
-		OpenPrice:                      sdk.ZeroDec(),
+		Address:                       signer,
+		CollateralAsset:               collateralAsset,
+		TradingAsset:                  tradingAsset,
+		LiabilitiesAsset:              liabilitiesAsset,
+		CustodyAsset:                  custodyAsset,
+		Collateral:                    sdkmath.ZeroInt(),
+		Liabilities:                   sdkmath.ZeroInt(),
+		BorrowInterestPaidCustody:     sdkmath.ZeroInt(),
+		BorrowInterestUnpaidLiability: sdkmath.ZeroInt(),
+		Custody:                       sdkmath.ZeroInt(),
+		TakeProfitLiabilities:         sdkmath.ZeroInt(),
+		TakeProfitCustody:             sdkmath.ZeroInt(),
+		MtpHealth:                     sdkmath.LegacyZeroDec(),
+		Position:                      position,
+		Id:                            0,
+		AmmPoolId:                     poolId,
+		TakeProfitPrice:               takeProfitPrice,
+		TakeProfitBorrowFactor:        sdkmath.LegacyOneDec(),
+		FundingFeePaidCustody:         sdkmath.ZeroInt(),
+		FundingFeeReceivedCustody:     sdkmath.ZeroInt(),
+		OpenPrice:                     sdkmath.LegacyZeroDec(),
+		StopLossPrice:                 sdkmath.LegacyZeroDec(),
+		LastInterestCalcTime:          uint64(ctx.BlockTime().Unix()),
+		LastInterestCalcBlock:         uint64(ctx.BlockHeight()),
+		LastFundingCalcTime:           uint64(ctx.BlockTime().Unix()),
+		LastFundingCalcBlock:          uint64(ctx.BlockHeight()),
 	}
 }
 
@@ -69,14 +70,46 @@ func (mtp MTP) Validate() error {
 	return nil
 }
 
-// Generate a new perpetual collateral wallet per position
-func NewPerpetualCollateralAddress(positionId uint64) sdk.AccAddress {
-	key := append([]byte("perpetual_collateral"), sdk.Uint64ToBigEndian(positionId)...)
-	return address.Module(ModuleName, key)
+func (mtp *MTP) GetAndSetOpenPrice() {
+	openPrice := sdkmath.LegacyZeroDec()
+	if mtp.Position == Position_LONG {
+		if mtp.CollateralAsset == mtp.TradingAsset {
+			// open price = liabilities / (custody - collateral)
+			denominator := mtp.Custody.Sub(mtp.Collateral).ToLegacyDec()
+			if !denominator.IsZero() {
+				openPrice = mtp.Liabilities.ToLegacyDec().Quo(denominator)
+			}
+		} else {
+			// open price = (collateral + liabilities) / custody
+			openPrice = (mtp.Collateral.Add(mtp.Liabilities)).ToLegacyDec().Quo(mtp.Custody.ToLegacyDec())
+		}
+	} else {
+		if mtp.Liabilities.IsZero() {
+			mtp.OpenPrice = openPrice
+		} else {
+			// open price = (custody - collateral) / liabilities
+			openPrice = (mtp.Custody.Sub(mtp.Collateral)).ToLegacyDec().Quo(mtp.Liabilities.ToLegacyDec())
+		}
+	}
+	mtp.OpenPrice = openPrice
+	return
 }
 
-// Generate a new perpetual custody wallet per position
-func NewPerpetualCustodyAddress(positionId uint64) sdk.AccAddress {
-	key := append([]byte("perpetual_custody"), sdk.Uint64ToBigEndian(positionId)...)
-	return address.Module(ModuleName, key)
+func (mtp MTP) GetAccountAddress() sdk.AccAddress {
+	return sdk.MustAccAddressFromBech32(mtp.Address)
+}
+
+func (mtp MTP) GetBorrowInterestAmountAsCustodyAsset(tradingAssetPrice sdkmath.LegacyDec) (sdkmath.Int, error) {
+	borrowInterestPaymentInCustody := sdkmath.ZeroInt()
+	if mtp.Position == Position_LONG {
+		if tradingAssetPrice.IsZero() {
+			return sdkmath.ZeroInt(), fmt.Errorf("trading asset price is zero")
+		}
+		// liabilities are in usdc, custody is in trading asset
+		borrowInterestPaymentInCustody = mtp.BorrowInterestUnpaidLiability.ToLegacyDec().Quo(tradingAssetPrice).TruncateInt()
+	} else {
+		// liabilities are in trading asset, custody is in usdc
+		borrowInterestPaymentInCustody = mtp.BorrowInterestUnpaidLiability.ToLegacyDec().Mul(tradingAssetPrice).TruncateInt()
+	}
+	return borrowInterestPaymentInCustody, nil
 }

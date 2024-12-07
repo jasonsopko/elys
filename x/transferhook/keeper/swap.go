@@ -3,12 +3,14 @@ package keeper
 import (
 	"errors"
 
+	"cosmossdk.io/math"
+
 	errorsmod "cosmossdk.io/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
-	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
 
 	ammkeeper "github.com/elys-network/elys/x/amm/keeper"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
@@ -26,7 +28,7 @@ func (k Keeper) Swap(
 		return errorsmod.Wrapf(types.ErrPacketForwardingInactive, "transferhook amm routing is inactive")
 	}
 
-	amount, ok := sdk.NewIntFromString(data.Amount)
+	amount, ok := math.NewIntFromString(data.Amount)
 	if !ok {
 		return errors.New("not a parsable amount field")
 	}
@@ -55,15 +57,14 @@ func (k Keeper) SwapExactAmountIn(ctx sdk.Context, addr sdk.AccAddress, tokenIn 
 		Sender:            addr.String(),
 		Routes:            routes,
 		TokenIn:           tokenIn,
-		TokenOutMinAmount: sdk.OneInt(),
-		Discount:          sdk.ZeroDec(),
+		TokenOutMinAmount: math.OneInt(),
 	}
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
-	msgServer := ammkeeper.NewMsgServerImpl(k.ammKeeper)
-	_, err := msgServer.SwapExactAmountIn(sdk.WrapSDKContext(ctx), msg)
+	msgServer := ammkeeper.NewMsgServerImpl(*k.ammKeeper)
+	_, err := msgServer.SwapExactAmountIn(ctx, msg)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}

@@ -8,18 +8,20 @@ import (
 )
 
 func (k Keeper) CheckAmmPoolUsdcBalance(ctx sdk.Context, ammPool ammtypes.Pool) error {
-	leveragelpPool, found := k.GetPool(ctx, ammPool.PoolId)
+	leveragePool, found := k.GetPool(ctx, ammPool.PoolId)
 	if !found {
+		// It is possible that this pool haven't been enabled
 		return nil
 	}
 
-	tvl, err := ammPool.TVL(ctx, k.oracleKeeper)
+	// This is kind of health check so we should only use real amm pool balance
+	tvl, err := ammPool.TVL(ctx, k.oracleKeeper, nil)
 	if err != nil {
 		return err
 	}
 	leverageLpTvl := tvl.
-		Mul(sdk.NewDecFromInt(leveragelpPool.LeveragedLpAmount)).
-		Quo(sdk.NewDecFromInt(ammPool.TotalShares.Amount))
+		Mul(leveragePool.LeveragedLpAmount.ToLegacyDec()).
+		Quo(ammPool.TotalShares.Amount.ToLegacyDec())
 
 	depositDenom := k.stableKeeper.GetDepositDenom(ctx)
 	price := k.oracleKeeper.GetAssetPriceFromDenom(ctx, depositDenom)
@@ -33,11 +35,13 @@ func (k Keeper) CheckAmmPoolUsdcBalance(ctx sdk.Context, ammPool ammtypes.Pool) 
 }
 
 // AfterPoolCreated is called after CreatePool
-func (k Keeper) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool) {
+func (k Keeper) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool) error {
+	return nil
 }
 
 // AfterJoinPool is called after JoinPool, JoinSwapExternAmountIn, and JoinSwapShareAmountOut
-func (k Keeper) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) {
+func (k Keeper) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) error {
+	return nil
 }
 
 // AfterExitPool is called after ExitPool, ExitSwapShareAmountIn, and ExitSwapExternAmountOut
@@ -63,13 +67,13 @@ func (k Keeper) AmmHooks() AmmHooks {
 }
 
 // AfterPoolCreated is called after CreatePool
-func (h AmmHooks) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool) {
-	h.k.AfterPoolCreated(ctx, sender, pool)
+func (h AmmHooks) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool) error {
+	return h.k.AfterPoolCreated(ctx, sender, pool)
 }
 
 // AfterJoinPool is called after JoinPool, JoinSwapExternAmountIn, and JoinSwapShareAmountOut
-func (h AmmHooks) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) {
-	h.k.AfterJoinPool(ctx, sender, pool, enterCoins, shareOutAmount)
+func (h AmmHooks) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) error {
+	return h.k.AfterJoinPool(ctx, sender, pool, enterCoins, shareOutAmount)
 }
 
 // AfterExitPool is called after ExitPool, ExitSwapShareAmountIn, and ExitSwapExternAmountOut

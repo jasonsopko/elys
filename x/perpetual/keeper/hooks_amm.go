@@ -6,51 +6,7 @@ import (
 	ammtypes "github.com/elys-network/elys/x/amm/types"
 )
 
-// AfterPoolCreated is called after CreatePool
-func (k Keeper) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool) {
-	if k.hooks != nil {
-		k.hooks.AfterAmmPoolCreated(ctx, ammPool, sender)
-	}
-}
-
-// AfterJoinPool is called after JoinPool, JoinSwapExternAmountIn, and JoinSwapShareAmountOut
-func (k Keeper) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) {
-	perpetualPool, found := k.GetPool(ctx, ammPool.PoolId)
-	if !found {
-		return
-	}
-
-	if k.hooks != nil {
-		k.hooks.AfterAmmJoinPool(ctx, ammPool, perpetualPool, sender)
-	}
-}
-
-// AfterExitPool is called after ExitPool, ExitSwapShareAmountIn, and ExitSwapExternAmountOut
-func (k Keeper) AfterExitPool(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, shareInAmount math.Int, exitCoins sdk.Coins) error {
-	perpetualPool, found := k.GetPool(ctx, ammPool.PoolId)
-	if !found {
-		return nil
-	}
-
-	if k.hooks != nil {
-		k.hooks.AfterAmmExitPool(ctx, ammPool, perpetualPool, sender)
-	}
-	return nil
-}
-
-// AfterSwap is called after SwapExactAmountIn and SwapExactAmountOut
-func (k Keeper) AfterSwap(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, input sdk.Coins, output sdk.Coins) error {
-	perpetualPool, found := k.GetPool(ctx, ammPool.PoolId)
-	if !found {
-		return nil
-	}
-	if k.hooks != nil {
-		k.hooks.AfterAmmSwap(ctx, ammPool, perpetualPool, sender)
-	}
-	return nil
-}
-
-// Hooks wrapper struct for tvl keeper
+// EpochHooks wrapper struct for tvl keeper
 type AmmHooks struct {
 	k Keeper
 }
@@ -63,21 +19,73 @@ func (k Keeper) AmmHooks() AmmHooks {
 }
 
 // AfterPoolCreated is called after CreatePool
-func (h AmmHooks) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool) {
-	h.k.AfterPoolCreated(ctx, sender, pool)
+// We are already creating accounted pool using amm hooks in accounted pool module, so no need to create it here
+// ideally we should create accounted pool after perpetual pool is needed but then that would follow a complicated process as perpetual module isn't aware of when amm pool is created directly
+// This method also allows if any other module in future requires accounted pool, it doesn't need to do create any new accounted pool.
+func (h AmmHooks) AfterPoolCreated(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool) error {
+	return nil
 }
 
 // AfterJoinPool is called after JoinPool, JoinSwapExternAmountIn, and JoinSwapShareAmountOut
-func (h AmmHooks) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) {
-	h.k.AfterJoinPool(ctx, sender, pool, enterCoins, shareOutAmount)
+func (h AmmHooks) AfterJoinPool(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, enterCoins sdk.Coins, shareOutAmount math.Int) error {
+	perpetualPool, found := h.k.GetPool(ctx, ammPool.PoolId)
+	if !found {
+		// It is possible that this pool haven't been enabled
+		return nil
+	}
+
+	err := h.k.UpdatePoolHealth(ctx, &perpetualPool)
+	if err != nil {
+		return err
+	}
+
+	err = h.k.CheckLowPoolHealthAndMinimumCustody(ctx, ammPool.PoolId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // AfterExitPool is called after ExitPool, ExitSwapShareAmountIn, and ExitSwapExternAmountOut
-func (h AmmHooks) AfterExitPool(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool, shareInAmount math.Int, exitCoins sdk.Coins) error {
-	return h.k.AfterExitPool(ctx, sender, pool, shareInAmount, exitCoins)
+func (h AmmHooks) AfterExitPool(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, shareInAmount math.Int, exitCoins sdk.Coins) error {
+	perpetualPool, found := h.k.GetPool(ctx, ammPool.PoolId)
+	if !found {
+		// It is possible that this pool haven't been enabled
+		return nil
+	}
+
+	err := h.k.UpdatePoolHealth(ctx, &perpetualPool)
+	if err != nil {
+		return err
+	}
+
+	err = h.k.CheckLowPoolHealthAndMinimumCustody(ctx, ammPool.PoolId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // AfterSwap is called after SwapExactAmountIn and SwapExactAmountOut
-func (h AmmHooks) AfterSwap(ctx sdk.Context, sender sdk.AccAddress, pool ammtypes.Pool, input sdk.Coins, output sdk.Coins) error {
-	return h.k.AfterSwap(ctx, sender, pool, input, output)
+func (h AmmHooks) AfterSwap(ctx sdk.Context, sender sdk.AccAddress, ammPool ammtypes.Pool, input sdk.Coins, output sdk.Coins) error {
+	perpetualPool, found := h.k.GetPool(ctx, ammPool.PoolId)
+	if !found {
+		// It is possible that this pool haven't been enabled
+		return nil
+	}
+
+	err := h.k.UpdatePoolHealth(ctx, &perpetualPool)
+	if err != nil {
+		return err
+	}
+
+	err = h.k.CheckLowPoolHealthAndMinimumCustody(ctx, ammPool.PoolId)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

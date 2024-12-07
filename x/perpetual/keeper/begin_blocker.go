@@ -1,70 +1,82 @@
 package keeper
 
 import (
-	"fmt"
-
-	errorsmod "cosmossdk.io/errors"
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
-	ptypes "github.com/elys-network/elys/x/parameter/types"
+	"github.com/elys-network/elys/x/perpetual/types"
 )
 
 func (k Keeper) BeginBlocker(ctx sdk.Context) {
-	// check if epoch has passed then execute
-	epochLength := k.GetEpochLength(ctx)
-	epochPosition := k.GetEpochPosition(ctx, epochLength)
-
-	// if epoch has not passed
-	if epochPosition != 0 {
-		return
-	}
-
-	// if epoch has passed
-	entry, found := k.assetProfileKeeper.GetEntry(ctx, ptypes.BaseCurrency)
-	if !found {
-		ctx.Logger().Error(errorsmod.Wrapf(assetprofiletypes.ErrAssetProfileNotFound, "asset %s not found", ptypes.BaseCurrency).Error())
-	}
-	baseCurrency := entry.Denom
-	baseCurrencyDecimal := entry.Decimals
-
 	currentHeight := ctx.BlockHeight()
 	pools := k.GetAllPools(ctx)
+
 	for _, pool := range pools {
-		ammPool, err := k.GetAmmPool(ctx, pool.AmmPoolId, "")
+		rate, err := k.BorrowInterestRateComputation(ctx, pool)
 		if err != nil {
-			ctx.Logger().Error(errorsmod.Wrap(err, fmt.Sprintf("error getting amm pool: %d", pool.AmmPoolId)).Error())
+			ctx.Logger().Error(err.Error())
 			continue
 		}
-		if k.IsPoolEnabled(ctx, pool.AmmPoolId) {
-			rate, err := k.BorrowInterestRateComputation(ctx, pool)
-			if err != nil {
-				ctx.Logger().Error(err.Error())
-				continue
-			}
-			pool.BorrowInterestRate = rate
-			pool.LastHeightBorrowInterestRateComputed = currentHeight
-			err = k.UpdatePoolHealth(ctx, &pool)
-			if err != nil {
-				ctx.Logger().Error(err.Error())
-			}
-			err = k.UpdateFundingRate(ctx, &pool)
-			if err != nil {
-				ctx.Logger().Error(err.Error())
-			}
+		pool.BorrowInterestRate = rate
+		pool.LastHeightBorrowInterestRateComputed = currentHeight
 
-			mtps, _, _ := k.GetMTPsForPool(ctx, pool.AmmPoolId, nil)
-			for _, mtp := range mtps {
-				err := BeginBlockerProcessMTP(ctx, k, mtp, pool, ammPool, baseCurrency, baseCurrencyDecimal)
-				if err != nil {
-					ctx.Logger().Error(err.Error())
-					continue
-				}
-			}
-			err = k.HandleFundingFeeDistribution(ctx, mtps, &pool, ammPool, baseCurrency)
-			if err != nil {
-				ctx.Logger().Error(err.Error())
-			}
+		k.SetBorrowRate(ctx, uint64(ctx.BlockHeight()), pool.AmmPoolId, types.InterestBlock{
+			InterestRate: rate,
+			BlockHeight:  ctx.BlockHeight(),
+			BlockTime:    ctx.BlockTime().Unix(),
+		})
+
+		err = k.UpdatePoolHealth(ctx, &pool)
+		if err != nil {
+			ctx.Logger().Error(err.Error())
 		}
+
+		fundingRateLong, fundingRateShort := k.ComputeFundingRate(ctx, pool)
+
+		pool.FundingRate = fundingRateLong
+		if fundingRateLong.IsZero() {
+			pool.FundingRate = fundingRateShort.Neg()
+		}
+
+		totalLongOpenInterest := pool.GetTotalLongOpenInterest()
+		totalShortOpenInterest := pool.GetTotalShortOpenInterest()
+
+		blocksPerYear := int64(k.parameterKeeper.GetParams(ctx).TotalBlocksPerYear)
+		fundingAmountLong := types.CalcTakeAmount(totalLongOpenInterest, fundingRateLong).ToLegacyDec().Quo(math.LegacyNewDec(blocksPerYear))
+		fundingAmountShort := types.CalcTakeAmount(totalShortOpenInterest, fundingRateShort).ToLegacyDec().Quo(math.LegacyNewDec(blocksPerYear))
+
+		k.SetFundingRate(ctx, uint64(ctx.BlockHeight()), pool.AmmPoolId, types.FundingRateBlock{
+			BlockHeight:        ctx.BlockHeight(),
+			BlockTime:          ctx.BlockTime().Unix(),
+			FundingRateLong:    fundingRateLong,
+			FundingRateShort:   fundingRateShort,
+			FundingAmountShort: fundingAmountShort,
+			FundingAmountLong:  fundingAmountLong,
+		})
 		k.SetPool(ctx, pool)
+	}
+}
+
+func (k Keeper) ComputeFundingRate(ctx sdk.Context, pool types.Pool) (math.LegacyDec, math.LegacyDec) {
+	// Custody amount for long is trading asset -
+	// Liability amount for short is trading asset
+	// popular_rate = fixed_rate * abs(Custody-Liability) / (Custody+Liability)
+	totalLongOpenInterest := pool.GetTotalLongOpenInterest()
+	totalShortOpenInterest := pool.GetTotalShortOpenInterest()
+
+	if totalLongOpenInterest.IsZero() || totalShortOpenInterest.IsZero() {
+		return math.LegacyZeroDec(), math.LegacyZeroDec()
+	}
+
+	fixedRate := k.GetParams(ctx).FixedFundingRate
+	if totalLongOpenInterest.GT(totalShortOpenInterest) {
+		// long is popular
+		// long pays short
+		netLongRatio := (totalLongOpenInterest.Sub(totalShortOpenInterest)).ToLegacyDec().Quo((totalLongOpenInterest.Add(totalShortOpenInterest)).ToLegacyDec())
+		return netLongRatio.Mul(fixedRate), math.LegacyZeroDec()
+	} else {
+		// short is popular
+		// short pays long
+		netShortRatio := (totalShortOpenInterest.Sub(totalLongOpenInterest)).ToLegacyDec().Quo((totalLongOpenInterest.Add(totalShortOpenInterest)).ToLegacyDec())
+		return math.LegacyZeroDec(), netShortRatio.Mul(fixedRate)
 	}
 }

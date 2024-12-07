@@ -10,15 +10,13 @@ import (
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 )
 
-// VestNow is not enabled at this stage
-var VestNowEnabled = false
-
 // VestNow provides functionality to get the token immediately but lower amount than original
 // e.g. user can burn 1000 ueden and get 800 uelys when the ratio is 80%
 func (k msgServer) VestNow(goCtx context.Context, msg *types.MsgVestNow) (*types.MsgVestNowResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
+	params := k.GetParams(ctx)
 
-	if !VestNowEnabled {
+	if !params.EnableVestNow {
 		return nil, types.ErrVestNowIsNotEnabled
 	}
 
@@ -41,11 +39,6 @@ func (k msgServer) VestNow(goCtx context.Context, msg *types.MsgVestNow) (*types
 	vestAmount := msg.Amount.Quo(vestingInfo.VestNowFactor)
 	withdrawCoins := sdk.NewCoins(sdk.NewCoin(vestingInfo.VestingDenom, vestAmount))
 
-	addr, err := sdk.AccAddressFromBech32(commitments.Creator)
-	if err != nil {
-		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "unable to convert address from bech32")
-	}
-
 	// mint coins if vesting token is ELYS
 	if vestingInfo.VestingDenom == ptypes.Elys {
 		err := k.bankKeeper.MintCoins(ctx, types.ModuleName, withdrawCoins)
@@ -56,7 +49,7 @@ func (k msgServer) VestNow(goCtx context.Context, msg *types.MsgVestNow) (*types
 	}
 
 	// Send the minted coins to the user's account
-	err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, addr, withdrawCoins)
+	err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, creator, withdrawCoins)
 	if err != nil {
 		return nil, errorsmod.Wrap(sdkerrors.ErrInsufficientFunds, "unable to send withdrawn tokens")
 	}

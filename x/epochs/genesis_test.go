@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/elys-network/elys/app"
@@ -13,8 +12,8 @@ import (
 )
 
 func TestEpochsExportGenesis(t *testing.T) {
-	app := app.InitElysTestApp(true)
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	app := app.InitElysTestApp(true, t)
+	ctx := app.BaseApp.NewContext(true)
 
 	chainStartTime := ctx.BlockTime()
 	chainStartHeight := ctx.BlockHeight()
@@ -46,13 +45,27 @@ func TestEpochsExportGenesis(t *testing.T) {
 				CurrentEpochStartTime:   time.Time{},
 				EpochCountingStarted:    false,
 			},
+			{
+				Identifier:              types.TenDaysEpochID,
+				Duration:                time.Second * 864000,
+				CurrentEpoch:            0,
+				CurrentEpochStartHeight: 0,
+				EpochCountingStarted:    false,
+			},
+			{
+				Identifier:              types.FiveMinutesEpochID,
+				Duration:                time.Second * 300,
+				CurrentEpoch:            0,
+				CurrentEpochStartHeight: 0,
+				EpochCountingStarted:    false,
+			},
 		},
 	}
 
-	epochs.InitGenesis(ctx, app.EpochsKeeper, genesisState)
+	epochs.InitGenesis(ctx, *app.EpochsKeeper, genesisState)
 
-	genesis := epochs.ExportGenesis(ctx, app.EpochsKeeper)
-	require.Len(t, genesis.Epochs, 3)
+	genesis := epochs.ExportGenesis(ctx, *app.EpochsKeeper)
+	require.Len(t, genesis.Epochs, 5)
 
 	require.Equal(t, genesis.Epochs[0].Identifier, "band_epoch")
 	require.Equal(t, genesis.Epochs[1].Identifier, types.DayEpochID)
@@ -62,9 +75,9 @@ func TestEpochsExportGenesis(t *testing.T) {
 	require.Equal(t, genesis.Epochs[1].CurrentEpochStartHeight, chainStartHeight)
 	require.Equal(t, genesis.Epochs[1].CurrentEpochStartTime, chainStartTime)
 	require.Equal(t, genesis.Epochs[1].EpochCountingStarted, false)
-	require.Equal(t, genesis.Epochs[2].Identifier, types.WeekEpochID)
+	require.Equal(t, genesis.Epochs[2].Identifier, types.FiveMinutesEpochID)
 	require.Equal(t, genesis.Epochs[2].StartTime, chainStartTime)
-	require.Equal(t, genesis.Epochs[2].Duration, time.Hour*24*7)
+	require.Equal(t, genesis.Epochs[2].Duration, time.Second*300)
 	require.Equal(t, genesis.Epochs[2].CurrentEpoch, int64(0))
 	require.Equal(t, genesis.Epochs[2].CurrentEpochStartHeight, chainStartHeight)
 	require.Equal(t, genesis.Epochs[2].CurrentEpochStartTime, chainStartTime)
@@ -72,9 +85,9 @@ func TestEpochsExportGenesis(t *testing.T) {
 }
 
 func TestEpochsInitGenesis(t *testing.T) {
-	app := app.InitElysTestApp(true)
+	app := app.InitElysTestApp(true, t)
 
-	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
+	ctx := app.BaseApp.NewContext(true)
 
 	// On init genesis, default epochs information is set
 	// To check init genesis again, should make it fresh status
@@ -126,7 +139,7 @@ func TestEpochsInitGenesis(t *testing.T) {
 		},
 	}
 
-	epochs.InitGenesis(ctx, app.EpochsKeeper, genesisState)
+	epochs.InitGenesis(ctx, *app.EpochsKeeper, genesisState)
 	epochInfo, found := app.EpochsKeeper.GetEpochInfo(ctx, "monthly")
 	require.True(t, found)
 	require.Equal(t, epochInfo.Identifier, "monthly")

@@ -1,7 +1,8 @@
 package types
 
 import (
-	fmt "fmt"
+	sdkmath "cosmossdk.io/math"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -44,7 +45,7 @@ func EnsureDenomInPool(poolAssetsByDenom map[string]PoolAsset, tokensIn sdk.Coin
 
 // AbsDifferenceWithSign returns | a - b |, (a - b).sign()
 // a is mutated and returned.
-func AbsDifferenceWithSign(a, b sdk.Dec) (sdk.Dec, bool) {
+func AbsDifferenceWithSign(a, b sdkmath.LegacyDec) (sdkmath.LegacyDec, bool) {
 	if a.GTE(b) {
 		return a.SubMut(b), false
 	} else {
@@ -53,44 +54,36 @@ func AbsDifferenceWithSign(a, b sdk.Dec) (sdk.Dec, bool) {
 }
 
 // ApplyDiscount applies discount to swap fee if applicable
-func ApplyDiscount(swapFee sdk.Dec, discount sdk.Dec) sdk.Dec {
+func ApplyDiscount(swapFee sdkmath.LegacyDec, discount sdkmath.LegacyDec) sdkmath.LegacyDec {
 	// apply discount percentage to swap fee
-	swapFee = swapFee.Mul(sdk.OneDec().Sub(discount))
+	swapFee = swapFee.Mul(sdkmath.LegacyOneDec().Sub(discount))
 	return swapFee
 }
 
-func GetWeightBreakingFee(weightIn, weightOut, targetWeightIn, targetWeightOut sdk.Dec, poolParams PoolParams) sdk.Dec {
-	weightBreakingFee := sdk.ZeroDec()
-	if !weightOut.IsZero() && !weightIn.IsZero() && !targetWeightOut.IsZero() && !targetWeightIn.IsZero() && !poolParams.WeightBreakingFeeMultiplier.IsZero() {
+// GetWeightBreakingFee When distanceDiff > 0, pool is getting worse so we calculate WBF based on final weight
+// When distanceDiff < 0, pool is improving, we need to use initial weights. Say target is 50:50, initially pool is 80:20 and now after it is becoming 30:70,
+// this is improving the pool but with finalWeightOut/finalWeightIn it will be 30/70 which doesn't provide enough bonus to user
+func GetWeightBreakingFee(finalWeightIn, finalWeightOut, targetWeightIn, targetWeightOut, initialWeightIn, initialWeightOut sdkmath.LegacyDec, distanceDiff sdkmath.LegacyDec, params Params) sdkmath.LegacyDec {
+	weightBreakingFee := sdkmath.LegacyZeroDec()
+	if !params.WeightBreakingFeeMultiplier.IsZero() {
 		// (45/55*60/40) ^ 2.5
-		weightBreakingFee = poolParams.WeightBreakingFeeMultiplier.
-			Mul(Pow(weightIn.Mul(targetWeightOut).Quo(weightOut).Quo(targetWeightIn), poolParams.WeightBreakingFeeExponent))
+		if distanceDiff.IsPositive() {
+			if !finalWeightOut.IsZero() && !finalWeightIn.IsZero() && !targetWeightOut.IsZero() && !targetWeightIn.IsZero() {
+				weightBreakingFee = params.WeightBreakingFeeMultiplier.
+					Mul(Pow(finalWeightIn.Mul(targetWeightOut).Quo(finalWeightOut).Quo(targetWeightIn), params.WeightBreakingFeeExponent))
+			}
+		} else {
+			if !initialWeightOut.IsZero() && !initialWeightIn.IsZero() && !targetWeightOut.IsZero() && !targetWeightIn.IsZero() {
+				weightBreakingFee = params.WeightBreakingFeeMultiplier.
+					Mul(Pow(initialWeightOut.Mul(targetWeightIn).Quo(initialWeightIn).Quo(targetWeightOut), params.WeightBreakingFeeExponent))
+			}
+		}
 
-		if weightBreakingFee.GT(sdk.NewDecWithPrec(99, 2)) {
-			weightBreakingFee = sdk.NewDecWithPrec(99, 2)
+		if weightBreakingFee.GT(sdkmath.LegacyNewDecWithPrec(99, 2)) {
+			weightBreakingFee = sdkmath.LegacyNewDecWithPrec(99, 2)
 		}
 	}
 	return weightBreakingFee
-}
-
-func (params PoolParams) Validate(poolWeights []PoolAsset) error {
-	if params.ExitFee.IsNegative() {
-		return ErrNegativeExitFee
-	}
-
-	if params.ExitFee.GTE(sdk.OneDec()) {
-		return ErrTooMuchExitFee
-	}
-
-	if params.SwapFee.IsNegative() {
-		return ErrNegativeSwapFee
-	}
-
-	if params.SwapFee.GTE(sdk.OneDec()) {
-		return ErrTooMuchSwapFee
-	}
-
-	return nil
 }
 
 // GetPoolAssetsByDenom return a mapping from pool asset
@@ -120,7 +113,7 @@ func GetPoolAssetByDenom(assets []PoolAsset, denom string) (PoolAsset, bool) {
 
 // validates a pool asset, to check if it has a valid weight.
 func (pa PoolAsset) validateWeight() error {
-	if pa.Weight.LTE(sdk.ZeroInt()) {
+	if pa.Weight.LTE(sdkmath.ZeroInt()) {
 		return fmt.Errorf("a token's weight in the pool must be greater than 0")
 	}
 

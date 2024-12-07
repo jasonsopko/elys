@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
 )
 
 const (
@@ -11,12 +12,6 @@ const (
 	// StoreKey defines the primary module store key
 	StoreKey = ModuleName
 
-	// RouterKey defines the module's message routing key
-	RouterKey = ModuleName
-
-	// MemStoreKey defines the in-memory store key
-	MemStoreKey = "mem_oracle"
-
 	// Version defines the current version the IBC module supports
 	Version = "bandchain-1"
 
@@ -25,14 +20,16 @@ const (
 )
 
 var (
+	ParamKeyPrefix       = []byte{0x01}
+	PriceFeederPrefixKey = []byte{0x02}
+
 	// PortKey defines the key to store the port ID in store
 	PortKey = KeyPrefix("oracle-port-")
 	// AssetInfoKeyPrefix is the prefix to retrieve all AssetInfo
 	AssetInfoKeyPrefix = "AssetInfo/value/"
 	// PriceKeyPrefix is the prefix to retrieve all Price
-	PriceKeyPrefix = "Price/value/"
-	// PriceFeederKeyPrefix is the prefix to retrieve all PriceFeeder
-	PriceFeederKeyPrefix = "PriceFeeder/value/"
+	PriceKeyPrefix             = "Price/value/"
+	LegacyPriceFeederKeyPrefix = "PriceFeeder/value/"
 )
 
 func KeyPrefix(p string) []byte {
@@ -69,9 +66,15 @@ func PriceKey(asset, source string, timestamp uint64) []byte {
 	return key
 }
 
-// PriceFeederKey returns the store key to retrieve a PriceFeeder from the feeder fields
-func PriceFeederKey(feeder string) []byte {
-	key := KeyPrefix(PriceFeederKeyPrefix)
+func GetPriceFeederKey(feeder sdk.AccAddress) []byte {
+	key := PriceFeederPrefixKey
+	key = append(key, address.MustLengthPrefix(feeder)...)
+
+	return key
+}
+
+func LegacyPriceFeederKey(feeder string) []byte {
+	key := KeyPrefix(LegacyPriceFeederKeyPrefix)
 
 	indexBytes := []byte(feeder)
 	key = append(key, indexBytes...)

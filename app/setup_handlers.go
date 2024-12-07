@@ -1,32 +1,31 @@
 package app
 
 import (
+	"context"
 	"fmt"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	storetypes "cosmossdk.io/store/types"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	m "github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
 const (
-	// make sure to update these when you upgrade the version
-	NextVersion = "v0.42.0"
-
 	LocalNetVersion = "v999.999.999"
+	NewMaxBytes     = 5 * 1024 * 1024 // 5MB
 )
 
-func SetupHandlers(app *ElysApp) {
-	setUpgradeHandler(app)
+// make sure to update these when you upgrade the version
+var NextVersion = "v0.53.0"
 
-	loadUpgradeStore(app)
-}
-
-func setUpgradeHandler(app *ElysApp) {
+func (app *ElysApp) setUpgradeHandler() {
 	app.UpgradeKeeper.SetUpgradeHandler(
 		version.Version,
-		func(ctx sdk.Context, plan upgradetypes.Plan, vm m.VersionMap) (m.VersionMap, error) {
+		func(goCtx context.Context, plan upgradetypes.Plan, vm m.VersionMap) (m.VersionMap, error) {
+			ctx := sdk.UnwrapSDKContext(goCtx)
 			app.Logger().Info("Running upgrade handler for " + version.Version)
 
 			if version.Version == NextVersion || version.Version == LocalNetVersion {
@@ -40,10 +39,14 @@ func setUpgradeHandler(app *ElysApp) {
 	)
 }
 
-func loadUpgradeStore(app *ElysApp) {
+func (app *ElysApp) setUpgradeStore() {
 	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to read upgrade info from disk: %v", err))
+	}
+
+	if app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+		return
 	}
 
 	app.Logger().Debug("Upgrade info", "info", upgradeInfo)

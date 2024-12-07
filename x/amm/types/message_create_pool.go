@@ -6,37 +6,15 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-const TypeMsgCreatePool = "create_pool"
-
 var _ sdk.Msg = &MsgCreatePool{}
+var _ sdk.HasValidateBasic = &MsgCreatePool{}
 
-func NewMsgCreatePool(sender string, poolParams *PoolParams, poolAssets []PoolAsset) *MsgCreatePool {
+func NewMsgCreatePool(sender string, poolParams PoolParams, poolAssets []PoolAsset) *MsgCreatePool {
 	return &MsgCreatePool{
 		Sender:     sender,
 		PoolParams: poolParams,
 		PoolAssets: poolAssets,
 	}
-}
-
-func (msg *MsgCreatePool) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgCreatePool) Type() string {
-	return TypeMsgCreatePool
-}
-
-func (msg *MsgCreatePool) GetSigners() []sdk.AccAddress {
-	sender, err := sdk.AccAddressFromBech32(msg.Sender)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{sender}
-}
-
-func (msg *MsgCreatePool) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
 }
 
 func (msg *MsgCreatePool) ValidateBasic() error {
@@ -45,24 +23,18 @@ func (msg *MsgCreatePool) ValidateBasic() error {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid sender address (%s)", err)
 	}
 
-	if msg.PoolParams == nil {
-		return ErrPoolParamsShouldNotBeNil
+	if len(msg.PoolAssets) != 2 {
+		return ErrPoolAssetsMustBeTwo
 	}
 
-	if msg.PoolParams.SwapFee.IsNegative() {
-		return ErrFeeShouldNotBeNegative
+	if err = msg.PoolParams.Validate(); err != nil {
+		return err
 	}
 
-	if msg.PoolParams.SwapFee.GT(sdk.NewDecWithPrec(2, 2)) { // >2%
-		return ErrSwapFeeShouldNotExceedTwoPercent
-	}
-
-	if msg.PoolParams.ExitFee.IsNegative() {
-		return ErrFeeShouldNotBeNegative
-	}
-
-	if msg.PoolParams.ExitFee.GT(sdk.NewDecWithPrec(2, 2)) { // >2%
-		return ErrExitFeeShouldNotExceedTwoPercent
+	for _, asset := range msg.PoolAssets {
+		if err = asset.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil

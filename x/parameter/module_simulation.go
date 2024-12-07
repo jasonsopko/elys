@@ -2,7 +2,6 @@ package parameter
 
 import (
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
@@ -20,9 +19,9 @@ var (
 )
 
 const (
-	opWeightMsgUpdateWasmConfig = "op_weight_msg_update_wasm_config"
+	opWeightMsgUpdateRewardsDataLifetime = "op_weight_msg_update_rewards_data_lifetime"
 	// TODO: Determine the simulation weight value
-	defaultWeightMsgUpdateWasmConfig int = 100
+	defaultWeightMsgUpdateRewardsDataLifetime int = 100
 
 	// this line is used by starport scaffolding # simapp/module/const
 )
@@ -46,22 +45,11 @@ func (AppModule) ProposalContents(_ module.SimulationState) []simtypes.WeightedP
 }
 
 // RegisterStoreDecoder registers a decoder
-func (am AppModule) RegisterStoreDecoder(_ sdk.StoreDecoderRegistry) {}
+func (am AppModule) RegisterStoreDecoder(sdr simtypes.StoreDecoderRegistry) {}
 
 // WeightedOperations returns the all the gov module operations with their respective weights.
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
 	operations := make([]simtypes.WeightedOperation, 0)
-
-	/*var weightMsgUpdateWasmConfig int
-	simState.AppParams.GetOrGenerate(simState.Cdc, opWeightMsgUpdateWasmConfig, &weightMsgUpdateWasmConfig, nil,
-		func(_ *rand.Rand) {
-			weightMsgUpdateWasmConfig = defaultWeightMsgUpdateWasmConfig
-		},
-	)
-	operations = append(operations, simulation.NewWeightedOperation(
-		weightMsgUpdateWasmConfig,
-		parametersimulation.SimulateMsgUpdateWasmConfig(am.accountKeeper, am.bankKeeper, am.keeper),
-	))*/
 
 	// this line is used by starport scaffolding # simapp/module/operation
 

@@ -1,18 +1,36 @@
 package keeper_test
 
 import (
-	"testing"
-
-	testkeeper "github.com/elys-network/elys/testutil/keeper"
 	"github.com/elys-network/elys/x/estaking/types"
-	"github.com/stretchr/testify/require"
 )
 
-func TestGetParams(t *testing.T) {
-	k, ctx := testkeeper.EstakingKeeper(t)
-	params := types.DefaultParams()
+func (suite *EstakingKeeperTestSuite) TestParams() {
+	testCases := []struct {
+		name                 string
+		prerequisiteFunction func()
+		postValidateFunction func()
+	}{
+		{
+			"get params",
+			func() {
+				suite.ResetSuite()
 
-	k.SetParams(ctx, params)
+				params := types.DefaultParams()
 
-	require.EqualValues(t, params, k.GetParams(ctx))
+				suite.app.EstakingKeeper.SetParams(suite.ctx, params)
+			},
+			func() {
+				params := types.DefaultParams()
+
+				suite.Require().EqualValues(params, suite.app.EstakingKeeper.GetParams(suite.ctx))
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			tc.prerequisiteFunction()
+			tc.postValidateFunction()
+		})
+	}
 }

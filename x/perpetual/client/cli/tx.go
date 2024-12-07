@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	FlagDiscount        = "discount"
+	FlagAddress         = "address"
 	FlagTakeProfitPrice = "take-profit"
+	FlagStopLossPrice   = "stop-loss"
+	FlagLimitPrice      = "limit-price"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -29,7 +31,9 @@ func GetTxCmd() *cobra.Command {
 	cmd.AddCommand(CmdUpdateParams())
 	cmd.AddCommand(CmdWhitelist())
 	cmd.AddCommand(CmdDewhitelist())
-	cmd.AddCommand(CmdAddCollateral())
+	cmd.AddCommand(CmdClosePositions())
+	cmd.AddCommand(CmdUpdateStopLoss())
+	cmd.AddCommand(CmdUpdateTakeProfitPrice())
 	// this line is used by starport scaffolding # 1
 
 	return cmd

@@ -14,7 +14,7 @@ import (
 func setupNetwork(t *testing.T) *network.Network {
 	t.Helper()
 
-	cfg := network.DefaultConfig()
+	cfg := network.DefaultConfig(t.TempDir())
 	return network.New(t, cfg)
 }
 
@@ -27,8 +27,9 @@ func TestOpenPosition(t *testing.T) {
 	// Tendermint RPC calls.
 	// ...
 	args := []string{
-		"open",
+		"long",
 		"1.5",
+		"1",
 		"uatom",
 		"1000" + ptypes.BaseCurrency,
 		"--from=" + val.Address.String(),

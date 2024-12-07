@@ -2,11 +2,10 @@ package types
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
-
-const TypeMsgFeedMultipleExternalLiquidity = "feed_multiple_external_liquidity"
 
 var _ sdk.Msg = &MsgFeedMultipleExternalLiquidity{}
 
@@ -16,31 +15,24 @@ func NewMsgFeedMultipleExternalLiquidity(sender string) *MsgFeedMultipleExternal
 	}
 }
 
-func (msg *MsgFeedMultipleExternalLiquidity) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgFeedMultipleExternalLiquidity) Type() string {
-	return TypeMsgSwapExactAmountOut
-}
-
-func (msg *MsgFeedMultipleExternalLiquidity) GetSigners() []sdk.AccAddress {
-	sender, err := sdk.AccAddressFromBech32(msg.Sender)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{sender}
-}
-
-func (msg *MsgFeedMultipleExternalLiquidity) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgFeedMultipleExternalLiquidity) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid sender address (%s)", err)
+	}
+
+	for _, liquidity := range msg.Liquidity {
+		for _, depthInfo := range liquidity.AmountDepthInfo {
+			if err = sdk.ValidateDenom(depthInfo.Asset); err != nil {
+				return err
+			}
+			if depthInfo.Depth.IsNil() || depthInfo.Depth.IsNegative() {
+				return fmt.Errorf("depth cannot be negative or nil")
+			}
+			if depthInfo.Amount.IsNil() || depthInfo.Amount.IsNegative() {
+				return fmt.Errorf("depth amount cannot be negative or nil")
+			}
+		}
 	}
 	return nil
 }

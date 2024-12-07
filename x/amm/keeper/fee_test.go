@@ -3,6 +3,8 @@ package keeper_test
 import (
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -14,17 +16,17 @@ import (
 
 func TestPortionCoins(t *testing.T) {
 	coins := sdk.Coins{sdk.NewInt64Coin(ptypes.Eden, 1000), sdk.NewInt64Coin(ptypes.Elys, 10000)}
-	portion := keeper.PortionCoins(coins, sdk.ZeroDec())
+	portion := keeper.PortionCoins(coins, sdkmath.LegacyZeroDec())
 	require.Equal(t, portion, sdk.Coins{})
 
-	portion = keeper.PortionCoins(coins, sdk.NewDecWithPrec(1, 1))
+	portion = keeper.PortionCoins(coins, sdkmath.LegacyNewDecWithPrec(1, 1))
 	require.Equal(t, portion, sdk.Coins{sdk.NewInt64Coin(ptypes.Eden, 100), sdk.NewInt64Coin(ptypes.Elys, 1000)})
 
-	portion = keeper.PortionCoins(coins, sdk.NewDec(1))
+	portion = keeper.PortionCoins(coins, sdkmath.LegacyNewDec(1))
 	require.Equal(t, portion, coins)
 }
 
-func (suite *KeeperTestSuite) TestOnCollectFee() {
+func (suite *AmmKeeperTestSuite) TestOnCollectFee() {
 	for _, tc := range []struct {
 		desc              string
 		fee               sdk.Coins
@@ -58,7 +60,7 @@ func (suite *KeeperTestSuite) TestOnCollectFee() {
 			suite.SetupTest()
 
 			// bootstrap accounts
-			poolAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
+			poolAddr := types.NewPoolAddress(uint64(1))
 			treasuryAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 			revenueAddr := types.NewPoolRevenueAddress(1)
 
@@ -84,35 +86,32 @@ func (suite *KeeperTestSuite) TestOnCollectFee() {
 				Address:           poolAddr.String(),
 				RebalanceTreasury: treasuryAddr.String(),
 				PoolParams: types.PoolParams{
-					SwapFee:                     sdk.ZeroDec(),
-					ExitFee:                     sdk.ZeroDec(),
-					UseOracle:                   false,
-					WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-					WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-					ExternalLiquidityRatio:      sdk.NewDec(1),
-					WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-					ThresholdWeightDifference:   sdk.ZeroDec(),
-					FeeDenom:                    ptypes.BaseCurrency,
+					SwapFee:   sdkmath.LegacyZeroDec(),
+					UseOracle: false,
+					FeeDenom:  ptypes.BaseCurrency,
 				},
-				TotalShares: sdk.Coin{},
+				TotalShares: sdk.NewCoin(types.GetPoolShareDenom(1), sdkmath.ZeroInt()),
 				PoolAssets: []types.PoolAsset{
 					{
 						Token:  tc.poolInitBalance[0],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 					{
 						Token:  tc.poolInitBalance[1],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 				},
-				TotalWeight: sdk.ZeroInt(),
+				TotalWeight: sdkmath.ZeroInt(),
 			}
+			suite.app.AmmKeeper.SetPool(suite.ctx, pool)
+			suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
+
 			err = suite.app.AmmKeeper.OnCollectFee(suite.ctx, pool, tc.fee)
 			if !tc.expPass {
 				suite.Require().Error(err)
 			} else {
 				suite.Require().NoError(err)
-
+				suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
 				// check pool balance increase/decrease
 				balances := suite.app.BankKeeper.GetAllBalances(suite.ctx, revenueAddr)
 				suite.Require().Equal(balances.String(), tc.expRevenueBalance.String())
@@ -121,7 +120,7 @@ func (suite *KeeperTestSuite) TestOnCollectFee() {
 	}
 }
 
-func (suite *KeeperTestSuite) TestSwapFeesToRevenueToken() {
+func (suite *AmmKeeperTestSuite) TestSwapFeesToRevenueToken() {
 	for _, tc := range []struct {
 		desc              string
 		fee               sdk.Coins
@@ -155,7 +154,7 @@ func (suite *KeeperTestSuite) TestSwapFeesToRevenueToken() {
 			suite.SetupTest()
 
 			// bootstrap accounts
-			poolAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
+			poolAddr := types.NewPoolAddress(uint64(1))
 			treasuryAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 			revenueAddr := types.NewPoolRevenueAddress(1)
 
@@ -181,35 +180,31 @@ func (suite *KeeperTestSuite) TestSwapFeesToRevenueToken() {
 				Address:           poolAddr.String(),
 				RebalanceTreasury: treasuryAddr.String(),
 				PoolParams: types.PoolParams{
-					SwapFee:                     sdk.ZeroDec(),
-					ExitFee:                     sdk.ZeroDec(),
-					UseOracle:                   false,
-					WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-					WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-					ExternalLiquidityRatio:      sdk.NewDec(1),
-					WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-					ThresholdWeightDifference:   sdk.ZeroDec(),
-					FeeDenom:                    ptypes.BaseCurrency,
+					SwapFee:   sdkmath.LegacyZeroDec(),
+					UseOracle: false,
+					FeeDenom:  ptypes.BaseCurrency,
 				},
-				TotalShares: sdk.Coin{},
+				TotalShares: sdk.NewCoin(types.GetPoolShareDenom(1), sdkmath.ZeroInt()),
 				PoolAssets: []types.PoolAsset{
 					{
 						Token:  tc.poolInitBalance[0],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 					{
 						Token:  tc.poolInitBalance[1],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 				},
-				TotalWeight: sdk.ZeroInt(),
+				TotalWeight: sdkmath.ZeroInt(),
 			}
+			suite.app.AmmKeeper.SetPool(suite.ctx, pool)
+			suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
 			err = suite.app.AmmKeeper.SwapFeesToRevenueToken(suite.ctx, pool, tc.fee)
 			if !tc.expPass {
 				suite.Require().Error(err)
 			} else {
 				suite.Require().NoError(err)
-
+				suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
 				// check pool balance increase/decrease
 				balances := suite.app.BankKeeper.GetAllBalances(suite.ctx, revenueAddr)
 				suite.Require().Equal(balances.String(), tc.expRevenueBalance.String())
@@ -227,7 +222,7 @@ func (suite *KeeperTestSuite) TestSwapFeesToRevenueToken() {
 	// 		}
 	// 		// Executes the swap in the pool and stores the output. Updates pool assets but
 	// 		// does not actually transfer any tokens to or from the pool.
-	// 		tokenOutCoin, _, err := pool.SwapOutAmtGivenIn(ctx, k.oracleKeeper, sdk.Coins{tokenIn}, pool.PoolParams.FeeDenom, sdk.ZeroDec())
+	// 		tokenOutCoin, _, err := pool.SwapOutAmtGivenIn(ctx, k.oracleKeeper, sdk.Coins{tokenIn}, pool.PoolParams.FeeDenom, sdkmath.LegacyZeroDec())
 	// 		if err != nil {
 	// 			return err
 	// 		}
@@ -240,7 +235,7 @@ func (suite *KeeperTestSuite) TestSwapFeesToRevenueToken() {
 
 	// 		// Settles balances between the tx sender and the pool to match the swap that was executed earlier.
 	// 		// Also emits a swap event and updates related liquidity metrics.
-	// 		_, err = k.UpdatePoolForSwap(ctx, pool, poolRevenueAddress, tokenIn, tokenOutCoin, sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+	// 		_, err = k.UpdatePoolForSwap(ctx, pool, poolRevenueAddress, tokenIn, tokenOutCoin, sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
 	// 		if err != nil {
 	// 			return err
 	// 		}

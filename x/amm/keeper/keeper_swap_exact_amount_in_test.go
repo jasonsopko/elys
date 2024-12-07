@@ -1,7 +1,7 @@
 package keeper_test
 
 import (
-	"cosmossdk.io/math"
+	sdkmath "cosmossdk.io/math"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -9,18 +9,18 @@ import (
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 )
 
-func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
+func (suite *AmmKeeperTestSuite) TestSwapExactAmountIn() {
 	for _, tc := range []struct {
 		desc                string
 		senderInitBalance   sdk.Coins
 		poolInitBalance     sdk.Coins
 		treasuryInitBalance sdk.Coins
-		swapFeeIn           sdk.Dec
-		swapFeeOut          sdk.Dec
+		swapFeeIn           sdkmath.LegacyDec
+		swapFeeOut          sdkmath.LegacyDec
 		tokenIn             sdk.Coin
-		tokenOutMin         math.Int
+		tokenOutMin         sdkmath.Int
 		tokenOut            sdk.Coin
-		weightBalanceBonus  sdk.Dec
+		weightBalanceBonus  sdkmath.LegacyDec
 		isOraclePool        bool
 		useNewRecipient     bool
 		expSenderBalance    sdk.Coins
@@ -34,12 +34,12 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 100)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
+			tokenOutMin:         sdkmath.ZeroInt(),
 			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 10000),
-			weightBalanceBonus:  sdk.ZeroDec(),
+			weightBalanceBonus:  sdkmath.LegacyZeroDec(),
 			isOraclePool:        false,
 			useNewRecipient:     false,
 			expSenderBalance:    sdk.Coins{},
@@ -53,12 +53,12 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 100)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
+			tokenOutMin:         sdkmath.ZeroInt(),
 			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 10000),
-			weightBalanceBonus:  sdk.ZeroDec(),
+			weightBalanceBonus:  sdkmath.LegacyZeroDec(),
 			isOraclePool:        false,
 			useNewRecipient:     false,
 			expSenderBalance:    sdk.Coins{},
@@ -72,17 +72,17 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFeeIn:           sdk.NewDecWithPrec(1, 2), // 1%
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyNewDecWithPrec(1, 2), // 1%
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
-			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9704),
-			weightBalanceBonus:  sdk.ZeroDec(),
+			tokenOutMin:         sdkmath.ZeroInt(),
+			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9802),
+			weightBalanceBonus:  sdkmath.LegacyZeroDec(),
 			isOraclePool:        false,
 			useNewRecipient:     false,
-			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009704)},
+			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009802)},
 			expRecipientBalance: sdk.Coins{},
-			expPoolBalance:      sdk.Coins{sdk.NewInt64Coin("uusda", 1010000), sdk.NewInt64Coin(ptypes.BaseCurrency, 990198)},
+			expPoolBalance:      sdk.Coins{sdk.NewInt64Coin("uusda", 1010000), sdk.NewInt64Coin(ptypes.BaseCurrency, 990100)},
 			expTreasuryBalance:  sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			expPass:             true,
 		},
@@ -91,12 +91,12 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
+			tokenOutMin:         sdkmath.ZeroInt(),
 			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9900),
-			weightBalanceBonus:  sdk.ZeroDec(),
+			weightBalanceBonus:  sdkmath.LegacyZeroDec(),
 			isOraclePool:        false,
 			useNewRecipient:     false,
 			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009900)},
@@ -110,18 +110,18 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
-			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9975),
-			weightBalanceBonus:  sdk.ZeroDec(),
+			tokenOutMin:         sdkmath.ZeroInt(),
+			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9969),
+			weightBalanceBonus:  sdkmath.LegacyZeroDec(),
 			isOraclePool:        true,
 			useNewRecipient:     false,
-			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009975)},
+			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009969)},
 			expRecipientBalance: sdk.Coins{},
-			expPoolBalance:      sdk.Coins{sdk.NewInt64Coin("uusda", 1010000), sdk.NewInt64Coin(ptypes.BaseCurrency, 990025)},
-			expTreasuryBalance:  sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
+			expPoolBalance:      sdk.Coins{sdk.NewInt64Coin("uusda", 1009997), sdk.NewInt64Coin(ptypes.BaseCurrency, 990031)},
+			expTreasuryBalance:  sdk.Coins{sdk.NewInt64Coin("uusda", 1000003), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			expPass:             true,
 		},
 		{
@@ -129,12 +129,12 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
+			tokenOutMin:         sdkmath.ZeroInt(),
 			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9900),
-			weightBalanceBonus:  sdk.NewDecWithPrec(3, 1), // 30% bonus
+			weightBalanceBonus:  sdkmath.LegacyNewDecWithPrec(3, 1), // 30% bonus
 			isOraclePool:        false,
 			useNewRecipient:     false,
 			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009900)},
@@ -148,12 +148,12 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 100)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
+			tokenOutMin:         sdkmath.ZeroInt(),
 			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9900),
-			weightBalanceBonus:  sdk.NewDecWithPrec(3, 1), // 30% bonus
+			weightBalanceBonus:  sdkmath.LegacyNewDecWithPrec(3, 1), // 30% bonus
 			isOraclePool:        false,
 			useNewRecipient:     false,
 			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009900)},
@@ -167,12 +167,12 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			senderInitBalance:   sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			poolInitBalance:     sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			treasuryInitBalance: sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 100)},
-			swapFeeIn:           sdk.ZeroDec(),
-			swapFeeOut:          sdk.ZeroDec(),
+			swapFeeIn:           sdkmath.LegacyZeroDec(),
+			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
-			tokenOutMin:         sdk.ZeroInt(),
+			tokenOutMin:         sdkmath.ZeroInt(),
 			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9900),
-			weightBalanceBonus:  sdk.NewDecWithPrec(3, 1), // 30% bonus
+			weightBalanceBonus:  sdkmath.LegacyNewDecWithPrec(3, 1), // 30% bonus
 			isOraclePool:        false,
 			useNewRecipient:     true,
 			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
@@ -189,7 +189,7 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 			// bootstrap accounts
 			sender := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 			recipient := sender
-			poolAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
+			poolAddr := types.NewPoolAddress(uint64(1))
 			treasuryAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 			if tc.useNewRecipient {
 				recipient = sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
@@ -221,36 +221,35 @@ func (suite *KeeperTestSuite) TestSwapExactAmountIn() {
 				Address:           poolAddr.String(),
 				RebalanceTreasury: treasuryAddr.String(),
 				PoolParams: types.PoolParams{
-					UseOracle:                   tc.isOraclePool,
-					ExternalLiquidityRatio:      sdk.NewDec(2),
-					WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-					WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-					WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-					ThresholdWeightDifference:   sdk.ZeroDec(),
-					SwapFee:                     tc.swapFeeIn,
-					FeeDenom:                    ptypes.BaseCurrency,
+					UseOracle: tc.isOraclePool,
+					SwapFee:   tc.swapFeeIn,
+					FeeDenom:  ptypes.BaseCurrency,
 				},
-				TotalShares: sdk.Coin{},
+				TotalShares: sdk.NewCoin(types.GetPoolShareDenom(1), sdkmath.ZeroInt()),
 				PoolAssets: []types.PoolAsset{
 					{
-						Token:  tc.poolInitBalance[0],
-						Weight: sdk.NewInt(10),
+						Token:                  tc.poolInitBalance[0],
+						Weight:                 sdkmath.NewInt(10),
+						ExternalLiquidityRatio: sdkmath.LegacyNewDec(2),
 					},
 					{
-						Token:  tc.poolInitBalance[1],
-						Weight: sdk.NewInt(10),
+						Token:                  tc.poolInitBalance[1],
+						Weight:                 sdkmath.NewInt(10),
+						ExternalLiquidityRatio: sdkmath.LegacyNewDec(2),
 					},
 				},
-				TotalWeight: sdk.ZeroInt(),
+				TotalWeight: sdkmath.ZeroInt(),
 			}
+			suite.app.AmmKeeper.SetPool(suite.ctx, pool)
+			suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
 
-			tokenOut, err := suite.app.AmmKeeper.SwapExactAmountIn(suite.ctx, sender, recipient, pool, tc.tokenIn, tc.tokenOut.Denom, tc.tokenOutMin, tc.swapFeeIn)
+			tokenOut, err := suite.app.AmmKeeper.InternalSwapExactAmountIn(suite.ctx, sender, recipient, pool, tc.tokenIn, tc.tokenOut.Denom, tc.tokenOutMin, tc.swapFeeIn)
 			if !tc.expPass {
 				suite.Require().Error(err)
 			} else {
 				suite.Require().NoError(err)
 				suite.Require().Equal(tokenOut.String(), tc.tokenOut.Amount.String())
-
+				suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
 				// check pool balance increase/decrease
 				balances := suite.app.BankKeeper.GetAllBalances(suite.ctx, poolAddr)
 				suite.Require().Equal(balances.String(), tc.expPoolBalance.String())

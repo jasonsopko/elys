@@ -1,7 +1,7 @@
 package types_test
 
 import (
-	"fmt"
+	sdkmath "cosmossdk.io/math"
 	"strconv"
 	"testing"
 
@@ -13,33 +13,28 @@ import (
 func TestGenerateOpenEvent(t *testing.T) {
 	// Mock data for testing
 	testMTP := types.MTP{
-		Address:                        "elys1x0jyazg9qzys8x9m2x8q3q3x0jyazg9qzys8x9",
-		CollateralAsset:                "uusdc",
-		TradingAsset:                   "uatom",
-		LiabilitiesAsset:               "uusdc",
-		CustodyAsset:                   "uatom",
-		Collateral:                     sdk.OneInt(),
-		Liabilities:                    sdk.OneInt(),
-		BorrowInterestPaidCollateral:   sdk.OneInt(),
-		BorrowInterestPaidCustody:      sdk.OneInt(),
-		BorrowInterestUnpaidCollateral: sdk.OneInt(),
-		Custody:                        sdk.OneInt(),
-		TakeProfitLiabilities:          sdk.OneInt(),
-		TakeProfitCustody:              sdk.OneInt(),
-		Leverage:                       sdk.NewDec(10),
-		MtpHealth:                      sdk.ZeroDec(),
-		Position:                       types.Position_LONG,
-		Id:                             1,
-		AmmPoolId:                      1,
-		ConsolidateLeverage:            sdk.NewDec(10),
-		SumCollateral:                  sdk.OneInt(),
-		TakeProfitPrice:                sdk.NewDec(10),
-		TakeProfitBorrowRate:           sdk.OneDec(),
-		FundingFeePaidCollateral:       sdk.OneInt(),
-		FundingFeePaidCustody:          sdk.OneInt(),
-		FundingFeeReceivedCollateral:   sdk.OneInt(),
-		FundingFeeReceivedCustody:      sdk.OneInt(),
-		OpenPrice:                      sdk.NewDec(10),
+		Address:                       "elys1x0jyazg9qzys8x9m2x8q3q3x0jyazg9qzys8x9",
+		CollateralAsset:               "uusdc",
+		TradingAsset:                  "uatom",
+		LiabilitiesAsset:              "uusdc",
+		CustodyAsset:                  "uatom",
+		Collateral:                    sdkmath.OneInt(),
+		Liabilities:                   sdkmath.OneInt(),
+		BorrowInterestPaidCustody:     sdkmath.OneInt(),
+		BorrowInterestUnpaidLiability: sdkmath.OneInt(),
+		Custody:                       sdkmath.OneInt(),
+		TakeProfitLiabilities:         sdkmath.OneInt(),
+		TakeProfitCustody:             sdkmath.OneInt(),
+		MtpHealth:                     sdkmath.LegacyZeroDec(),
+		Position:                      types.Position_LONG,
+		Id:                            1,
+		AmmPoolId:                     1,
+		TakeProfitPrice:               sdkmath.LegacyNewDec(10),
+		TakeProfitBorrowFactor:        sdkmath.LegacyOneDec(),
+		FundingFeePaidCustody:         sdkmath.OneInt(),
+		FundingFeeReceivedCustody:     sdkmath.OneInt(),
+		OpenPrice:                     sdkmath.LegacyNewDec(10),
+		StopLossPrice:                 sdkmath.LegacyNewDec(0),
 	}
 
 	event := types.GenerateOpenEvent(&testMTP)
@@ -55,24 +50,18 @@ func TestGenerateOpenEvent(t *testing.T) {
 	assert.Equal(t, testMTP.CustodyAsset, getAttributeValue(event, "custody_asset"))
 	assert.Equal(t, testMTP.Collateral.String(), getAttributeValue(event, "collateral"))
 	assert.Equal(t, testMTP.Liabilities.String(), getAttributeValue(event, "liabilities"))
-	assert.Equal(t, testMTP.BorrowInterestPaidCollateral.String(), getAttributeValue(event, "borrow_interest_paid_collateral"))
 	assert.Equal(t, testMTP.BorrowInterestPaidCustody.String(), getAttributeValue(event, "borrow_interest_paid_custody"))
-	assert.Equal(t, testMTP.BorrowInterestUnpaidCollateral.String(), getAttributeValue(event, "borrow_interest_unpaid_collateral"))
+	assert.Equal(t, testMTP.BorrowInterestUnpaidLiability.String(), getAttributeValue(event, "borrow_interest_unpaid_liability"))
 	assert.Equal(t, testMTP.Custody.String(), getAttributeValue(event, "custody"))
 	assert.Equal(t, testMTP.TakeProfitLiabilities.String(), getAttributeValue(event, "take_profit_liabilities"))
 	assert.Equal(t, testMTP.TakeProfitCustody.String(), getAttributeValue(event, "take_profit_custody"))
-	assert.Equal(t, fmt.Sprintf("%s", testMTP.Leverage), getAttributeValue(event, "leverage"))
 	assert.Equal(t, testMTP.MtpHealth.String(), getAttributeValue(event, "mtp_health"))
 	assert.Equal(t, testMTP.Position.String(), getAttributeValue(event, "position"))
 	assert.Equal(t, strconv.FormatInt(int64(testMTP.Id), 10), getAttributeValue(event, "id"))
 	assert.Equal(t, strconv.FormatInt(int64(testMTP.AmmPoolId), 10), getAttributeValue(event, "amm_pool_id"))
-	assert.Equal(t, fmt.Sprintf("%s", testMTP.ConsolidateLeverage), getAttributeValue(event, "consolidate_leverage"))
-	assert.Equal(t, testMTP.SumCollateral.String(), getAttributeValue(event, "sum_collateral"))
 	assert.Equal(t, testMTP.TakeProfitPrice.String(), getAttributeValue(event, "take_profit_price"))
-	assert.Equal(t, testMTP.TakeProfitBorrowRate.String(), getAttributeValue(event, "take_profit_borrow_rate"))
-	assert.Equal(t, testMTP.FundingFeePaidCollateral.String(), getAttributeValue(event, "funding_fee_paid_collateral"))
+	assert.Equal(t, testMTP.TakeProfitBorrowFactor.String(), getAttributeValue(event, "take_profit_borrow_factor"))
 	assert.Equal(t, testMTP.FundingFeePaidCustody.String(), getAttributeValue(event, "funding_fee_paid_custody"))
-	assert.Equal(t, testMTP.FundingFeeReceivedCollateral.String(), getAttributeValue(event, "funding_fee_received_collateral"))
 	assert.Equal(t, testMTP.FundingFeeReceivedCustody.String(), getAttributeValue(event, "funding_fee_received_custody"))
 	assert.Equal(t, testMTP.OpenPrice.String(), getAttributeValue(event, "open_price"))
 }

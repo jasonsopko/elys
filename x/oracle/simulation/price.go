@@ -25,13 +25,15 @@ func SimulateMsgFeedPrice(
 		i := r.Int()
 		msg := &types.MsgFeedPrice{
 			Provider: simAccount.Address.String(),
-			Asset:    "asset" + strconv.Itoa(i),
-			Source:   types.BAND,
+			FeedPrice: types.FeedPrice{
+				Asset:  "asset" + strconv.Itoa(i),
+				Source: types.BAND,
+			},
 		}
 
-		_, found := k.GetPrice(ctx, msg.Asset, msg.Source, uint64(ctx.BlockTime().Unix()))
+		_, found := k.GetPrice(ctx, msg.FeedPrice.Asset, msg.FeedPrice.Source, uint64(ctx.BlockTime().Unix()))
 		if found {
-			return simtypes.NoOpMsg(types.ModuleName, msg.Type(), "Price already exist"), nil, nil
+			return simtypes.NoOpMsg(types.ModuleName, sdk.MsgTypeURL(&types.MsgFeedPrice{}), "Price already exist"), nil, nil
 		}
 
 		txCtx := simulation.OperationInput{
@@ -40,7 +42,6 @@ func SimulateMsgFeedPrice(
 			TxGen:           simappparams.MakeTestEncodingConfig().TxConfig,
 			Cdc:             nil,
 			Msg:             msg,
-			MsgType:         msg.Type(),
 			Context:         ctx,
 			SimAccount:      simAccount,
 			ModuleName:      types.ModuleName,

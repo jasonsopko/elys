@@ -3,21 +3,19 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/cometbft/cometbft/libs/log"
-	"github.com/cosmos/cosmos-sdk/codec"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"cosmossdk.io/core/store"
 
+	"cosmossdk.io/log"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/elys-network/elys/x/tier/types"
+	tradeshieldkeeper "github.com/elys-network/elys/x/tradeshield/keeper"
 )
 
 type (
 	Keeper struct {
 		cdc                codec.BinaryCodec
-		storeKey           storetypes.StoreKey
-		memKey             storetypes.StoreKey
-		paramstore         paramtypes.Subspace
+		storeService       store.KVStoreService
 		bankKeeper         types.BankKeeper
 		oracleKeeper       types.OracleKeeper
 		assetProfileKeeper types.AssetProfileKeeper
@@ -29,14 +27,13 @@ type (
 		stakingKeeper      types.StakingKeeper
 		leveragelp         types.LeverageLpKeeper
 		stablestakeKeeper  types.StablestakeKeeper
+		tradeshieldKeeper  types.TradeshieldKeeper
 	}
 )
 
 func NewKeeper(
 	cdc codec.BinaryCodec,
-	storeKey,
-	memKey storetypes.StoreKey,
-	ps paramtypes.Subspace,
+	storeService store.KVStoreService,
 	bankKeeper types.BankKeeper,
 	oracleKeeper types.OracleKeeper,
 	assetProfileKeeper types.AssetProfileKeeper,
@@ -48,17 +45,12 @@ func NewKeeper(
 	perpetual types.PerpetualKeeper,
 	leveragelp types.LeverageLpKeeper,
 	stablestakeKeeper types.StablestakeKeeper,
+	tradeshieldKeeper types.TradeshieldKeeper,
 ) *Keeper {
-	// set KeyTable if it has not already been set
-	if !ps.HasKeyTable() {
-		ps = ps.WithKeyTable(types.ParamKeyTable())
-	}
 
 	return &Keeper{
 		cdc:                cdc,
-		storeKey:           storeKey,
-		memKey:             memKey,
-		paramstore:         ps,
+		storeService:       storeService,
 		bankKeeper:         bankKeeper,
 		oracleKeeper:       oracleKeeper,
 		assetProfileKeeper: assetProfileKeeper,
@@ -70,9 +62,14 @@ func NewKeeper(
 		perpetual:          perpetual,
 		leveragelp:         leveragelp,
 		stablestakeKeeper:  stablestakeKeeper,
+		tradeshieldKeeper:  tradeshieldKeeper,
 	}
 }
 
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
+}
+
+func (k *Keeper) SetTradeshieldKeeper(tk *tradeshieldkeeper.Keeper) {
+	k.tradeshieldKeeper = tk
 }

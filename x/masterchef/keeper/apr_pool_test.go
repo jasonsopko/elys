@@ -1,94 +1,85 @@
 package keeper_test
 
 import (
-	"testing"
+	sdkmath "cosmossdk.io/math"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	simapp "github.com/elys-network/elys/app"
-	ammkeeper "github.com/elys-network/elys/x/amm/keeper"
 	ammtypes "github.com/elys-network/elys/x/amm/types"
 	ptypes "github.com/elys-network/elys/x/parameter/types"
-	"github.com/stretchr/testify/require"
 )
 
-func TestCalculatePoolAprs(t *testing.T) {
-	app := simapp.InitElysTestApp(true)
-	ctx := app.BaseApp.NewContext(true, tmproto.Header{})
-
-	mk, amm, oracle := app.MasterchefKeeper, app.AmmKeeper, app.OracleKeeper
-
-	// Setup coin prices
-	SetupStableCoinPrices(ctx, oracle)
+func (suite *MasterchefKeeperTestSuite) TestCalculatePoolAprs() {
 
 	// Generate 1 random account with 1000stake balanced
-	addr := simapp.AddTestAddrs(app, ctx, 1, sdk.NewInt(100010))
+	addr := authtypes.NewModuleAddress(govtypes.ModuleName)
 
-	// Create a pool
 	// Mint 100000USDC + 10 ELYS (pool creation fee)
-	coins := sdk.NewCoins(sdk.NewInt64Coin(ptypes.Elys, 10000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 100000))
-	err := app.BankKeeper.MintCoins(ctx, ammtypes.ModuleName, coins)
-	require.NoError(t, err)
-	err = app.BankKeeper.SendCoinsFromModuleToAccount(ctx, ammtypes.ModuleName, addr[0], coins)
-	require.NoError(t, err)
+	coins := sdk.NewCoins(sdk.NewInt64Coin(ptypes.Elys, 110000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 100000))
+	suite.MintMultipleTokenToAddress(addr, coins)
 
+	// Create pool
 	var poolAssets []ammtypes.PoolAsset
 	// Elys
 	poolAssets = append(poolAssets, ammtypes.PoolAsset{
-		Weight: sdk.NewInt(50),
-		Token:  sdk.NewCoin(ptypes.Elys, sdk.NewInt(1000)),
+		Weight: sdkmath.NewInt(50),
+		Token:  sdk.NewCoin(ptypes.Elys, sdkmath.NewInt(1000)),
 	})
 
 	// USDC
 	poolAssets = append(poolAssets, ammtypes.PoolAsset{
-		Weight: sdk.NewInt(50),
-		Token:  sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(100)),
+		Weight: sdkmath.NewInt(50),
+		Token:  sdk.NewCoin(ptypes.BaseCurrency, sdkmath.NewInt(100)),
 	})
 
-	poolParams := &ammtypes.PoolParams{
-		SwapFee:                     sdk.ZeroDec(),
-		ExitFee:                     sdk.ZeroDec(),
-		UseOracle:                   false,
-		WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-		WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-		ExternalLiquidityRatio:      sdk.OneDec(),
-		WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-		ThresholdWeightDifference:   sdk.ZeroDec(),
-		FeeDenom:                    "",
+	poolParams := ammtypes.PoolParams{
+		SwapFee:   sdkmath.LegacyZeroDec(),
+		UseOracle: false,
+		FeeDenom:  ptypes.BaseCurrency,
+	}
+	// Create a Elys+USDC pool
+	ammPool := suite.CreateNewAmmPool(addr, poolAssets, poolParams)
+	suite.Require().Equal(ammPool.PoolId, uint64(1))
+
+	poolInfo, found := suite.app.MasterchefKeeper.GetPoolInfo(suite.ctx, ammPool.PoolId)
+	suite.Require().True(found)
+
+	poolInfo.DexApr = sdkmath.LegacyNewDecWithPrec(1, 2)  // 1%
+	poolInfo.EdenApr = sdkmath.LegacyNewDecWithPrec(2, 2) // 2%
+	suite.app.MasterchefKeeper.SetPoolInfo(suite.ctx, poolInfo)
+
+	testCases := []struct {
+		name          string
+		ids           []uint64
+		aprsExpectlen int
+		expectValue   string
+	}{
+		{
+			name:          "Empty poolIds",
+			ids:           []uint64{},
+			aprsExpectlen: 2, // setting it 2 because PoolId = math.MaxInt16 gets initiated in EndBlock
+			expectValue:   "0.030000000000000000",
+		},
+		{
+			name:          "Available pool's ids",
+			ids:           []uint64{1},
+			aprsExpectlen: 1,
+			expectValue:   "0.030000000000000000",
+		},
+		{
+			name:          "Pool not found, zero APRs",
+			ids:           []uint64{4},
+			aprsExpectlen: 1,
+			expectValue:   "0.000000000000000000",
+		},
 	}
 
-	// Create a Elys+USDC pool
-	msgServer := ammkeeper.NewMsgServerImpl(amm)
-	resp, err := msgServer.CreatePool(
-		sdk.WrapSDKContext(ctx),
-		&ammtypes.MsgCreatePool{
-			Sender:     addr[0].String(),
-			PoolParams: poolParams,
-			PoolAssets: poolAssets,
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			aprs := suite.app.MasterchefKeeper.CalculatePoolAprs(suite.ctx, tc.ids)
+			suite.Require().Equal(len(aprs), tc.aprsExpectlen)
+			suite.Require().Equal(aprs[0].TotalApr.String(), tc.expectValue)
 		})
-
-	require.NoError(t, err)
-	require.Equal(t, resp.PoolID, uint64(1))
-
-	poolInfo, found := mk.GetPoolInfo(ctx, resp.PoolID)
-	require.True(t, found)
-
-	poolInfo.DexApr = sdk.NewDecWithPrec(1, 2)  // 1%
-	poolInfo.EdenApr = sdk.NewDecWithPrec(2, 2) // 2%
-	mk.SetPoolInfo(ctx, poolInfo)
-
-	// When passing empty array
-	aprs := mk.CalculatePoolAprs(ctx, []uint64{})
-	require.Len(t, aprs, 1)
-	require.Equal(t, aprs[0].TotalApr.String(), "0.030000000000000000")
-
-	// When passing specific id
-	aprs = mk.CalculatePoolAprs(ctx, []uint64{1})
-	require.Len(t, aprs, 1)
-	require.Equal(t, aprs[0].TotalApr.String(), "0.030000000000000000")
-
-	// When passing invalid id
-	aprs = mk.CalculatePoolAprs(ctx, []uint64{4})
-	require.Len(t, aprs, 1)
-	require.Equal(t, aprs[0].TotalApr.String(), "0.000000000000000000")
+	}
 }

@@ -1,19 +1,13 @@
 package keeper_test
 
 import (
-	"testing"
 	"time"
 
 	"cosmossdk.io/math"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-	simapp "github.com/elys-network/elys/app"
 	"github.com/elys-network/elys/x/masterchef/types"
-	"github.com/stretchr/testify/require"
 )
 
-func TestPoolRewardsAccum(t *testing.T) {
-	app := simapp.InitElysTestApp(true)
-	ctx := app.BaseApp.NewContext(true, tmproto.Header{})
+func (suite *MasterchefKeeperTestSuite) TestPoolRewardsAccum() {
 
 	now := time.Now()
 	accums := []types.PoolRewardsAccum{
@@ -51,23 +45,87 @@ func TestPoolRewardsAccum(t *testing.T) {
 		},
 	}
 	for _, accum := range accums {
-		app.MasterchefKeeper.SetPoolRewardsAccum(ctx, accum)
+		suite.app.MasterchefKeeper.SetPoolRewardsAccum(suite.ctx, accum)
 	}
 
 	for _, accum := range accums {
-		storedAccum, err := app.MasterchefKeeper.GetPoolRewardsAccum(ctx, accum.PoolId, accum.Timestamp)
-		require.NoError(t, err)
-		require.Equal(t, storedAccum, accum)
+		storedAccum, err := suite.app.MasterchefKeeper.GetPoolRewardsAccum(suite.ctx, accum.PoolId, accum.Timestamp)
+		suite.Require().NoError(err)
+		suite.Require().Equal(storedAccum, accum)
 	}
 
-	accum := app.MasterchefKeeper.FirstPoolRewardsAccum(ctx, 1)
-	require.Equal(t, accum, accums[0])
-	accum = app.MasterchefKeeper.LastPoolRewardsAccum(ctx, 1)
-	require.Equal(t, accum, accums[1])
+	accum := suite.app.MasterchefKeeper.FirstPoolRewardsAccum(suite.ctx, 1)
+	suite.Require().Equal(accum, accums[0])
+	accum = suite.app.MasterchefKeeper.LastPoolRewardsAccum(suite.ctx, 1)
+	suite.Require().Equal(accum, accums[1])
 
-	app.MasterchefKeeper.DeletePoolRewardsAccum(ctx, accums[0])
-	accum = app.MasterchefKeeper.FirstPoolRewardsAccum(ctx, 1)
-	require.Equal(t, accum, accums[1])
-	accum = app.MasterchefKeeper.LastPoolRewardsAccum(ctx, 1)
-	require.Equal(t, accum, accums[1])
+	suite.app.MasterchefKeeper.DeletePoolRewardsAccum(suite.ctx, accums[0])
+	accum = suite.app.MasterchefKeeper.FirstPoolRewardsAccum(suite.ctx, 1)
+	suite.Require().Equal(accum, accums[1])
+	accum = suite.app.MasterchefKeeper.LastPoolRewardsAccum(suite.ctx, 1)
+	suite.Require().Equal(accum, accums[1])
+}
+
+func (suite *MasterchefKeeperTestSuite) TestAddPoolRewardsAccum() {
+
+	tests := []struct {
+		name       string
+		poolId     uint64
+		timestamp  uint64
+		height     int64
+		dexReward  math.LegacyDec
+		gasReward  math.LegacyDec
+		edenReward math.LegacyDec
+	}{
+		{
+			name:       "Add rewards to new pool",
+			poolId:     1,
+			timestamp:  uint64(time.Now().Unix()),
+			height:     100,
+			dexReward:  math.LegacyNewDec(10),
+			gasReward:  math.LegacyNewDec(5),
+			edenReward: math.LegacyNewDec(3),
+		},
+		{
+			name:       "Add rewards to existing pool",
+			poolId:     1,
+			timestamp:  uint64(time.Now().Unix()) + 3600, // 1 hour later
+			height:     200,
+			dexReward:  math.LegacyNewDec(20),
+			gasReward:  math.LegacyNewDec(10),
+			edenReward: math.LegacyNewDec(6),
+		},
+	}
+
+	for _, tt := range tests {
+		suite.Run(tt.name, func() {
+			suite.app.MasterchefKeeper.AddPoolRewardsAccum(suite.ctx, tt.poolId, tt.timestamp, tt.height, tt.dexReward, tt.gasReward, tt.edenReward)
+
+			accum, err := suite.app.MasterchefKeeper.GetPoolRewardsAccum(suite.ctx, tt.poolId, tt.timestamp)
+			suite.Require().NoError(err)
+
+			suite.Require().Equal(tt.poolId, accum.PoolId)
+			suite.Require().Equal(tt.timestamp, accum.Timestamp)
+			suite.Require().Equal(tt.height, accum.BlockHeight)
+
+			if tt.name == "Add rewards to new pool" {
+				suite.Require().Equal(tt.dexReward, accum.DexReward)
+				suite.Require().Equal(tt.gasReward, accum.GasReward)
+				suite.Require().Equal(tt.edenReward, accum.EdenReward)
+
+				// Check forward
+				forwardEden := suite.app.MasterchefKeeper.ForwardEdenCalc(suite.ctx, tt.poolId)
+				suite.Require().Equal(math.LegacyZeroDec(), forwardEden)
+			} else {
+				// For existing pool, rewards should be cumulative
+				suite.Require().Equal(math.LegacyNewDec(30), accum.DexReward)
+				suite.Require().Equal(math.LegacyNewDec(15), accum.GasReward)
+				suite.Require().Equal(math.LegacyNewDec(9), accum.EdenReward)
+
+				// Check forward
+				forwardEden := suite.app.MasterchefKeeper.ForwardEdenCalc(suite.ctx, tt.poolId)
+				suite.Require().Equal(math.LegacyMustNewDecFromStr("21600").Mul(tt.edenReward), forwardEden)
+			}
+		})
+	}
 }

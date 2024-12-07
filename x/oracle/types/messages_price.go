@@ -2,12 +2,9 @@ package types
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-)
-
-const (
-	TypeMsgFeedPrice = "feed_price"
 )
 
 var _ sdk.Msg = &MsgFeedPrice{}
@@ -15,42 +12,48 @@ var _ sdk.Msg = &MsgFeedPrice{}
 func NewMsgFeedPrice(
 	creator string,
 	asset string,
-	price sdk.Dec,
+	price sdkmath.LegacyDec,
 	source string,
 ) *MsgFeedPrice {
 	return &MsgFeedPrice{
 		Provider: creator,
-		Asset:    asset,
-		Price:    price,
-		Source:   source,
+		FeedPrice: FeedPrice{
+			Asset:  asset,
+			Price:  price,
+			Source: source,
+		},
 	}
 }
 
-func (msg *MsgFeedPrice) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgFeedPrice) Type() string {
-	return TypeMsgFeedPrice
-}
-
-func (msg *MsgFeedPrice) GetSigners() []sdk.AccAddress {
-	creator, err := sdk.AccAddressFromBech32(msg.Provider)
-	if err != nil {
-		panic(err)
+func (price FeedPrice) Validate() error {
+	if price.Price.IsNil() {
+		return errorsmod.Wrapf(ErrInvalidPrice, "price is nil")
 	}
-	return []sdk.AccAddress{creator}
-}
 
-func (msg *MsgFeedPrice) GetSignBytes() []byte {
-	bz := ModuleAminoCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
+	if price.Price.IsNegative() {
+		return errorsmod.Wrapf(ErrInvalidPrice, "price is negative")
+	}
+
+	if err := sdk.ValidateDenom(price.Asset); err != nil {
+		return err
+	}
+
+	if len(price.Source) == 0 {
+		return errorsmod.Wrapf(ErrInvalidPrice, "source is empty")
+	}
+
+	return nil
 }
 
 func (msg *MsgFeedPrice) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Provider)
 	if err != nil {
-		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid provider address (%s)", err)
 	}
+
+	if err = msg.FeedPrice.Validate(); err != nil {
+		return errorsmod.Wrapf(ErrInvalidPrice, "invalid price (%s)", err)
+	}
+
 	return nil
 }

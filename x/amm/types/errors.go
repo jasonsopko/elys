@@ -3,6 +3,8 @@ package types
 // DONTCOVER
 
 import (
+	"fmt"
+
 	"cosmossdk.io/errors"
 )
 
@@ -17,8 +19,7 @@ var (
 	ErrEmptyRoutes     = errors.Register(ModuleName, 21, "routes not defined")
 	ErrNegativeSwapFee = errors.Register(ModuleName, 23, "swap fee is negative")
 	ErrNegativeExitFee = errors.Register(ModuleName, 24, "exit fee is negative")
-	ErrTooMuchSwapFee  = errors.Register(ModuleName, 25, "swap fee should be less than 1 (100%)")
-	ErrTooMuchExitFee  = errors.Register(ModuleName, 26, "exit fee should be less than 1 (100%)")
+	ErrTooMuchSwapFee  = errors.Register(ModuleName, 25, fmt.Sprintf("swap fee should be less than %s (%s %%)", MaxSwapFee.String(), MaxSwapFee.MulInt64(100).String()))
 
 	ErrTooManyTokensOut = errors.Register(ModuleName, 31, "tx is trying to get more tokens out of the pool than exist")
 
@@ -33,10 +34,11 @@ var (
 	ErrInitialSpotPriceIsZero = errors.Register(ModuleName, 106, "initial spot price is zero")
 	ErrSpotPriceIsZero        = errors.Register(ModuleName, 107, "spot price is zero")
 
-	ErrPoolParamsShouldNotBeNil         = errors.Register(ModuleName, 108, "pool params should not be nil")
-	ErrSwapFeeShouldNotExceedTwoPercent = errors.Register(ModuleName, 109, "swap fee should not exceed 2%")
-	ErrExitFeeShouldNotExceedTwoPercent = errors.Register(ModuleName, 110, "exit fee should not exceed 2%")
-	ErrFeeShouldNotBeNegative           = errors.Register(ModuleName, 111, "fee should not be negative")
+	ErrInvalidShareAmountOut     = errors.Register(ModuleName, 112, "invalid share amount out")
+	ErrPoolAssetsMustBeTwo       = errors.Register(ModuleName, 113, "pool assets must be exactly two")
+	ErrOnlyBaseAssetsPoolAllowed = errors.Register(ModuleName, 114, "Only base assets paired pool allowed")
+
+	ErrTokenOutAmountZero = errors.Register(ModuleName, 115, "token out amount is zero")
 )
 
 const (

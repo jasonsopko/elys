@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -45,16 +46,16 @@ func (k msgServer) performUnstakeElys(ctx sdk.Context, msg *types.MsgUnstake) er
 
 	validator_address, err := sdk.ValAddressFromBech32(msg.ValidatorAddress)
 	if err != nil {
-		return errorsmod.Wrap(err, "invalid address")
+		return errorsmod.Wrap(err, "invalid validator address")
 	}
 
 	amount := sdk.NewCoin(msg.Asset, msg.Amount)
-	msgMsgUndelegate := stakingtypes.NewMsgUndelegate(address, validator_address, amount)
-	if err := msgMsgUndelegate.ValidateBasic(); err != nil {
-		return errorsmod.Wrap(err, "failed validating msgMsgUndelegate")
+	if !amount.IsValid() || amount.Amount.IsZero() {
+		return fmt.Errorf("invalid amount")
 	}
+	msgMsgUndelegate := stakingtypes.NewMsgUndelegate(address.String(), validator_address.String(), amount)
 
-	if _, err := msgServer.Undelegate(sdk.WrapSDKContext(ctx), msgMsgUndelegate); err != nil { // Discard the response because it's empty
+	if _, err := msgServer.Undelegate(ctx, msgMsgUndelegate); err != nil { // Discard the response because it's empty
 		return errorsmod.Wrap(err, "elys unstake msg")
 	}
 
@@ -68,7 +69,7 @@ func (k msgServer) performUncommit(ctx sdk.Context, msg *types.MsgUnstake) error
 		return errorsmod.Wrap(err, "failed validating msgMsgUncommit")
 	}
 
-	_, err := k.UncommitTokens(sdk.WrapSDKContext(ctx), msgMsgUncommit) // Discard the response because it's empty
+	_, err := k.UncommitTokens(ctx, msgMsgUncommit) // Discard the response because it's empty
 	if err != nil {
 		return errorsmod.Wrap(err, "uncommit msg")
 	}

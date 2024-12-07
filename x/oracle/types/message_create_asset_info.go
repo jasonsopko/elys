@@ -1,11 +1,11 @@
 package types
 
 import (
+	errorsmod "cosmossdk.io/errors"
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
-
-const TypeMsgCreateAssetInfo = "create_asset_info"
 
 var _ sdk.Msg = &MsgCreateAssetInfo{}
 
@@ -20,31 +20,30 @@ func NewMsgCreateAssetInfo(creator string, denom string, display string, bandTic
 	}
 }
 
-func (msg *MsgCreateAssetInfo) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgCreateAssetInfo) Type() string {
-	return TypeMsgCreateAssetInfo
-}
-
-func (msg *MsgCreateAssetInfo) GetSigners() []sdk.AccAddress {
-	creator, err := sdk.AccAddressFromBech32(msg.Creator)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{creator}
-}
-
-func (msg *MsgCreateAssetInfo) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgCreateAssetInfo) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid creator address (%s)", err)
+	}
+
+	if err = sdk.ValidateDenom(msg.Denom); err != nil {
+		return err
+	}
+
+	if len(msg.BandTicker) == 0 {
+		return fmt.Errorf("band ticker is required")
+	}
+
+	if len(msg.ElysTicker) == 0 {
+		return fmt.Errorf("elys ticker is required")
+	}
+
+	if len(msg.Display) == 0 {
+		return fmt.Errorf("display is required")
+	}
+
+	if msg.Decimal < 6 || msg.Decimal > 18 {
+		return fmt.Errorf("invalid decimal (%d): should be between 6 and 18 (inclusive)", msg.Decimal)
 	}
 	return nil
 }

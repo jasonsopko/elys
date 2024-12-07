@@ -28,11 +28,14 @@ func InitGenesis(ctx sdk.Context, k keeper.Keeper, genState types.GenesisState) 
 
 	// Set all the whitelisted
 	for _, elem := range genState.AddressWhitelist {
-		k.WhitelistAddress(ctx, elem)
+		k.WhitelistAddress(ctx, sdk.MustAccAddressFromBech32(elem))
 	}
 
 	// this line is used by starport scaffolding # genesis/module/init
-	k.SetParams(ctx, &genState.Params)
+	err := k.SetParams(ctx, &genState.Params)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // ExportGenesis returns the module's exported genesis
@@ -42,7 +45,13 @@ func ExportGenesis(ctx sdk.Context, k keeper.Keeper) *types.GenesisState {
 
 	genesis.PoolList = k.GetAllPools(ctx)
 	genesis.MtpList = k.GetAllMTPs(ctx)
-	genesis.AddressWhitelist = k.GetAllWhitelistedAddress(ctx)
+
+	whitelist := k.GetAllWhitelistedAddress(ctx)
+	whitelistAddresses := make([]string, len(whitelist))
+	for i, whitelistAddress := range whitelist {
+		whitelistAddresses[i] = whitelistAddress.String()
+	}
+	genesis.AddressWhitelist = whitelistAddresses
 
 	return genesis
 }

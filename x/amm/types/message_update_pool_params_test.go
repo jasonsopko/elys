@@ -1,9 +1,9 @@
 package types_test
 
 import (
+	sdkmath "cosmossdk.io/math"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/elys-network/elys/testutil/sample"
 	"github.com/elys-network/elys/x/amm/types"
@@ -21,16 +21,10 @@ func TestMsgUpdatePoolParams_ValidateBasic(t *testing.T) {
 			name: "invalid address",
 			msg: types.MsgUpdatePoolParams{
 				Authority: "invalid_address",
-				PoolParams: &types.PoolParams{
-					SwapFee:                     sdk.ZeroDec(),
-					ExitFee:                     sdk.ZeroDec(),
-					UseOracle:                   false,
-					WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-					WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-					ExternalLiquidityRatio:      sdk.NewDec(1),
-					WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-					ThresholdWeightDifference:   sdk.ZeroDec(),
-					FeeDenom:                    ptypes.BaseCurrency,
+				PoolParams: types.PoolParams{
+					SwapFee:   sdkmath.LegacyZeroDec(),
+					UseOracle: false,
+					FeeDenom:  ptypes.BaseCurrency,
 				},
 			},
 			err: sdkerrors.ErrInvalidAddress,
@@ -38,16 +32,11 @@ func TestMsgUpdatePoolParams_ValidateBasic(t *testing.T) {
 			name: "valid address",
 			msg: types.MsgUpdatePoolParams{
 				Authority: sample.AccAddress(),
-				PoolParams: &types.PoolParams{
-					SwapFee:                     sdk.ZeroDec(),
-					ExitFee:                     sdk.ZeroDec(),
-					UseOracle:                   false,
-					WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-					WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-					ExternalLiquidityRatio:      sdk.NewDec(1),
-					WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-					ThresholdWeightDifference:   sdk.ZeroDec(),
-					FeeDenom:                    ptypes.BaseCurrency,
+				PoolId:    1,
+				PoolParams: types.PoolParams{
+					SwapFee:   sdkmath.LegacyZeroDec(),
+					UseOracle: false,
+					FeeDenom:  ptypes.BaseCurrency,
 				},
 			},
 		},

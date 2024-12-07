@@ -2,14 +2,9 @@ package types
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-)
-
-const (
-	TypeMsgCreateEntry = "create_entry"
-	TypeMsgUpdateEntry = "update_entry"
-	TypeMsgDeleteEntry = "delete_entry"
 )
 
 var _ sdk.Msg = &MsgUpdateEntry{}
@@ -54,31 +49,22 @@ func NewMsgUpdateEntry(
 	}
 }
 
-func (msg *MsgUpdateEntry) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgUpdateEntry) Type() string {
-	return TypeMsgUpdateEntry
-}
-
-func (msg *MsgUpdateEntry) GetSigners() []sdk.AccAddress {
-	authority, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{authority}
-}
-
-func (msg *MsgUpdateEntry) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgUpdateEntry) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid authority address (%s)", err)
+	}
+
+	if msg.Decimals < 6 || msg.Decimals > 18 {
+		return ErrDecimalsInvalid
+	}
+
+	if err = sdk.ValidateDenom(msg.BaseDenom); err != nil {
+		return ErrInvalidBaseDenom
+	}
+
+	if err = sdk.ValidateDenom(msg.Denom); err != nil {
+		return fmt.Errorf("invalid denom")
 	}
 	return nil
 }
@@ -95,31 +81,14 @@ func NewMsgDeleteEntry(
 	}
 }
 
-func (msg *MsgDeleteEntry) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgDeleteEntry) Type() string {
-	return TypeMsgDeleteEntry
-}
-
-func (msg *MsgDeleteEntry) GetSigners() []sdk.AccAddress {
-	authority, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{authority}
-}
-
-func (msg *MsgDeleteEntry) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgDeleteEntry) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid authority address (%s)", err)
+	}
+
+	if err = sdk.ValidateDenom(msg.BaseDenom); err != nil {
+		return ErrInvalidBaseDenom
 	}
 	return nil
 }

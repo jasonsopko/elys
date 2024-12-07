@@ -4,9 +4,9 @@
 package types
 
 import (
+	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
 	_ "github.com/cosmos/cosmos-proto"
-	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
@@ -25,23 +25,76 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+type LegacyPoolParams struct {
+	SwapFee                     cosmossdk_io_math.LegacyDec `protobuf:"bytes,1,opt,name=swap_fee,json=swapFee,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"swap_fee"`
+	ExitFee                     cosmossdk_io_math.LegacyDec `protobuf:"bytes,2,opt,name=exit_fee,json=exitFee,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"exit_fee"`
+	UseOracle                   bool                        `protobuf:"varint,3,opt,name=use_oracle,json=useOracle,proto3" json:"use_oracle,omitempty"`
+	WeightBreakingFeeMultiplier cosmossdk_io_math.LegacyDec `protobuf:"bytes,4,opt,name=weight_breaking_fee_multiplier,json=weightBreakingFeeMultiplier,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"weight_breaking_fee_multiplier"`
+	WeightBreakingFeeExponent   cosmossdk_io_math.LegacyDec `protobuf:"bytes,5,opt,name=weight_breaking_fee_exponent,json=weightBreakingFeeExponent,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"weight_breaking_fee_exponent"`
+	WeightRecoveryFeePortion    cosmossdk_io_math.LegacyDec `protobuf:"bytes,6,opt,name=weight_recovery_fee_portion,json=weightRecoveryFeePortion,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"weight_recovery_fee_portion"`
+	ThresholdWeightDifference   cosmossdk_io_math.LegacyDec `protobuf:"bytes,7,opt,name=threshold_weight_difference,json=thresholdWeightDifference,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"threshold_weight_difference"`
+	WeightBreakingFeePortion    cosmossdk_io_math.LegacyDec `protobuf:"bytes,8,opt,name=weight_breaking_fee_portion,json=weightBreakingFeePortion,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"weight_breaking_fee_portion"`
+	FeeDenom                    string                      `protobuf:"bytes,9,opt,name=fee_denom,json=feeDenom,proto3" json:"fee_denom,omitempty"`
+}
+
+func (m *LegacyPoolParams) Reset()         { *m = LegacyPoolParams{} }
+func (m *LegacyPoolParams) String() string { return proto.CompactTextString(m) }
+func (*LegacyPoolParams) ProtoMessage()    {}
+func (*LegacyPoolParams) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3500125990074bc9, []int{0}
+}
+func (m *LegacyPoolParams) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *LegacyPoolParams) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_LegacyPoolParams.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *LegacyPoolParams) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LegacyPoolParams.Merge(m, src)
+}
+func (m *LegacyPoolParams) XXX_Size() int {
+	return m.Size()
+}
+func (m *LegacyPoolParams) XXX_DiscardUnknown() {
+	xxx_messageInfo_LegacyPoolParams.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LegacyPoolParams proto.InternalMessageInfo
+
+func (m *LegacyPoolParams) GetUseOracle() bool {
+	if m != nil {
+		return m.UseOracle
+	}
+	return false
+}
+
+func (m *LegacyPoolParams) GetFeeDenom() string {
+	if m != nil {
+		return m.FeeDenom
+	}
+	return ""
+}
+
 type PoolParams struct {
-	SwapFee                     github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,1,opt,name=swap_fee,json=swapFee,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"swap_fee"`
-	ExitFee                     github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,2,opt,name=exit_fee,json=exitFee,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"exit_fee"`
-	UseOracle                   bool                                   `protobuf:"varint,3,opt,name=use_oracle,json=useOracle,proto3" json:"use_oracle,omitempty"`
-	WeightBreakingFeeMultiplier github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,4,opt,name=weight_breaking_fee_multiplier,json=weightBreakingFeeMultiplier,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"weight_breaking_fee_multiplier"`
-	WeightBreakingFeeExponent   github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,11,opt,name=weight_breaking_fee_exponent,json=weightBreakingFeeExponent,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"weight_breaking_fee_exponent"`
-	ExternalLiquidityRatio      github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,5,opt,name=external_liquidity_ratio,json=externalLiquidityRatio,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"external_liquidity_ratio"`
-	WeightRecoveryFeePortion    github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,6,opt,name=weight_recovery_fee_portion,json=weightRecoveryFeePortion,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"weight_recovery_fee_portion"`
-	ThresholdWeightDifference   github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,7,opt,name=threshold_weight_difference,json=thresholdWeightDifference,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"threshold_weight_difference"`
-	FeeDenom                    string                                 `protobuf:"bytes,8,opt,name=fee_denom,json=feeDenom,proto3" json:"fee_denom,omitempty"`
+	SwapFee   cosmossdk_io_math.LegacyDec `protobuf:"bytes,1,opt,name=swap_fee,json=swapFee,proto3,customtype=cosmossdk.io/math.LegacyDec" json:"swap_fee"`
+	UseOracle bool                        `protobuf:"varint,2,opt,name=use_oracle,json=useOracle,proto3" json:"use_oracle,omitempty"`
+	FeeDenom  string                      `protobuf:"bytes,3,opt,name=fee_denom,json=feeDenom,proto3" json:"fee_denom,omitempty"`
 }
 
 func (m *PoolParams) Reset()         { *m = PoolParams{} }
 func (m *PoolParams) String() string { return proto.CompactTextString(m) }
 func (*PoolParams) ProtoMessage()    {}
 func (*PoolParams) Descriptor() ([]byte, []int) {
-	return fileDescriptor_3500125990074bc9, []int{0}
+	return fileDescriptor_3500125990074bc9, []int{1}
 }
 func (m *PoolParams) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -85,44 +138,46 @@ func (m *PoolParams) GetFeeDenom() string {
 }
 
 func init() {
+	proto.RegisterType((*LegacyPoolParams)(nil), "elys.amm.LegacyPoolParams")
 	proto.RegisterType((*PoolParams)(nil), "elys.amm.PoolParams")
 }
 
 func init() { proto.RegisterFile("elys/amm/pool_params.proto", fileDescriptor_3500125990074bc9) }
 
 var fileDescriptor_3500125990074bc9 = []byte{
-	// 437 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0xd3, 0xcd, 0x8a, 0xdb, 0x30,
-	0x10, 0x07, 0xf0, 0xb8, 0x1f, 0xd9, 0x44, 0xbd, 0x99, 0x52, 0xb4, 0x49, 0xeb, 0x5d, 0x7a, 0x28,
-	0xb9, 0xac, 0x7d, 0xe8, 0x1b, 0x84, 0x34, 0x50, 0x68, 0x69, 0xf0, 0xa5, 0xd0, 0x8b, 0x70, 0xec,
-	0x89, 0x2d, 0x22, 0x69, 0x5c, 0x49, 0x6e, 0x92, 0x87, 0x28, 0xf4, 0xb1, 0xf6, 0xb8, 0xc7, 0xd2,
-	0xc3, 0x52, 0x92, 0x17, 0x29, 0x92, 0xbd, 0xa1, 0xd0, 0x9e, 0x7c, 0xb2, 0x47, 0x83, 0x7e, 0x7f,
-	0x46, 0x30, 0x64, 0x02, 0xe2, 0x60, 0x92, 0x4c, 0xca, 0xa4, 0x46, 0x14, 0xac, 0xce, 0x74, 0x26,
-	0x4d, 0x5c, 0x6b, 0xb4, 0x18, 0x8e, 0x5c, 0x2f, 0xce, 0xa4, 0x9c, 0x3c, 0x2f, 0xb1, 0x44, 0x7f,
-	0x98, 0xb8, 0xbf, 0xb6, 0x3f, 0xb9, 0xcc, 0xd1, 0x48, 0x34, 0xac, 0x6d, 0xb4, 0x45, 0xdb, 0x7a,
-	0xfd, 0x7d, 0x48, 0xc8, 0x0a, 0x51, 0xac, 0xbc, 0x17, 0xbe, 0x27, 0x23, 0xb3, 0xcb, 0x6a, 0xb6,
-	0x01, 0xa0, 0xc1, 0x75, 0x30, 0x1b, 0xcf, 0xe3, 0xdb, 0xfb, 0xab, 0xc1, 0xaf, 0xfb, 0xab, 0x37,
-	0x25, 0xb7, 0x55, 0xb3, 0x8e, 0x73, 0x94, 0x9d, 0xd0, 0x7d, 0x6e, 0x4c, 0xb1, 0x4d, 0xec, 0xa1,
-	0x06, 0x13, 0x2f, 0x20, 0x4f, 0x2f, 0xdc, 0xfd, 0x25, 0x80, 0xa3, 0x60, 0xcf, 0xad, 0xa7, 0x1e,
-	0xf5, 0xa3, 0xdc, 0x7d, 0x47, 0xbd, 0x22, 0xa4, 0x31, 0xc0, 0x50, 0x67, 0xb9, 0x00, 0xfa, 0xf8,
-	0x3a, 0x98, 0x8d, 0xd2, 0x71, 0x63, 0xe0, 0x93, 0x3f, 0x08, 0x0d, 0x89, 0x76, 0xc0, 0xcb, 0xca,
-	0xb2, 0xb5, 0x86, 0x6c, 0xcb, 0x55, 0xe9, 0x42, 0x99, 0x6c, 0x84, 0xe5, 0xb5, 0xe0, 0xa0, 0xe9,
-	0x93, 0x5e, 0xf9, 0xd3, 0x56, 0x9d, 0x77, 0xe8, 0x12, 0xe0, 0xe3, 0x99, 0x0c, 0x91, 0xbc, 0xfc,
-	0x5f, 0x28, 0xec, 0x6b, 0x54, 0xa0, 0x2c, 0x7d, 0xd6, 0x2b, 0xf2, 0xf2, 0x9f, 0xc8, 0x77, 0x1d,
-	0x18, 0x56, 0x84, 0xc2, 0xde, 0x82, 0x56, 0x99, 0x60, 0x82, 0x7f, 0x6d, 0x78, 0xc1, 0xed, 0x81,
-	0xe9, 0xcc, 0x72, 0xa4, 0x4f, 0x7b, 0x85, 0xbd, 0x78, 0xf0, 0x3e, 0x3c, 0x70, 0xa9, 0xd3, 0x42,
-	0x49, 0xba, 0xc9, 0x99, 0x86, 0x1c, 0xbf, 0x81, 0x3e, 0xf8, 0xd1, 0x6a, 0xd4, 0x96, 0xa3, 0xa2,
-	0xc3, 0x5e, 0x61, 0xb4, 0x25, 0xd3, 0x4e, 0x5c, 0x02, 0xac, 0x5a, 0x2f, 0x54, 0x64, 0x6a, 0x2b,
-	0x0d, 0xa6, 0x42, 0x51, 0xb0, 0x2e, 0xb8, 0xe0, 0x9b, 0x0d, 0x68, 0x50, 0x39, 0xd0, 0x8b, 0x7e,
-	0x0f, 0x79, 0x26, 0x3f, 0x7b, 0x71, 0x71, 0x06, 0xc3, 0x29, 0x19, 0xbb, 0x71, 0x0a, 0x50, 0x28,
-	0xe9, 0xc8, 0xe9, 0xe9, 0x68, 0x03, 0xb0, 0x70, 0xf5, 0x7c, 0x7e, 0x7b, 0x8c, 0x82, 0xbb, 0x63,
-	0x14, 0xfc, 0x3e, 0x46, 0xc1, 0x8f, 0x53, 0x34, 0xb8, 0x3b, 0x45, 0x83, 0x9f, 0xa7, 0x68, 0xf0,
-	0x65, 0xf6, 0x57, 0xb2, 0xdb, 0xb7, 0x1b, 0x05, 0x76, 0x87, 0x7a, 0xeb, 0x8b, 0x64, 0xef, 0x57,
-	0xd3, 0xe7, 0xaf, 0x87, 0x7e, 0xb5, 0xde, 0xfe, 0x09, 0x00, 0x00, 0xff, 0xff, 0x3f, 0x4a, 0x7b,
-	0xbc, 0xb3, 0x03, 0x00, 0x00,
+	// 461 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x94, 0xb1, 0x8e, 0xd3, 0x40,
+	0x10, 0x86, 0xe3, 0x3b, 0xc8, 0x39, 0x5b, 0x21, 0x8b, 0xc2, 0x97, 0x80, 0xef, 0x74, 0x55, 0x9a,
+	0xb3, 0x85, 0x78, 0x83, 0x28, 0xa4, 0x3a, 0x44, 0x94, 0x06, 0x89, 0xc6, 0xda, 0x38, 0x13, 0x7b,
+	0x15, 0xaf, 0x67, 0xd9, 0xdd, 0x5c, 0x92, 0xb7, 0xa0, 0xe2, 0x2d, 0xe8, 0x78, 0x88, 0x2b, 0x4f,
+	0x54, 0x88, 0xe2, 0x84, 0x92, 0x17, 0x41, 0xbb, 0xeb, 0x8b, 0x12, 0xa0, 0x32, 0xa2, 0xf3, 0xec,
+	0x68, 0xbf, 0xff, 0xff, 0x57, 0xe3, 0x21, 0x5d, 0x28, 0x37, 0x2a, 0xa1, 0x9c, 0x27, 0x02, 0xb1,
+	0x4c, 0x05, 0x95, 0x94, 0xab, 0x58, 0x48, 0xd4, 0x18, 0xf8, 0xa6, 0x17, 0x53, 0xce, 0xbb, 0xcf,
+	0x73, 0xcc, 0xd1, 0x1e, 0x26, 0xe6, 0xcb, 0xf5, 0xbb, 0xe7, 0x19, 0x2a, 0x8e, 0x2a, 0x75, 0x0d,
+	0x57, 0xb8, 0xd6, 0xd5, 0x97, 0x36, 0x79, 0x76, 0x03, 0x39, 0xcd, 0x36, 0x63, 0xc4, 0x72, 0x6c,
+	0xa9, 0xc1, 0x0d, 0xf1, 0xd5, 0x8a, 0x8a, 0x74, 0x0e, 0x10, 0x7a, 0x97, 0x5e, 0xbf, 0x33, 0x78,
+	0x75, 0xf7, 0x70, 0xd1, 0xfa, 0xf1, 0x70, 0xd1, 0x73, 0x97, 0xd5, 0x6c, 0x11, 0x33, 0x4c, 0x38,
+	0xd5, 0x45, 0xec, 0x6e, 0x0f, 0x21, 0xfb, 0xf6, 0xf5, 0x9a, 0xd4, 0xec, 0x21, 0x64, 0x93, 0x33,
+	0x83, 0x18, 0x01, 0x18, 0x1a, 0xac, 0x99, 0xb6, 0xb4, 0x93, 0xc6, 0x34, 0x83, 0x30, 0xb4, 0x97,
+	0x84, 0x2c, 0x15, 0xa4, 0x28, 0x69, 0x56, 0x42, 0x78, 0x7a, 0xe9, 0xf5, 0xfd, 0x49, 0x67, 0xa9,
+	0xe0, 0x9d, 0x3d, 0x08, 0x6e, 0x49, 0xb4, 0x02, 0x96, 0x17, 0x3a, 0x9d, 0x4a, 0xa0, 0x0b, 0x56,
+	0xe5, 0x46, 0x37, 0xe5, 0xcb, 0x52, 0x33, 0x51, 0x32, 0x90, 0xe1, 0x93, 0xa6, 0x16, 0x7a, 0x0e,
+	0x3c, 0xa8, 0xb9, 0x23, 0x80, 0xb7, 0x7b, 0x6a, 0x20, 0xc9, 0x8b, 0xbf, 0xe9, 0xc2, 0x5a, 0x60,
+	0x05, 0x95, 0x0e, 0x9f, 0x36, 0x55, 0x3d, 0xff, 0x43, 0xf5, 0x4d, 0xcd, 0x0c, 0x04, 0xa9, 0x2d,
+	0xa5, 0x12, 0x32, 0xbc, 0x05, 0xb9, 0xb1, 0x9a, 0x02, 0xa5, 0x66, 0x58, 0x85, 0xed, 0xa6, 0x92,
+	0xa1, 0xa3, 0x4e, 0x6a, 0xe8, 0x08, 0x60, 0xec, 0x90, 0xc1, 0x47, 0xd2, 0xd3, 0x85, 0x04, 0x55,
+	0x60, 0x39, 0x4b, 0x6b, 0xed, 0x19, 0x9b, 0xcf, 0x41, 0x42, 0x95, 0x41, 0x78, 0xd6, 0x38, 0xe4,
+	0x9e, 0xfa, 0xde, 0x42, 0x87, 0x7b, 0xe6, 0x41, 0xc8, 0xa3, 0x87, 0x7d, 0x0c, 0xe9, 0xff, 0x63,
+	0xc8, 0x83, 0x77, 0x7d, 0x0c, 0xd9, 0x23, 0x1d, 0xa3, 0x30, 0x83, 0x0a, 0x79, 0xd8, 0x31, 0xfc,
+	0x89, 0x3f, 0x07, 0x18, 0x9a, 0xfa, 0xea, 0xb3, 0x47, 0xc8, 0x7f, 0xfb, 0x53, 0x8e, 0x67, 0xfb,
+	0xe4, 0xf7, 0xd9, 0x3e, 0x32, 0x76, 0x7a, 0x6c, 0x6c, 0x30, 0xb8, 0xdb, 0x46, 0xde, 0xfd, 0x36,
+	0xf2, 0x7e, 0x6e, 0x23, 0xef, 0xd3, 0x2e, 0x6a, 0xdd, 0xef, 0xa2, 0xd6, 0xf7, 0x5d, 0xd4, 0xfa,
+	0xd0, 0xcf, 0x99, 0x2e, 0x96, 0xd3, 0x38, 0x43, 0x9e, 0x98, 0x45, 0x71, 0x5d, 0x81, 0x5e, 0xa1,
+	0x5c, 0xd8, 0x22, 0x59, 0xdb, 0x9d, 0xa2, 0x37, 0x02, 0xd4, 0xb4, 0x6d, 0x77, 0xc2, 0xeb, 0x5f,
+	0x01, 0x00, 0x00, 0xff, 0xff, 0x04, 0xc3, 0x7b, 0x1a, 0x6c, 0x04, 0x00, 0x00,
 }
 
-func (m *PoolParams) Marshal() (dAtA []byte, err error) {
+func (m *LegacyPoolParams) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -132,33 +187,33 @@ func (m *PoolParams) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PoolParams) MarshalTo(dAtA []byte) (int, error) {
+func (m *LegacyPoolParams) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *PoolParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *LegacyPoolParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	{
-		size := m.WeightBreakingFeeExponent.Size()
-		i -= size
-		if _, err := m.WeightBreakingFeeExponent.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintPoolParams(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x5a
 	if len(m.FeeDenom) > 0 {
 		i -= len(m.FeeDenom)
 		copy(dAtA[i:], m.FeeDenom)
 		i = encodeVarintPoolParams(dAtA, i, uint64(len(m.FeeDenom)))
 		i--
-		dAtA[i] = 0x42
+		dAtA[i] = 0x4a
 	}
+	{
+		size := m.WeightBreakingFeePortion.Size()
+		i -= size
+		if _, err := m.WeightBreakingFeePortion.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPoolParams(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x42
 	{
 		size := m.ThresholdWeightDifference.Size()
 		i -= size
@@ -180,9 +235,9 @@ func (m *PoolParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i--
 	dAtA[i] = 0x32
 	{
-		size := m.ExternalLiquidityRatio.Size()
+		size := m.WeightBreakingFeeExponent.Size()
 		i -= size
-		if _, err := m.ExternalLiquidityRatio.MarshalTo(dAtA[i:]); err != nil {
+		if _, err := m.WeightBreakingFeeExponent.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
 		}
 		i = encodeVarintPoolParams(dAtA, i, uint64(size))
@@ -232,6 +287,56 @@ func (m *PoolParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *PoolParams) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PoolParams) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *PoolParams) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.FeeDenom) > 0 {
+		i -= len(m.FeeDenom)
+		copy(dAtA[i:], m.FeeDenom)
+		i = encodeVarintPoolParams(dAtA, i, uint64(len(m.FeeDenom)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.UseOracle {
+		i--
+		if m.UseOracle {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	{
+		size := m.SwapFee.Size()
+		i -= size
+		if _, err := m.SwapFee.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintPoolParams(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintPoolParams(dAtA []byte, offset int, v uint64) int {
 	offset -= sovPoolParams(v)
 	base := offset
@@ -243,7 +348,7 @@ func encodeVarintPoolParams(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *PoolParams) Size() (n int) {
+func (m *LegacyPoolParams) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -258,18 +363,36 @@ func (m *PoolParams) Size() (n int) {
 	}
 	l = m.WeightBreakingFeeMultiplier.Size()
 	n += 1 + l + sovPoolParams(uint64(l))
-	l = m.ExternalLiquidityRatio.Size()
+	l = m.WeightBreakingFeeExponent.Size()
 	n += 1 + l + sovPoolParams(uint64(l))
 	l = m.WeightRecoveryFeePortion.Size()
 	n += 1 + l + sovPoolParams(uint64(l))
 	l = m.ThresholdWeightDifference.Size()
 	n += 1 + l + sovPoolParams(uint64(l))
+	l = m.WeightBreakingFeePortion.Size()
+	n += 1 + l + sovPoolParams(uint64(l))
 	l = len(m.FeeDenom)
 	if l > 0 {
 		n += 1 + l + sovPoolParams(uint64(l))
 	}
-	l = m.WeightBreakingFeeExponent.Size()
+	return n
+}
+
+func (m *PoolParams) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.SwapFee.Size()
 	n += 1 + l + sovPoolParams(uint64(l))
+	if m.UseOracle {
+		n += 2
+	}
+	l = len(m.FeeDenom)
+	if l > 0 {
+		n += 1 + l + sovPoolParams(uint64(l))
+	}
 	return n
 }
 
@@ -279,7 +402,7 @@ func sovPoolParams(x uint64) (n int) {
 func sozPoolParams(x uint64) (n int) {
 	return sovPoolParams(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *PoolParams) Unmarshal(dAtA []byte) error {
+func (m *LegacyPoolParams) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -302,10 +425,10 @@ func (m *PoolParams) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PoolParams: wiretype end group for non-group")
+			return fmt.Errorf("proto: LegacyPoolParams: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PoolParams: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: LegacyPoolParams: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -432,7 +555,7 @@ func (m *PoolParams) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ExternalLiquidityRatio", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field WeightBreakingFeeExponent", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -460,7 +583,7 @@ func (m *PoolParams) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ExternalLiquidityRatio.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.WeightBreakingFeeExponent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -534,6 +657,40 @@ func (m *PoolParams) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WeightBreakingFeePortion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPoolParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPoolParams
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPoolParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.WeightBreakingFeePortion.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FeeDenom", wireType)
 			}
 			var stringLen uint64
@@ -564,9 +721,59 @@ func (m *PoolParams) Unmarshal(dAtA []byte) error {
 			}
 			m.FeeDenom = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 11:
+		default:
+			iNdEx = preIndex
+			skippy, err := skipPoolParams(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthPoolParams
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PoolParams) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowPoolParams
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PoolParams: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PoolParams: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WeightBreakingFeeExponent", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SwapFee", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -594,9 +801,61 @@ func (m *PoolParams) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.WeightBreakingFeeExponent.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+			if err := m.SwapFee.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UseOracle", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPoolParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.UseOracle = bool(v != 0)
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FeeDenom", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPoolParams
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthPoolParams
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthPoolParams
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.FeeDenom = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

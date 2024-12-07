@@ -3,20 +3,23 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/cometbft/cometbft/libs/log"
+	"cosmossdk.io/core/store"
+
+	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/elys-network/elys/x/amm/types"
 	commitmentkeeper "github.com/elys-network/elys/x/commitment/keeper"
 	pkeeper "github.com/elys-network/elys/x/parameter/keeper"
+	tierkeeper "github.com/elys-network/elys/x/tier/keeper"
 )
 
 type (
 	Keeper struct {
 		cdc               codec.BinaryCodec
-		storeKey          storetypes.StoreKey
+		storeService      store.KVStoreService
 		transientStoreKey storetypes.StoreKey
 		authority         string
 		hooks             types.AmmHooks
@@ -28,12 +31,13 @@ type (
 		commitmentKeeper    *commitmentkeeper.Keeper
 		assetProfileKeeper  types.AssetProfileKeeper
 		accountedPoolKeeper types.AccountedPoolKeeper
+		tierKeeper          *tierkeeper.Keeper
 	}
 )
 
 func NewKeeper(
 	cdc codec.BinaryCodec,
-	storeKey,
+	storeService store.KVStoreService,
 	transientStoreKey storetypes.StoreKey,
 	authority string,
 
@@ -44,11 +48,12 @@ func NewKeeper(
 	commitmentKeeper *commitmentkeeper.Keeper,
 	assetProfileKeeper types.AssetProfileKeeper,
 	accountedPoolKeeper types.AccountedPoolKeeper,
+	tierKeeper *tierkeeper.Keeper,
 ) *Keeper {
 
 	return &Keeper{
 		cdc:               cdc,
-		storeKey:          storeKey,
+		storeService:      storeService,
 		transientStoreKey: transientStoreKey,
 		authority:         authority,
 
@@ -59,6 +64,7 @@ func NewKeeper(
 		commitmentKeeper:    commitmentKeeper,
 		assetProfileKeeper:  assetProfileKeeper,
 		accountedPoolKeeper: accountedPoolKeeper,
+		tierKeeper:          tierKeeper,
 	}
 }
 
@@ -75,4 +81,12 @@ func (k *Keeper) SetHooks(gh types.AmmHooks) *Keeper {
 	k.hooks = gh
 
 	return k
+}
+
+func (k *Keeper) SetTierKeeper(tk *tierkeeper.Keeper) {
+	k.tierKeeper = tk
+}
+
+func (k *Keeper) GetTierKeeper() *tierkeeper.Keeper {
+	return k.tierKeeper
 }

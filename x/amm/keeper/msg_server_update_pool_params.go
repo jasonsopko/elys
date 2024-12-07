@@ -29,11 +29,7 @@ func (k Keeper) UpdatePoolParams(ctx sdk.Context, poolId uint64, poolParams type
 	}
 
 	pool.PoolParams = poolParams
-	err := k.SetPool(ctx, pool)
-	if err != nil {
-		return 0, types.PoolParams{}, err
-	}
-
+	k.SetPool(ctx, pool)
 	return pool.PoolId, pool.PoolParams, nil
 }
 
@@ -44,7 +40,7 @@ func (k msgServer) UpdatePoolParams(goCtx context.Context, msg *types.MsgUpdateP
 		return nil, errorsmod.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", k.authority, msg.Authority)
 	}
 
-	poolId, poolParams, err := k.Keeper.UpdatePoolParams(ctx, msg.PoolId, *msg.PoolParams)
+	poolId, poolParams, err := k.Keeper.UpdatePoolParams(ctx, msg.PoolId, msg.PoolParams)
 	if err != nil {
 		return nil, err
 	}

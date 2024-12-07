@@ -27,3 +27,5 @@ For more detailed information, please refer to the individual sections listed in
 5. **[Protobuf Definitions](05_protobuf_definitions.md)**
 6. **[Functions](06_functions.md)**
 7. **[Pool Status](07_pool_status.md)**
+8. **[Borrow Interest Payment](08_borrow_interest_payment.md)**
+9. **[Funding Calculation and Payment](09_funding_payment.md)**

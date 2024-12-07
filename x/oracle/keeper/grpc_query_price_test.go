@@ -1,7 +1,7 @@
 package keeper_test
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkmath "cosmossdk.io/math"
 	"github.com/elys-network/elys/x/oracle/types"
 )
 
@@ -9,19 +9,19 @@ func (suite *KeeperTestSuite) TestGRPCQueryPrice() {
 	prices := []types.Price{
 		{
 			Asset:     "BTC",
-			Price:     sdk.NewDec(1),
+			Price:     sdkmath.LegacyNewDec(1),
 			Source:    "elys",
 			Timestamp: 100000,
 		},
 		{
 			Asset:     "BTC",
-			Price:     sdk.NewDec(2),
+			Price:     sdkmath.LegacyNewDec(2),
 			Source:    "band",
 			Timestamp: 100000,
 		},
 		{
 			Asset:     "BTC",
-			Price:     sdk.NewDec(3),
+			Price:     sdkmath.LegacyNewDec(3),
 			Source:    "band",
 			Timestamp: 110000,
 		},
@@ -29,25 +29,25 @@ func (suite *KeeperTestSuite) TestGRPCQueryPrice() {
 	for _, price := range prices {
 		suite.app.OracleKeeper.SetPrice(suite.ctx, price)
 	}
-	resp, err := suite.app.OracleKeeper.Price(sdk.WrapSDKContext(suite.ctx), &types.QueryGetPriceRequest{
+	resp, err := suite.app.OracleKeeper.Price(suite.ctx, &types.QueryGetPriceRequest{
 		Asset: "BTC",
 	})
 	suite.Require().NoError(err)
 	suite.Require().Equal(resp.Price, prices[2])
-	resp, err = suite.app.OracleKeeper.Price(sdk.WrapSDKContext(suite.ctx), &types.QueryGetPriceRequest{
+	resp, err = suite.app.OracleKeeper.Price(suite.ctx, &types.QueryGetPriceRequest{
 		Asset:  "BTC",
 		Source: "elys",
 	})
 	suite.Require().NoError(err)
 	suite.Require().Equal(resp.Price, prices[0])
-	resp, err = suite.app.OracleKeeper.Price(sdk.WrapSDKContext(suite.ctx), &types.QueryGetPriceRequest{
+	resp, err = suite.app.OracleKeeper.Price(suite.ctx, &types.QueryGetPriceRequest{
 		Asset:     "BTC",
 		Source:    "elys",
 		Timestamp: 100000,
 	})
 	suite.Require().NoError(err)
 	suite.Require().Equal(resp.Price, prices[0])
-	resp, err = suite.app.OracleKeeper.Price(sdk.WrapSDKContext(suite.ctx), &types.QueryGetPriceRequest{
+	resp, err = suite.app.OracleKeeper.Price(suite.ctx, &types.QueryGetPriceRequest{
 		Asset:     "BTC",
 		Source:    "elys",
 		Timestamp: 11000,

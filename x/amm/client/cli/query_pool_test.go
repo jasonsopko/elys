@@ -1,14 +1,15 @@
 package cli_test
 
 import (
+	sdkmath "cosmossdk.io/math"
 	"fmt"
+	assetprofilemoduletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"strconv"
 	"testing"
 
 	tmcli "github.com/cometbft/cometbft/libs/cli"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,24 +23,19 @@ import (
 
 func networkWithPoolObjects(t *testing.T, n int) (*network.Network, []types.Pool) {
 	t.Helper()
-	cfg := network.DefaultConfig()
+	cfg := network.DefaultConfig(t.TempDir())
 	state := types.GenesisState{}
 	require.NoError(t, cfg.Codec.UnmarshalJSON(cfg.GenesisState[types.ModuleName], &state))
 
 	for i := 0; i < n; i++ {
 		pool := types.Pool{
 			PoolId:      uint64(i),
-			TotalWeight: sdk.NewInt(100),
+			TotalWeight: sdkmath.NewInt(100),
+			Address:     types.NewPoolAddress(uint64(i)).String(),
 			PoolParams: types.PoolParams{
-				SwapFee:                     sdk.ZeroDec(),
-				ExitFee:                     sdk.ZeroDec(),
-				UseOracle:                   false,
-				WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-				WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-				ExternalLiquidityRatio:      sdk.NewDec(1),
-				WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-				ThresholdWeightDifference:   sdk.ZeroDec(),
-				FeeDenom:                    ptypes.BaseCurrency,
+				SwapFee:   sdkmath.LegacyZeroDec(),
+				UseOracle: false,
+				FeeDenom:  ptypes.BaseCurrency,
 			},
 		}
 		nullify.Fill(&pool)
@@ -48,6 +44,34 @@ func networkWithPoolObjects(t *testing.T, n int) (*network.Network, []types.Pool
 	buf, err := cfg.Codec.MarshalJSON(&state)
 	require.NoError(t, err)
 	cfg.GenesisState[types.ModuleName] = buf
+
+	assetProfileGenesisState := assetprofilemoduletypes.DefaultGenesis()
+	usdcEntry := assetprofilemoduletypes.Entry{
+		BaseDenom:                "uusdc",
+		Decimals:                 6,
+		Denom:                    "uusdc",
+		Path:                     "",
+		IbcChannelId:             "",
+		IbcCounterpartyChannelId: "",
+		DisplayName:              "",
+		DisplaySymbol:            "",
+		Network:                  "",
+		Address:                  "",
+		ExternalSymbol:           "",
+		TransferLimit:            "",
+		Permissions:              nil,
+		UnitDenom:                "",
+		IbcCounterpartyDenom:     "",
+		IbcCounterpartyChainId:   "",
+		Authority:                "",
+		CommitEnabled:            true,
+		WithdrawEnabled:          true,
+	}
+	assetProfileGenesisState.EntryList = []assetprofilemoduletypes.Entry{usdcEntry}
+	buf, err = cfg.Codec.MarshalJSON(assetProfileGenesisState)
+	require.NoError(t, err)
+	cfg.GenesisState[assetprofilemoduletypes.ModuleName] = buf
+
 	return network.New(t, cfg), state.PoolList
 }
 

@@ -64,8 +64,12 @@ func (k msgServer) WithdrawElysStakingRewards(goCtx context.Context, msg *types.
 	var amount sdk.Coins
 	var err error = nil
 	var rewards = sdk.Coins{}
-	k.Keeper.Keeper.IterateDelegations(ctx, delAddr, func(index int64, del stakingtypes.DelegationI) (stop bool) {
-		valAddr := del.GetValidatorAddr()
+	iterateError := k.Keeper.Keeper.IterateDelegations(ctx, delAddr, func(index int64, del stakingtypes.DelegationI) (stop bool) {
+		valAddr, errB := sdk.ValAddressFromBech32(del.GetValidatorAddr())
+		if errB != nil {
+			err = errB
+			return true
+		}
 		amount, err = k.distrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 		if err != nil {
 			return true
@@ -82,6 +86,12 @@ func (k msgServer) WithdrawElysStakingRewards(goCtx context.Context, msg *types.
 		})
 		return false
 	})
+	if iterateError != nil {
+		return nil, iterateError
+	}
+	if err != nil {
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, err
@@ -95,8 +105,12 @@ func (k Keeper) WithdrawAllRewards(goCtx context.Context, msg *types.MsgWithdraw
 	var amount sdk.Coins
 	var err error = nil
 	var rewards = sdk.Coins{}
-	k.IterateDelegations(ctx, delAddr, func(index int64, del stakingtypes.DelegationI) (stop bool) {
-		valAddr := del.GetValidatorAddr()
+	err = k.IterateDelegations(ctx, delAddr, func(index int64, del stakingtypes.DelegationI) (stop bool) {
+		valAddr, errB := sdk.ValAddressFromBech32(del.GetValidatorAddr())
+		if errB != nil {
+			err = errB
+			return true
+		}
 		amount, err = k.distrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 		if err != nil {
 			return true
@@ -113,6 +127,9 @@ func (k Keeper) WithdrawAllRewards(goCtx context.Context, msg *types.MsgWithdraw
 		})
 		return false
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	if err != nil {
 		return nil, err

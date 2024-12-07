@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	sdkmath "cosmossdk.io/math"
+
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -34,7 +36,7 @@ func (k msgServer) CancelVest(goCtx context.Context, msg *types.MsgCancelVest) (
 		if vesting.Denom != ptypes.Elys || vesting.NumBlocks == 0 || vesting.TotalAmount.IsZero() {
 			continue
 		}
-		cancelAmount := sdk.MinInt(remainingToCancel, vesting.TotalAmount.Sub(vesting.ClaimedAmount))
+		cancelAmount := sdkmath.MinInt(remainingToCancel, vesting.TotalAmount.Sub(vesting.ClaimedAmount))
 		vesting.TotalAmount = vesting.TotalAmount.Sub(cancelAmount)
 		// Update the num epochs for the reduced amount
 		commitments.VestingTokens[i] = vesting

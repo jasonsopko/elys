@@ -3,6 +3,8 @@ package cli
 import (
 	"errors"
 
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -15,22 +17,20 @@ import (
 )
 
 const (
-	FlagLeverageMax                                    = "leverage-max"
-	FlagBorrowInterestRateMax                          = "borrow-interest-rate-max"
-	FlagBorrowInterestRateMin                          = "borrow-interest-rate-min"
-	FlagBorrowInterestRateIncrease                     = "borrow-interest-rate-increase"
-	FlagBorrowInterestRateDecrease                     = "borrow-interest-rate-decrease"
-	FlagHealthGainFactor                               = "health-gain-factor"
-	FlagMaxOpenPositions                               = "max-open-positions"
-	FlagPoolOpenThreshold                              = "pool-open-threshold"
-	FlagForceCloseFundPercentage                       = "force-close-fund-percentage"
-	FlagForceCloseFundAddress                          = "force-close-fund-address"
-	FlagIncrementalBorrowInterestPaymentEnabled        = "incremental-borrow-interest-payment-enabled"
-	FlagIncrementalBorrowInterestPaymentFundPercentage = "incremental-borrow-interest-payment-fund-percentage"
-	FlagIncrementalBorrowInterestPaymentFundAddress    = "incremental-borrow-interest-payment-fund-address"
-	FlagSafetyFactor                                   = "safety-factor"
-	FlagWhitelistingEnabled                            = "whitelisting-enabled"
-	FlagEpochLength                                    = "epoch-length"
+	FlagLeverageMax                         = "leverage-max"
+	FlagBorrowInterestRateMax               = "borrow-interest-rate-max"
+	FlagBorrowInterestRateMin               = "borrow-interest-rate-min"
+	FlagBorrowInterestRateIncrease          = "borrow-interest-rate-increase"
+	FlagBorrowInterestRateDecrease          = "borrow-interest-rate-decrease"
+	FlagHealthGainFactor                    = "health-gain-factor"
+	FlagMaxOpenPositions                    = "max-open-positions"
+	FlagPoolOpenThreshold                   = "pool-open-threshold"
+	FlagBorrowInterestPaymentEnabled        = "borrow-interest-payment-enabled"
+	FlagBorrowInterestPaymentFundPercentage = "borrow-interest-payment-fund-percentage"
+	FlagBorrowInterestPaymentFundAddress    = "borrow-interest-payment-fund-address"
+	FlagSafetyFactor                        = "safety-factor"
+	FlagWhitelistingEnabled                 = "whitelisting-enabled"
+	FlagEpochLength                         = "epoch-length"
 )
 
 // Governance command
@@ -84,12 +84,11 @@ func CmdUpdateParams() *cobra.Command {
 				return err
 			}
 
-			healthGainFactor, err := cmd.Flags().GetString(FlagHealthGainFactor)
+			expedited, err := cmd.Flags().GetBool(FlagExpedited)
 			if err != nil {
 				return err
 			}
-
-			epochLength, err := cmd.Flags().GetInt64(FlagEpochLength)
+			healthGainFactor, err := cmd.Flags().GetString(FlagHealthGainFactor)
 			if err != nil {
 				return err
 			}
@@ -104,22 +103,12 @@ func CmdUpdateParams() *cobra.Command {
 				return err
 			}
 
-			forceCloseFundPercentage, err := cmd.Flags().GetString(FlagForceCloseFundPercentage)
+			borrowInterestPaymentFundPercentage, err := cmd.Flags().GetString(FlagBorrowInterestPaymentFundPercentage)
 			if err != nil {
 				return err
 			}
 
-			forceCloseFundAddress, err := cmd.Flags().GetString(FlagForceCloseFundAddress)
-			if err != nil {
-				return err
-			}
-
-			incrementalBorrowInterestPaymentFundPercentage, err := cmd.Flags().GetString(FlagIncrementalBorrowInterestPaymentFundPercentage)
-			if err != nil {
-				return err
-			}
-
-			incrementalBorrowInterestPaymentFundAddress, err := cmd.Flags().GetString(FlagIncrementalBorrowInterestPaymentFundAddress)
+			borrowInterestPaymentFundAddress, err := cmd.Flags().GetString(FlagBorrowInterestPaymentFundAddress)
 			if err != nil {
 				return err
 			}
@@ -129,7 +118,7 @@ func CmdUpdateParams() *cobra.Command {
 				return err
 			}
 
-			incrementalBorrowInterestPaymentEnabled, err := cmd.Flags().GetBool(FlagIncrementalBorrowInterestPaymentEnabled)
+			borrowInterestPaymentEnabled, err := cmd.Flags().GetBool(FlagBorrowInterestPaymentEnabled)
 			if err != nil {
 				return err
 			}
@@ -140,22 +129,19 @@ func CmdUpdateParams() *cobra.Command {
 			}
 
 			params := &types.Params{
-				LeverageMax:                sdk.MustNewDecFromStr(leverageMax),
-				BorrowInterestRateMax:      sdk.MustNewDecFromStr(borrowInterestRateMax),
-				BorrowInterestRateMin:      sdk.MustNewDecFromStr(borrowInterestRateMin),
-				BorrowInterestRateIncrease: sdk.MustNewDecFromStr(borrowInterestRateIncrease),
-				BorrowInterestRateDecrease: sdk.MustNewDecFromStr(borrowInterestRateDecrease),
-				HealthGainFactor:           sdk.MustNewDecFromStr(healthGainFactor),
-				EpochLength:                epochLength,
-				MaxOpenPositions:           maxOpenPositions,
-				PoolOpenThreshold:          sdk.MustNewDecFromStr(poolOpenThreshold),
-				ForceCloseFundPercentage:   sdk.MustNewDecFromStr(forceCloseFundPercentage),
-				ForceCloseFundAddress:      forceCloseFundAddress,
-				IncrementalBorrowInterestPaymentFundPercentage: sdk.MustNewDecFromStr(incrementalBorrowInterestPaymentFundPercentage),
-				IncrementalBorrowInterestPaymentFundAddress:    incrementalBorrowInterestPaymentFundAddress,
-				SafetyFactor:                            sdk.MustNewDecFromStr(safetyFactor),
-				IncrementalBorrowInterestPaymentEnabled: incrementalBorrowInterestPaymentEnabled,
-				WhitelistingEnabled:                     whitelistingEnabled,
+				LeverageMax:                         sdkmath.LegacyMustNewDecFromStr(leverageMax),
+				BorrowInterestRateMax:               sdkmath.LegacyMustNewDecFromStr(borrowInterestRateMax),
+				BorrowInterestRateMin:               sdkmath.LegacyMustNewDecFromStr(borrowInterestRateMin),
+				BorrowInterestRateIncrease:          sdkmath.LegacyMustNewDecFromStr(borrowInterestRateIncrease),
+				BorrowInterestRateDecrease:          sdkmath.LegacyMustNewDecFromStr(borrowInterestRateDecrease),
+				HealthGainFactor:                    sdkmath.LegacyMustNewDecFromStr(healthGainFactor),
+				MaxOpenPositions:                    maxOpenPositions,
+				PoolOpenThreshold:                   sdkmath.LegacyMustNewDecFromStr(poolOpenThreshold),
+				BorrowInterestPaymentFundPercentage: sdkmath.LegacyMustNewDecFromStr(borrowInterestPaymentFundPercentage),
+				BorrowInterestPaymentFundAddress:    borrowInterestPaymentFundAddress,
+				SafetyFactor:                        sdkmath.LegacyMustNewDecFromStr(safetyFactor),
+				BorrowInterestPaymentEnabled:        borrowInterestPaymentEnabled,
+				WhitelistingEnabled:                 whitelistingEnabled,
 			}
 
 			signer := clientCtx.GetFromAddress()
@@ -169,7 +155,7 @@ func CmdUpdateParams() *cobra.Command {
 				params,
 			)
 
-			if err := msg.ValidateBasic(); err != nil {
+			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
 
@@ -183,7 +169,7 @@ func CmdUpdateParams() *cobra.Command {
 				return err
 			}
 
-			govMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{msg}, deposit, signer.String(), metadata, title, summary)
+			govMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{msg}, deposit, signer.String(), metadata, title, summary, expedited)
 			if err != nil {
 				return err
 			}
@@ -200,16 +186,15 @@ func CmdUpdateParams() *cobra.Command {
 	cmd.Flags().Int64(FlagEpochLength, 1, "epoch length in blocks (integer)")
 	cmd.Flags().Int64(FlagMaxOpenPositions, 10000, "max open positions")
 	cmd.Flags().String(FlagPoolOpenThreshold, "", "threshold to prevent new positions (decimal range 0-1)")
-	cmd.Flags().String(FlagForceCloseFundPercentage, "", "percentage of force close proceeds for fund (decimal range 0-1)")
-	cmd.Flags().String(FlagForceCloseFundAddress, "", "address of fund wallet for force close")
-	cmd.Flags().Bool(FlagIncrementalBorrowInterestPaymentEnabled, true, "enable incremental borrow interest payment")
-	cmd.Flags().String(FlagIncrementalBorrowInterestPaymentFundPercentage, "", "percentage of incremental borrow interest payment proceeds for fund (decimal range 0-1)")
-	cmd.Flags().String(FlagIncrementalBorrowInterestPaymentFundAddress, "", "address of fund wallet for incremental borrow interest payment")
+	cmd.Flags().Bool(FlagBorrowInterestPaymentEnabled, true, "enable incremental borrow interest payment")
+	cmd.Flags().String(FlagBorrowInterestPaymentFundPercentage, "", "percentage of incremental borrow interest payment proceeds for fund (decimal range 0-1)")
+	cmd.Flags().String(FlagBorrowInterestPaymentFundAddress, "", "address of fund wallet for incremental borrow interest payment")
 	cmd.Flags().String(FlagSafetyFactor, "", "the safety factor used in liquidation ratio")
 	cmd.Flags().Bool(FlagWhitelistingEnabled, false, "Enable whitelisting")
 	cmd.Flags().String(cli.FlagTitle, "", "title of proposal")
 	cmd.Flags().String(cli.FlagSummary, "", "summary of proposal")
 	cmd.Flags().String(cli.FlagMetadata, "", "metadata of proposal")
+	cmd.Flags().Bool(FlagExpedited, false, "expedited")
 	cmd.Flags().String(cli.FlagDeposit, "", "deposit of proposal")
 	_ = cmd.MarkFlagRequired(FlagLeverageMax)
 	_ = cmd.MarkFlagRequired(FlagBorrowInterestRateMax)
@@ -219,11 +204,9 @@ func CmdUpdateParams() *cobra.Command {
 	_ = cmd.MarkFlagRequired(FlagHealthGainFactor)
 	_ = cmd.MarkFlagRequired(FlagMaxOpenPositions)
 	_ = cmd.MarkFlagRequired(FlagPoolOpenThreshold)
-	_ = cmd.MarkFlagRequired(FlagForceCloseFundPercentage)
-	_ = cmd.MarkFlagRequired(FlagForceCloseFundAddress)
-	_ = cmd.MarkFlagRequired(FlagIncrementalBorrowInterestPaymentEnabled)
-	_ = cmd.MarkFlagRequired(FlagIncrementalBorrowInterestPaymentFundPercentage)
-	_ = cmd.MarkFlagRequired(FlagIncrementalBorrowInterestPaymentFundAddress)
+	_ = cmd.MarkFlagRequired(FlagBorrowInterestPaymentEnabled)
+	_ = cmd.MarkFlagRequired(FlagBorrowInterestPaymentFundPercentage)
+	_ = cmd.MarkFlagRequired(FlagBorrowInterestPaymentFundAddress)
 	_ = cmd.MarkFlagRequired(FlagSafetyFactor)
 	_ = cmd.MarkFlagRequired(FlagWhitelistingEnabled)
 	_ = cmd.MarkFlagRequired(cli.FlagTitle)

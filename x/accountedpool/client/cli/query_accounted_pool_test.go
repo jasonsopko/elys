@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"fmt"
+	assetprofilemoduletypes "github.com/elys-network/elys/x/assetprofile/types"
 	"testing"
 
 	tmcli "github.com/cometbft/cometbft/libs/cli"
@@ -19,7 +20,7 @@ import (
 
 func networkWithAccountedPoolObjects(t *testing.T, n int) (*network.Network, []types.AccountedPool) {
 	t.Helper()
-	cfg := network.DefaultConfig()
+	cfg := network.DefaultConfig(t.TempDir())
 	state := types.GenesisState{}
 	for i := 0; i < n; i++ {
 		accountedPool := types.AccountedPool{
@@ -31,6 +32,33 @@ func networkWithAccountedPoolObjects(t *testing.T, n int) (*network.Network, []t
 	buf, err := cfg.Codec.MarshalJSON(&state)
 	require.NoError(t, err)
 	cfg.GenesisState[types.ModuleName] = buf
+
+	assetProfileGenesisState := assetprofilemoduletypes.DefaultGenesis()
+	usdcEntry := assetprofilemoduletypes.Entry{
+		BaseDenom:                "uusdc",
+		Decimals:                 6,
+		Denom:                    "uusdc",
+		Path:                     "",
+		IbcChannelId:             "",
+		IbcCounterpartyChannelId: "",
+		DisplayName:              "",
+		DisplaySymbol:            "",
+		Network:                  "",
+		Address:                  "",
+		ExternalSymbol:           "",
+		TransferLimit:            "",
+		Permissions:              nil,
+		UnitDenom:                "",
+		IbcCounterpartyDenom:     "",
+		IbcCounterpartyChainId:   "",
+		Authority:                "",
+		CommitEnabled:            true,
+		WithdrawEnabled:          true,
+	}
+	assetProfileGenesisState.EntryList = []assetprofilemoduletypes.Entry{usdcEntry}
+	buf, err = cfg.Codec.MarshalJSON(assetProfileGenesisState)
+	require.NoError(t, err)
+	cfg.GenesisState[assetprofilemoduletypes.ModuleName] = buf
 	return network.New(t, cfg), state.AccountedPoolList
 }
 
@@ -80,8 +108,6 @@ func TestShowAccountedPool(t *testing.T) {
 				var resp types.QueryGetAccountedPoolResponse
 				require.NoError(t, net.Config.Codec.UnmarshalJSON(out.Bytes(), &resp))
 				require.NotNil(t, resp.AccountedPool)
-				// total weight is not set in genesis state
-				tc.obj.TotalWeight = resp.AccountedPool.TotalWeight
 				require.Equal(t,
 					nullify.Fill(&tc.obj),
 					nullify.Fill(&resp.AccountedPool),
@@ -139,10 +165,6 @@ func TestListAccountedPool(t *testing.T) {
 			require.NoError(t, err)
 			require.LessOrEqual(t, len(resp.AccountedPool), stepSize)
 
-			for j, accountedPool := range resp.AccountedPool {
-				objs[i+j].TotalWeight = accountedPool.TotalWeight
-			}
-
 			require.Subset(t, nullify.Fill(objs), nullify.Fill(resp.AccountedPool))
 		}
 	})
@@ -154,10 +176,6 @@ func TestListAccountedPool(t *testing.T) {
 			require.NoError(t, err)
 			require.LessOrEqual(t, len(resp.AccountedPool), stepSize)
 
-			for j, accountedPool := range resp.AccountedPool {
-				objs[i+j].TotalWeight = accountedPool.TotalWeight
-			}
-
 			require.Subset(t, nullify.Fill(objs), nullify.Fill(resp.AccountedPool))
 			next = resp.Pagination.NextKey
 		}
@@ -167,10 +185,6 @@ func TestListAccountedPool(t *testing.T) {
 		resp, err := executeCmdAndCheck(t, RequestArgs{Next: nil, Offset: 0, Limit: uint64(len(objs)), Total: true})
 		require.NoError(t, err)
 		require.Equal(t, len(objs), int(resp.Pagination.Total))
-
-		for i, accountedPool := range resp.AccountedPool {
-			objs[i].TotalWeight = accountedPool.TotalWeight
-		}
 
 		require.ElementsMatch(t, nullify.Fill(objs), nullify.Fill(resp.AccountedPool))
 	})

@@ -1,6 +1,13 @@
 package types
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+
+	"cosmossdk.io/math"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
+)
 
 const (
 	// ModuleName defines the module name
@@ -9,21 +16,22 @@ const (
 	// StoreKey defines the primary module store key
 	StoreKey = ModuleName
 
-	// RouterKey defines the module's message routing key
-	RouterKey = ModuleName
-
-	// MemStoreKey defines the in-memory store key
-	MemStoreKey = "mem_perpetual"
-
 	// ParamsKey is the prefix for parameters of perpetual module
 	ParamsKey = "perpetual_params"
+
+	LegacyPoolKeyPrefix = "Pool/value/"
 )
 
-const MaxPageLimit = 100
+const MaxPageLimit = 10000
 
 const (
-	InfinitePriceString    = "infinite"
-	TakeProfitPriceDefault = "10000000000000000000000000000000000000000" // 10^40
+	InfinitePriceString = "infinite"
+	ZeroPriceString     = "zero"
+)
+
+var (
+	TakeProfitPriceDefault = math.LegacyMustNewDecFromStr("10000000000000000000000000000000000000000") // 10^40
+	StopLossPriceDefault   = math.LegacyZeroDec()
 )
 
 var (
@@ -31,6 +39,10 @@ var (
 	MTPCountPrefix     = []byte{0x02}
 	OpenMTPCountPrefix = []byte{0x04}
 	WhitelistPrefix    = []byte{0x05}
+	PoolKeyPrefix      = []byte{0x06}
+
+	InterestRatePrefix = []byte{0x07}
+	FundingRatePrefix  = []byte{0x08}
 )
 
 func KeyPrefix(p string) []byte {
@@ -49,14 +61,31 @@ func GetUint64FromBytes(bz []byte) uint64 {
 	return binary.BigEndian.Uint64(bz)
 }
 
-func GetWhitelistKey(address string) []byte {
+func GetWhitelistKey(addr sdk.AccAddress) []byte {
+	return append(WhitelistPrefix, address.MustLengthPrefix(addr)...)
+}
+
+func GetLegacyWhitelistKey(address string) []byte {
 	return append(WhitelistPrefix, []byte(address)...)
 }
 
-func GetMTPKey(address string, id uint64) []byte {
-	return append(MTPPrefix, append([]byte(address), GetUint64Bytes(id)...)...)
+func GetMTPKey(addr sdk.AccAddress, id uint64) []byte {
+	return append(MTPPrefix, append(address.MustLengthPrefix(addr), sdk.Uint64ToBigEndian(id)...)...)
 }
 
-func GetMTPPrefixForAddress(address string) []byte {
-	return append(MTPPrefix, []byte(address)...)
+func GetMTPPrefixForAddress(addr sdk.AccAddress) []byte {
+	return append(MTPPrefix, address.MustLengthPrefix(addr)...)
+}
+
+func GetPoolKey(index uint64) []byte {
+	key := PoolKeyPrefix
+	return append(key, sdk.Uint64ToBigEndian(index)...)
+}
+
+func GetInterestRateKey(block uint64, pool uint64) []byte {
+	return append(GetUint64Bytes(block), GetUint64Bytes(pool)...)
+}
+
+func GetFundingRateKey(block uint64, pool uint64) []byte {
+	return append(GetUint64Bytes(block), GetUint64Bytes(pool)...)
 }

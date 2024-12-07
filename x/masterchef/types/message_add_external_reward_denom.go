@@ -6,35 +6,28 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-const TypeMsgAddExternalRewardDenom = "add_external_reward_denom"
-
 var _ sdk.Msg = &MsgAddExternalRewardDenom{}
-
-func (msg *MsgAddExternalRewardDenom) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgAddExternalRewardDenom) Type() string {
-	return TypeMsgAddExternalRewardDenom
-}
-
-func (msg *MsgAddExternalRewardDenom) GetSigners() []sdk.AccAddress {
-	sender, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{sender}
-}
-
-func (msg *MsgAddExternalRewardDenom) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
 
 func (msg *MsgAddExternalRewardDenom) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid sender address (%s)", err)
+	}
+
+	if msg.MinAmount.IsNil() {
+		return errorsmod.Wrapf(ErrInvalidMinAmount, "min amount is nil")
+	}
+
+	if msg.MinAmount.IsNegative() {
+		return errorsmod.Wrapf(ErrInvalidMinAmount, "min amount is negative")
+	}
+
+	if msg.MinAmount.IsZero() {
+		return errorsmod.Wrapf(ErrInvalidAmountPerBlock, "min amount is zero")
+	}
+
+	if err = sdk.ValidateDenom(msg.RewardDenom); err != nil {
+		return err
 	}
 
 	return nil

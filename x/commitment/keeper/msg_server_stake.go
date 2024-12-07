@@ -2,9 +2,12 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/elys-network/elys/x/commitment/types"
@@ -36,7 +39,7 @@ func (k msgServer) performStakeElys(ctx sdk.Context, msg *types.MsgStake) error 
 		return errorsmod.Wrap(errorsmod.Error{}, "staking keeper")
 	}
 
-	msgServer := stakingkeeper.NewMsgServerImpl(stakingKeeper)
+	stakingMsgServer := stakingkeeper.NewMsgServerImpl(stakingKeeper)
 
 	address, err := sdk.AccAddressFromBech32(msg.Creator)
 	if err != nil {
@@ -45,17 +48,27 @@ func (k msgServer) performStakeElys(ctx sdk.Context, msg *types.MsgStake) error 
 
 	validator_address, err := sdk.ValAddressFromBech32(msg.ValidatorAddress)
 	if err != nil {
-		return errorsmod.Wrap(err, "invalid address")
+		return errorsmod.Wrap(err, "invalid validator address")
 	}
 
 	amount := sdk.NewCoin(msg.Asset, msg.Amount)
-	msgMsgDelegate := stakingtypes.NewMsgDelegate(address, validator_address, amount)
-
-	if err := msgMsgDelegate.ValidateBasic(); err != nil {
-		return errorsmod.Wrap(err, "failed validating msgMsgDelegate")
+	if !amount.IsValid() || amount.Amount.IsZero() {
+		return fmt.Errorf("invalid amount")
 	}
 
-	if _, err := msgServer.Delegate(sdk.WrapSDKContext(ctx), msgMsgDelegate); err != nil { // Discard the response because it's empty
+	// Don't allow vested tokens to be staked
+	// Retrieve the delegator account
+	delegatorAcc := k.accountKeeper.GetAccount(ctx, address)
+	if _, ok := delegatorAcc.(banktypes.VestingAccount); ok {
+		spendableCoins := k.bankKeeper.SpendableCoins(ctx, address)
+		if msg.Amount.GT(spendableCoins.AmountOf(msg.Asset)) {
+			return errorsmod.Wrap(sdkerrors.ErrUnauthorized, "cannot delegate vested tokens")
+		}
+	}
+
+	msgMsgDelegate := stakingtypes.NewMsgDelegate(address.String(), validator_address.String(), amount)
+
+	if _, err := stakingMsgServer.Delegate(ctx, msgMsgDelegate); err != nil { // Discard the response because it's empty
 		return errorsmod.Wrap(err, "elys stake msg")
 	}
 
@@ -69,7 +82,7 @@ func (k msgServer) performCommit(ctx sdk.Context, msg *types.MsgStake) error {
 		return errorsmod.Wrap(err, "failed validating msgMsgCommit")
 	}
 
-	_, err := k.CommitClaimedRewards(sdk.WrapSDKContext(ctx), msgMsgCommit) // Discard the response because it's empty
+	_, err := k.CommitClaimedRewards(ctx, msgMsgCommit) // Discard the response because it's empty
 	if err != nil {
 		return errorsmod.Wrap(err, "commit msg")
 	}

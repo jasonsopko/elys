@@ -2,13 +2,14 @@ package keeper_test
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/elys-network/elys/x/oracle/keeper"
 	"github.com/elys-network/elys/x/oracle/types"
 )
 
 func (suite *KeeperTestSuite) TestPriceFeederMsgServerUpdate() {
-	creator := "A"
+	creator := authtypes.NewModuleAddress("A").String()
 
 	for _, tc := range []struct {
 		desc    string
@@ -34,14 +35,14 @@ func (suite *KeeperTestSuite) TestPriceFeederMsgServerUpdate() {
 			})
 
 			srv := keeper.NewMsgServerImpl(k)
-			wctx := sdk.WrapSDKContext(ctx)
-			_, err := srv.SetPriceFeeder(wctx, tc.request)
+
+			_, err := srv.SetPriceFeeder(ctx, tc.request)
 			if tc.err != nil {
 				suite.Require().ErrorIs(err, tc.err)
 			} else {
 				suite.Require().NoError(err)
 				rst, found := k.GetPriceFeeder(ctx,
-					tc.request.Feeder,
+					sdk.MustAccAddressFromBech32(tc.request.Feeder),
 				)
 				suite.Require().True(found)
 				suite.Require().Equal(tc.request.Feeder, rst.Feeder)
@@ -51,7 +52,7 @@ func (suite *KeeperTestSuite) TestPriceFeederMsgServerUpdate() {
 }
 
 func (suite *KeeperTestSuite) TestPriceFeederMsgServerDelete() {
-	creator := "A"
+	creator := authtypes.NewModuleAddress("A").String()
 
 	for _, tc := range []struct {
 		desc    string
@@ -75,13 +76,13 @@ func (suite *KeeperTestSuite) TestPriceFeederMsgServerDelete() {
 			})
 
 			srv := keeper.NewMsgServerImpl(k)
-			wctx := sdk.WrapSDKContext(ctx)
-			_, err := srv.DeletePriceFeeder(wctx, tc.request)
+
+			_, err := srv.DeletePriceFeeder(ctx, tc.request)
 			if tc.err != nil {
 				suite.Require().ErrorIs(err, tc.err)
 			} else {
 				suite.Require().NoError(err)
-				_, found := k.GetPriceFeeder(ctx, tc.request.Feeder)
+				_, found := k.GetPriceFeeder(ctx, sdk.MustAccAddressFromBech32(tc.request.Feeder))
 				suite.Require().False(found)
 			}
 		})

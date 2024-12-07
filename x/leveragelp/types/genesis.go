@@ -2,6 +2,8 @@ package types
 
 import (
 	"fmt"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // DefaultIndex is the default global index
@@ -35,7 +37,7 @@ func (gs GenesisState) Validate() error {
 	positionIndexMap := make(map[string]struct{})
 
 	for _, elem := range gs.PositionList {
-		key := GetPositionKey(elem.Address, elem.Id)
+		key := GetPositionKey(sdk.MustAccAddressFromBech32(elem.Address), elem.Id)
 		index := string(key)
 		if _, ok := positionIndexMap[index]; ok {
 			return fmt.Errorf("duplicated index for pool")
@@ -47,7 +49,7 @@ func (gs GenesisState) Validate() error {
 	whitelistMap := make(map[string]struct{})
 	for _, elem := range gs.AddressWhitelist {
 		index := elem
-		if _, ok := positionIndexMap[index]; ok {
+		if _, ok := whitelistMap[index]; ok {
 			return fmt.Errorf("duplicated index for pool")
 		}
 		whitelistMap[index] = struct{}{}

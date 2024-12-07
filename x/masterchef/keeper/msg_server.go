@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
@@ -92,9 +94,7 @@ func (k msgServer) AddExternalIncentive(goCtx context.Context, msg *types.MsgAdd
 	for _, rewardDenom := range params.SupportedRewardDenoms {
 		if msg.RewardDenom == rewardDenom.Denom {
 			found = true
-			if msg.AmountPerBlock.Mul(
-				sdk.NewInt(int64(msg.ToBlock - msg.FromBlock)),
-			).LT(rewardDenom.MinAmount) {
+			if msg.AmountPerBlock.Mul(math.NewInt(msg.ToBlock - msg.FromBlock)).LT(rewardDenom.MinAmount) {
 				return nil, status.Error(codes.InvalidArgument, "too small amount")
 			}
 			break
@@ -104,7 +104,7 @@ func (k msgServer) AddExternalIncentive(goCtx context.Context, msg *types.MsgAdd
 		return nil, status.Error(codes.InvalidArgument, "invalid reward denom")
 	}
 
-	amount := msg.AmountPerBlock.Mul(sdk.NewInt(msg.ToBlock - msg.FromBlock))
+	amount := msg.AmountPerBlock.Mul(math.NewInt(msg.ToBlock - msg.FromBlock))
 	err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, sender, types.ModuleName, sdk.Coins{sdk.NewCoin(msg.RewardDenom, amount)})
 	if err != nil {
 		return nil, err
@@ -137,30 +137,36 @@ func (k msgServer) AddExternalIncentive(goCtx context.Context, msg *types.MsgAdd
 
 func (k Keeper) ClaimRewards(ctx sdk.Context, sender sdk.AccAddress, poolIds []uint64, recipient sdk.AccAddress) error {
 	coins := sdk.NewCoins()
+	rewardPoolIds := []string{}
 	for _, poolId := range poolIds {
-		k.AfterWithdraw(ctx, poolId, sender, sdk.ZeroInt())
+		k.AfterWithdraw(ctx, poolId, sender, math.ZeroInt())
 
 		for _, rewardDenom := range k.GetRewardDenoms(ctx, poolId) {
 			userRewardInfo, found := k.GetUserRewardInfo(ctx, sender, poolId, rewardDenom)
 			if found && userRewardInfo.RewardPending.IsPositive() {
 				coin := sdk.NewCoin(rewardDenom, userRewardInfo.RewardPending.TruncateInt())
 				coins = coins.Add(coin)
+				rewardPoolIds = append(rewardPoolIds, strconv.FormatUint(poolId, 10))
 
-				userRewardInfo.RewardPending = sdk.ZeroDec()
-				k.SetUserRewardInfo(ctx, userRewardInfo)
-
-				ctx.EventManager().EmitEvents(sdk.Events{
-					sdk.NewEvent(
-						types.TypeEvtClaimRewards,
-						sdk.NewAttribute(types.AttributeSender, sender.String()),
-						sdk.NewAttribute(types.AttributeRecipient, recipient.String()),
-						sdk.NewAttribute(types.AttributePoolId, fmt.Sprintf("%d", poolId)),
-						sdk.NewAttribute(sdk.AttributeKeyAmount, coin.String()),
-					),
-				})
+				userRewardInfo.RewardPending = math.LegacyZeroDec()
+				if userRewardInfo.RewardDebt.IsZero() {
+					k.RemoveUserRewardInfo(ctx, userRewardInfo.GetUserAccount(), userRewardInfo.PoolId, userRewardInfo.RewardDenom)
+				} else {
+					k.SetUserRewardInfo(ctx, userRewardInfo)
+				}
 			}
 		}
 	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.TypeEvtClaimRewards,
+			sdk.NewAttribute(types.AttributeSender, sender.String()),
+			sdk.NewAttribute(types.AttributeRecipient, recipient.String()),
+			sdk.NewAttribute(types.AttributePoolIds, strings.Join(rewardPoolIds, ",")),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, coins.String()),
+		),
+	})
 
 	// Transfer rewards (Eden/EdenB is transferred through commitment module)
 	err := k.commitmentKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, coins)
@@ -194,6 +200,10 @@ func (k msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdateParam
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	if k.authority != msg.Authority {
 		return nil, errorsmod.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", k.authority, msg.Authority)
+	}
+
+	if k.CheckBlockedAddress(msg.Params) {
+		return nil, fmt.Errorf("protocol revenue address is blocked")
 	}
 
 	k.SetParams(ctx, msg.Params)

@@ -38,7 +38,7 @@ func (k Keeper) ProcessTokenVesting(ctx sdk.Context, denom string, amount math.I
 	// Create vesting tokens entry and add to commitments
 	vestingTokens := commitments.GetVestingTokens()
 	if vestingInfo.NumMaxVestings <= (int64)(len(vestingTokens)) {
-		return errorsmod.Wrapf(types.ErrExceedMaxVestings, "creator: %s", creator)
+		return errorsmod.Wrapf(types.ErrExceedMaxVestings, "creator: %s", creator.String())
 	}
 
 	commitments, err := k.DeductClaimed(ctx, creator, denom, amount)
@@ -49,7 +49,7 @@ func (k Keeper) ProcessTokenVesting(ctx sdk.Context, denom string, amount math.I
 	vestingTokens = append(vestingTokens, &types.VestingTokens{
 		Denom:                vestingInfo.VestingDenom,
 		TotalAmount:          amount,
-		ClaimedAmount:        sdk.ZeroInt(),
+		ClaimedAmount:        math.ZeroInt(),
 		StartBlock:           ctx.BlockHeight(),
 		NumBlocks:            vestingInfo.NumBlocks,
 		VestStartedTimestamp: ctx.BlockTime().Unix(),

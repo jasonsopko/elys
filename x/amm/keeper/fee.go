@@ -2,14 +2,15 @@ package keeper
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/elys-network/elys/x/amm/types"
 )
 
-func PortionCoins(coins sdk.Coins, portion sdk.Dec) sdk.Coins {
+func PortionCoins(coins sdk.Coins, portion sdkmath.LegacyDec) sdk.Coins {
 	portionCoins := sdk.Coins{}
 	for _, coin := range coins {
-		portionAmount := sdk.NewDecFromInt(coin.Amount).Mul(portion).RoundInt()
+		portionAmount := coin.Amount.ToLegacyDec().Mul(portion).RoundInt()
 		portionCoins = portionCoins.Add(sdk.NewCoin(
 			coin.Denom, portionAmount,
 		))
@@ -21,13 +22,14 @@ func (k Keeper) OnCollectFee(ctx sdk.Context, pool types.Pool, fee sdk.Coins) er
 	poolRevenueAddress := types.NewPoolRevenueAddress(pool.PoolId)
 	revenueAmount := fee
 	if pool.PoolParams.UseOracle {
-		weightRecoveryFee := PortionCoins(fee, pool.PoolParams.WeightRecoveryFeePortion)
+		params := k.GetParams(ctx)
+		weightRecoveryFee := PortionCoins(fee, params.WeightRecoveryFeePortion)
 		revenueAmount = fee.Sub(weightRecoveryFee...)
 	}
 
 	err := k.bankKeeper.SendCoins(ctx, sdk.MustAccAddressFromBech32(pool.RebalanceTreasury), poolRevenueAddress, revenueAmount)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// handling the case, pool does not enough liquidity to swap fees to revenue token when liquidity is being fully removed
@@ -42,6 +44,7 @@ func (k Keeper) OnCollectFee(ctx sdk.Context, pool types.Pool, fee sdk.Coins) er
 // No fee management required when doing swap from fees to revenue token
 func (k Keeper) SwapFeesToRevenueToken(ctx sdk.Context, pool types.Pool, fee sdk.Coins) error {
 	poolRevenueAddress := types.NewPoolRevenueAddress(pool.PoolId)
+	params := k.GetParams(ctx)
 	for _, tokenIn := range fee {
 		// skip for fee denom
 		if tokenIn.Denom == pool.PoolParams.FeeDenom {
@@ -49,8 +52,8 @@ func (k Keeper) SwapFeesToRevenueToken(ctx sdk.Context, pool types.Pool, fee sdk
 		}
 		// Executes the swap in the pool and stores the output. Updates pool assets but
 		// does not actually transfer any tokens to or from the pool.
-		snapshot := k.GetPoolSnapshotOrSet(ctx, pool)
-		tokenOutCoin, _, _, _, err := pool.SwapOutAmtGivenIn(ctx, k.oracleKeeper, &snapshot, sdk.Coins{tokenIn}, pool.PoolParams.FeeDenom, sdk.ZeroDec(), k.accountedPoolKeeper)
+		snapshot := k.GetAccountedPoolSnapshotOrSet(ctx, pool)
+		tokenOutCoin, _, _, _, oracleOutAmount, err := pool.SwapOutAmtGivenIn(ctx, k.oracleKeeper, &snapshot, sdk.Coins{tokenIn}, pool.PoolParams.FeeDenom, sdkmath.LegacyZeroDec(), k.accountedPoolKeeper, sdkmath.LegacyOneDec(), params)
 		if err != nil {
 			return err
 		}
@@ -63,7 +66,7 @@ func (k Keeper) SwapFeesToRevenueToken(ctx sdk.Context, pool types.Pool, fee sdk
 
 		// Settles balances between the tx sender and the pool to match the swap that was executed earlier.
 		// Also emits a swap event and updates related liquidity metrics.
-		_, err = k.UpdatePoolForSwap(ctx, pool, poolRevenueAddress, poolRevenueAddress, tokenIn, tokenOutCoin, sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
+		err = k.UpdatePoolForSwap(ctx, pool, poolRevenueAddress, poolRevenueAddress, tokenIn, tokenOutCoin, sdkmath.LegacyZeroDec(), sdkmath.ZeroInt(), oracleOutAmount.TruncateInt(), sdkmath.LegacyZeroDec(), false)
 		if err != nil {
 			return err
 		}

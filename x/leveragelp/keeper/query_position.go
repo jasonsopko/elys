@@ -16,8 +16,13 @@ func (k Keeper) Position(goCtx context.Context, req *types.PositionRequest) (*ty
 	}
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
+	creator := sdk.MustAccAddressFromBech32(req.Address)
+	position, err := k.GetPosition(ctx, creator, req.Id)
+	if err != nil {
+		return nil, err
+	}
+	updatedLeveragePosition, err := k.GetLeverageLpUpdatedLeverage(ctx, []*types.Position{&position})
 
-	position, err := k.GetPosition(ctx, req.Address, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +31,7 @@ func (k Keeper) Position(goCtx context.Context, req *types.PositionRequest) (*ty
 	totalLocked, _ := commitments.CommittedTokensLocked(ctx)
 
 	return &types.PositionResponse{
-		Position:      &position,
+		Position:      updatedLeveragePosition[0],
 		LockedLpToken: totalLocked.AmountOf(ammtypes.GetPoolShareDenom(position.AmmPoolId)),
 	}, nil
 }
@@ -38,7 +43,8 @@ func (k Keeper) LiquidationPrice(goCtx context.Context, req *types.QueryLiquidat
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	position, err := k.GetPosition(ctx, req.Address, req.PositionId)
+	creator := sdk.MustAccAddressFromBech32(req.Address)
+	position, err := k.GetPosition(ctx, creator, req.PositionId)
 	if err != nil {
 		return nil, err
 	}

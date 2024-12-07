@@ -1,12 +1,12 @@
 package cli
 
 import (
+	sdkmath "cosmossdk.io/math"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/elys-network/elys/x/leveragelp/types"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
@@ -20,11 +20,11 @@ func CmdUpdateStopLoss() *cobra.Command {
 		Short: "Broadcast message update-stop-loss",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			argPosition, err := cast.ToInt32E(args[0])
+			argPosition, err := cast.ToUint64E(args[0])
 			if err != nil {
 				return err
 			}
-			argPrice, err := sdk.NewDecFromStr(args[1])
+			argPrice, err := sdkmath.LegacyNewDecFromStr(args[1])
 			if err != nil {
 				return err
 			}
@@ -39,7 +39,7 @@ func CmdUpdateStopLoss() *cobra.Command {
 				argPosition,
 				argPrice,
 			)
-			if err := msg.ValidateBasic(); err != nil {
+			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)

@@ -4,6 +4,7 @@
 package types
 
 import (
+	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
 	_ "github.com/cosmos/cosmos-proto"
 	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
@@ -99,8 +100,8 @@ func (m *Commitments) GetVestingTokens() []*VestingTokens {
 }
 
 type Lockup struct {
-	Amount          github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,1,opt,name=amount,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"amount"`
-	UnlockTimestamp uint64                                 `protobuf:"varint,2,opt,name=unlock_timestamp,json=unlockTimestamp,proto3" json:"unlock_timestamp,omitempty"`
+	Amount          cosmossdk_io_math.Int `protobuf:"bytes,1,opt,name=amount,proto3,customtype=cosmossdk.io/math.Int" json:"amount"`
+	UnlockTimestamp uint64                `protobuf:"varint,2,opt,name=unlock_timestamp,json=unlockTimestamp,proto3" json:"unlock_timestamp,omitempty"`
 }
 
 func (m *Lockup) Reset()         { *m = Lockup{} }
@@ -144,9 +145,9 @@ func (m *Lockup) GetUnlockTimestamp() uint64 {
 }
 
 type CommittedTokens struct {
-	Denom   string                                 `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
-	Amount  github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,2,opt,name=amount,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"amount"`
-	Lockups []Lockup                               `protobuf:"bytes,3,rep,name=lockups,proto3" json:"lockups"`
+	Denom   string                `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
+	Amount  cosmossdk_io_math.Int `protobuf:"bytes,2,opt,name=amount,proto3,customtype=cosmossdk.io/math.Int" json:"amount"`
+	Lockups []Lockup              `protobuf:"bytes,3,rep,name=lockups,proto3" json:"lockups"`
 }
 
 func (m *CommittedTokens) Reset()         { *m = CommittedTokens{} }
@@ -197,12 +198,12 @@ func (m *CommittedTokens) GetLockups() []Lockup {
 }
 
 type VestingTokens struct {
-	Denom                string                                 `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
-	TotalAmount          github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,2,opt,name=total_amount,json=totalAmount,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"total_amount"`
-	ClaimedAmount        github_com_cosmos_cosmos_sdk_types.Int `protobuf:"bytes,3,opt,name=claimed_amount,json=claimedAmount,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Int" json:"claimed_amount"`
-	NumBlocks            int64                                  `protobuf:"varint,5,opt,name=num_blocks,json=numBlocks,proto3" json:"num_blocks,omitempty"`
-	StartBlock           int64                                  `protobuf:"varint,6,opt,name=start_block,json=startBlock,proto3" json:"start_block,omitempty"`
-	VestStartedTimestamp int64                                  `protobuf:"varint,7,opt,name=vest_started_timestamp,json=vestStartedTimestamp,proto3" json:"vest_started_timestamp,omitempty"`
+	Denom                string                `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
+	TotalAmount          cosmossdk_io_math.Int `protobuf:"bytes,2,opt,name=total_amount,json=totalAmount,proto3,customtype=cosmossdk.io/math.Int" json:"total_amount"`
+	ClaimedAmount        cosmossdk_io_math.Int `protobuf:"bytes,3,opt,name=claimed_amount,json=claimedAmount,proto3,customtype=cosmossdk.io/math.Int" json:"claimed_amount"`
+	NumBlocks            int64                 `protobuf:"varint,5,opt,name=num_blocks,json=numBlocks,proto3" json:"num_blocks,omitempty"`
+	StartBlock           int64                 `protobuf:"varint,6,opt,name=start_block,json=startBlock,proto3" json:"start_block,omitempty"`
+	VestStartedTimestamp int64                 `protobuf:"varint,7,opt,name=vest_started_timestamp,json=vestStartedTimestamp,proto3" json:"vest_started_timestamp,omitempty"`
 }
 
 func (m *VestingTokens) Reset()         { *m = VestingTokens{} }
@@ -266,170 +267,56 @@ func (m *VestingTokens) GetVestStartedTimestamp() int64 {
 	return 0
 }
 
-type LegacyCommitments struct {
-	Creator                 string                                   `protobuf:"bytes,1,opt,name=creator,proto3" json:"creator,omitempty"`
-	CommittedTokens         []*CommittedTokens                       `protobuf:"bytes,2,rep,name=committed_tokens,json=committedTokens,proto3" json:"committed_tokens,omitempty"`
-	RewardsUnclaimed        github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,3,rep,name=rewards_unclaimed,json=rewardsUnclaimed,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"rewards_unclaimed"`
-	Claimed                 github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,4,rep,name=claimed,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"claimed"`
-	VestingTokens           []*VestingTokens                         `protobuf:"bytes,5,rep,name=vesting_tokens,json=vestingTokens,proto3" json:"vesting_tokens,omitempty"`
-	RewardsByElysUnclaimed  github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,6,rep,name=rewards_by_elys_unclaimed,json=rewardsByElysUnclaimed,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"rewards_by_elys_unclaimed"`
-	RewardsByEdenUnclaimed  github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,7,rep,name=rewards_by_eden_unclaimed,json=rewardsByEdenUnclaimed,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"rewards_by_eden_unclaimed"`
-	RewardsByEdenbUnclaimed github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,8,rep,name=rewards_by_edenb_unclaimed,json=rewardsByEdenbUnclaimed,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"rewards_by_edenb_unclaimed"`
-	RewardsByUsdcUnclaimed  github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,9,rep,name=rewards_by_usdc_unclaimed,json=rewardsByUsdcUnclaimed,proto3,castrepeated=github.com/cosmos/cosmos-sdk/types.Coins" json:"rewards_by_usdc_unclaimed"`
-}
-
-func (m *LegacyCommitments) Reset()         { *m = LegacyCommitments{} }
-func (m *LegacyCommitments) String() string { return proto.CompactTextString(m) }
-func (*LegacyCommitments) ProtoMessage()    {}
-func (*LegacyCommitments) Descriptor() ([]byte, []int) {
-	return fileDescriptor_47379c930fe66ed6, []int{4}
-}
-func (m *LegacyCommitments) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *LegacyCommitments) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_LegacyCommitments.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *LegacyCommitments) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LegacyCommitments.Merge(m, src)
-}
-func (m *LegacyCommitments) XXX_Size() int {
-	return m.Size()
-}
-func (m *LegacyCommitments) XXX_DiscardUnknown() {
-	xxx_messageInfo_LegacyCommitments.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_LegacyCommitments proto.InternalMessageInfo
-
-func (m *LegacyCommitments) GetCreator() string {
-	if m != nil {
-		return m.Creator
-	}
-	return ""
-}
-
-func (m *LegacyCommitments) GetCommittedTokens() []*CommittedTokens {
-	if m != nil {
-		return m.CommittedTokens
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetRewardsUnclaimed() github_com_cosmos_cosmos_sdk_types.Coins {
-	if m != nil {
-		return m.RewardsUnclaimed
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetClaimed() github_com_cosmos_cosmos_sdk_types.Coins {
-	if m != nil {
-		return m.Claimed
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetVestingTokens() []*VestingTokens {
-	if m != nil {
-		return m.VestingTokens
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetRewardsByElysUnclaimed() github_com_cosmos_cosmos_sdk_types.Coins {
-	if m != nil {
-		return m.RewardsByElysUnclaimed
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetRewardsByEdenUnclaimed() github_com_cosmos_cosmos_sdk_types.Coins {
-	if m != nil {
-		return m.RewardsByEdenUnclaimed
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetRewardsByEdenbUnclaimed() github_com_cosmos_cosmos_sdk_types.Coins {
-	if m != nil {
-		return m.RewardsByEdenbUnclaimed
-	}
-	return nil
-}
-
-func (m *LegacyCommitments) GetRewardsByUsdcUnclaimed() github_com_cosmos_cosmos_sdk_types.Coins {
-	if m != nil {
-		return m.RewardsByUsdcUnclaimed
-	}
-	return nil
-}
-
 func init() {
 	proto.RegisterType((*Commitments)(nil), "elys.commitment.Commitments")
 	proto.RegisterType((*Lockup)(nil), "elys.commitment.Lockup")
 	proto.RegisterType((*CommittedTokens)(nil), "elys.commitment.CommittedTokens")
 	proto.RegisterType((*VestingTokens)(nil), "elys.commitment.VestingTokens")
-	proto.RegisterType((*LegacyCommitments)(nil), "elys.commitment.LegacyCommitments")
 }
 
 func init() { proto.RegisterFile("elys/commitment/commitments.proto", fileDescriptor_47379c930fe66ed6) }
 
 var fileDescriptor_47379c930fe66ed6 = []byte{
-	// 701 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x95, 0x4f, 0x6f, 0xd3, 0x3e,
-	0x18, 0xc7, 0x9b, 0xb6, 0x6b, 0x7f, 0x73, 0x7f, 0x5b, 0xb7, 0x68, 0xda, 0xb2, 0x09, 0xd2, 0xd2,
-	0x03, 0x2a, 0x87, 0x25, 0x0c, 0x90, 0x38, 0xd3, 0x69, 0x48, 0x13, 0xbb, 0x10, 0x36, 0x0e, 0x5c,
-	0x22, 0x27, 0x31, 0x21, 0x6a, 0x6c, 0x57, 0xb1, 0xb3, 0xad, 0xe2, 0x8e, 0x38, 0xf2, 0x1a, 0x38,
-	0x21, 0xde, 0x07, 0xd2, 0x8e, 0x3b, 0x22, 0x0e, 0x03, 0x6d, 0x6f, 0x04, 0xc5, 0x76, 0xd6, 0x2c,
-	0xd3, 0x24, 0xb4, 0xad, 0x70, 0x69, 0xf3, 0x3c, 0x7e, 0xfe, 0x7c, 0x9e, 0xaf, 0x63, 0x07, 0xdc,
-	0x43, 0xf1, 0x98, 0xd9, 0x3e, 0xc5, 0x38, 0xe2, 0x18, 0x11, 0x5e, 0x78, 0x64, 0xd6, 0x28, 0xa1,
-	0x9c, 0xea, 0xed, 0x2c, 0xc4, 0x9a, 0xf8, 0xd7, 0x3a, 0x21, 0xa5, 0x61, 0x8c, 0x6c, 0xb1, 0xec,
-	0xa5, 0x6f, 0x6d, 0x1e, 0x61, 0xc4, 0x38, 0xc4, 0x23, 0x99, 0xb1, 0x66, 0x96, 0x03, 0x82, 0x34,
-	0x81, 0x3c, 0xa2, 0x44, 0xad, 0xaf, 0xfa, 0x94, 0x61, 0xca, 0x5c, 0x61, 0xd9, 0xd2, 0xc8, 0x53,
-	0xa5, 0x65, 0x7b, 0x90, 0x21, 0x7b, 0x7f, 0xc3, 0x43, 0x1c, 0x6e, 0xd8, 0x3e, 0x8d, 0xf2, 0xd4,
-	0xa5, 0x90, 0x86, 0x54, 0xe6, 0x65, 0x4f, 0xca, 0x7b, 0xa7, 0x3c, 0xc5, 0x08, 0x26, 0x10, 0xe7,
-	0x35, 0x17, 0x21, 0x8e, 0x08, 0xb5, 0xc5, 0xaf, 0x74, 0xf5, 0x3e, 0x57, 0x41, 0x6b, 0x73, 0x32,
-	0xa9, 0x6e, 0x80, 0xa6, 0x9f, 0x20, 0xc8, 0x69, 0x62, 0x68, 0x5d, 0xad, 0x3f, 0xeb, 0xe4, 0xa6,
-	0xfe, 0x02, 0x2c, 0xc8, 0xba, 0x1c, 0x05, 0x2e, 0xa7, 0x43, 0x44, 0x98, 0x51, 0xed, 0xd6, 0xfa,
-	0xad, 0x47, 0x5d, 0xab, 0x24, 0x8c, 0xb5, 0x99, 0x07, 0xee, 0x8a, 0x38, 0xa7, 0xed, 0x5f, 0x74,
-	0xe8, 0x08, 0x34, 0xfd, 0x18, 0x46, 0x18, 0x05, 0x46, 0x4d, 0xd4, 0x58, 0xb5, 0xd4, 0xf4, 0xd9,
-	0xbc, 0x96, 0x9a, 0xd7, 0xda, 0xa4, 0x11, 0x19, 0x3c, 0x3c, 0x3a, 0xe9, 0x54, 0xbe, 0xfe, 0xec,
-	0xf4, 0xc3, 0x88, 0xbf, 0x4b, 0xbd, 0xac, 0x8f, 0x92, 0x4a, 0xfd, 0xad, 0xb3, 0x60, 0x68, 0xf3,
-	0xf1, 0x08, 0x31, 0x91, 0xc0, 0x9c, 0xbc, 0xb6, 0xbe, 0x05, 0xe6, 0xf7, 0x11, 0xe3, 0x11, 0x09,
-	0x73, 0xe2, 0xba, 0xe8, 0x66, 0x5e, 0x22, 0x7e, 0x2d, 0xc3, 0x14, 0xef, 0xdc, 0x7e, 0xd1, 0xec,
-	0xbd, 0x07, 0x8d, 0x1d, 0xea, 0x0f, 0xd3, 0x91, 0xfe, 0x1c, 0x34, 0x20, 0xa6, 0x29, 0xe1, 0x52,
-	0x9d, 0x81, 0x95, 0xb1, 0xfd, 0x38, 0xe9, 0xdc, 0xff, 0x03, 0xb6, 0x6d, 0xc2, 0x1d, 0x95, 0xad,
-	0x3f, 0x00, 0x0b, 0x29, 0x89, 0xa9, 0x3f, 0x74, 0xcf, 0x5f, 0x19, 0xa3, 0xda, 0xd5, 0xfa, 0x75,
-	0xa7, 0x2d, 0xfd, 0xbb, 0xb9, 0xbb, 0xf7, 0x45, 0x03, 0xed, 0x92, 0x9e, 0xfa, 0x12, 0x98, 0x09,
-	0x10, 0xa1, 0x58, 0xed, 0x91, 0x34, 0x0a, 0x70, 0xd5, 0x1b, 0xc1, 0x3d, 0x05, 0xcd, 0x58, 0x8c,
-	0xcb, 0xd4, 0xe6, 0xac, 0x5c, 0x92, 0x4b, 0xca, 0x31, 0xa8, 0x67, 0x1d, 0x9c, 0x3c, 0xba, 0xf7,
-	0xad, 0x0a, 0xe6, 0x2e, 0x08, 0x79, 0x05, 0xe8, 0x4b, 0xf0, 0x3f, 0xa7, 0x1c, 0xc6, 0xee, 0x8d,
-	0x70, 0x5b, 0xa2, 0xc6, 0x33, 0xc9, 0xbc, 0x07, 0xe6, 0xd5, 0xa6, 0xe7, 0x45, 0x6b, 0xd7, 0x2a,
-	0x3a, 0xa7, 0xaa, 0xa8, 0xb2, 0x77, 0x01, 0x20, 0x29, 0x76, 0xbd, 0x6c, 0x42, 0x66, 0xcc, 0x74,
-	0xb5, 0x7e, 0xcd, 0x99, 0x25, 0x29, 0x1e, 0x08, 0x87, 0xde, 0x01, 0x2d, 0xc6, 0x61, 0xc2, 0x65,
-	0x80, 0xd1, 0x10, 0xeb, 0x40, 0xb8, 0x44, 0x84, 0xfe, 0x04, 0x2c, 0x67, 0xaf, 0x92, 0x2b, 0x5c,
-	0xd9, 0xb9, 0x39, 0xdf, 0xed, 0xa6, 0x88, 0x5d, 0xca, 0x56, 0x5f, 0xc9, 0xc5, 0xc9, 0x96, 0x1f,
-	0x35, 0xc1, 0xe2, 0x0e, 0x0a, 0xa1, 0x3f, 0xfe, 0x07, 0x47, 0xf3, 0x10, 0x2c, 0x26, 0xe8, 0x00,
-	0x26, 0x01, 0x73, 0x53, 0x32, 0xc5, 0x43, 0xba, 0xa0, 0xba, 0xec, 0xe5, 0x4d, 0x8a, 0x97, 0x42,
-	0xfd, 0xaf, 0x5e, 0x0a, 0x33, 0xd7, 0xb8, 0x14, 0xf4, 0x0f, 0x1a, 0x58, 0xcd, 0x85, 0xf2, 0xc6,
-	0x6e, 0x96, 0x5b, 0x10, 0xac, 0x71, 0xfb, 0x03, 0x2c, 0xab, 0x6e, 0x83, 0xf1, 0x56, 0x3c, 0x2e,
-	0xc8, 0x56, 0x06, 0x09, 0x10, 0x29, 0x80, 0x34, 0xa7, 0x0a, 0x12, 0x20, 0x32, 0x01, 0xf9, 0xa8,
-	0x81, 0xb5, 0x12, 0x88, 0x57, 0x20, 0xf9, 0xef, 0xf6, 0x49, 0x56, 0x2e, 0x90, 0x78, 0x57, 0x6a,
-	0x92, 0xb2, 0xc0, 0x2f, 0x90, 0xcc, 0x4e, 0x53, 0x93, 0x3d, 0x16, 0xf8, 0xe7, 0x20, 0x83, 0xed,
-	0xa3, 0x53, 0x53, 0x3b, 0x3e, 0x35, 0xb5, 0x5f, 0xa7, 0xa6, 0xf6, 0xe9, 0xcc, 0xac, 0x1c, 0x9f,
-	0x99, 0x95, 0xef, 0x67, 0x66, 0xe5, 0x8d, 0x5d, 0xa8, 0x9d, 0xbd, 0x3c, 0xeb, 0x04, 0xf1, 0x03,
-	0x9a, 0x0c, 0x85, 0x61, 0x1f, 0x16, 0x3f, 0xe2, 0xa2, 0x91, 0xd7, 0x10, 0x5f, 0xec, 0xc7, 0xbf,
-	0x03, 0x00, 0x00, 0xff, 0xff, 0xf2, 0x35, 0xa3, 0x09, 0xaa, 0x08, 0x00, 0x00,
+	// 614 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0x31, 0x6f, 0xd3, 0x40,
+	0x14, 0x8e, 0x93, 0x36, 0x51, 0x2f, 0xb4, 0x29, 0x56, 0x00, 0xb7, 0x02, 0x27, 0x64, 0x0a, 0x42,
+	0xf1, 0xd1, 0x82, 0xc4, 0xdc, 0x44, 0x0c, 0x11, 0x88, 0xc1, 0xad, 0x18, 0x58, 0xac, 0xb3, 0x7d,
+	0xb8, 0x96, 0x7d, 0x77, 0x91, 0xef, 0x1c, 0xda, 0x7f, 0xc1, 0x9f, 0x60, 0x61, 0xee, 0x88, 0xc4,
+	0xda, 0xb1, 0xea, 0x84, 0x18, 0x0a, 0x4a, 0xfe, 0x08, 0xf2, 0xdd, 0x39, 0x4d, 0x53, 0x31, 0xd0,
+	0xa5, 0xf5, 0x7b, 0xef, 0x7b, 0xdf, 0x7d, 0xef, 0x7b, 0x77, 0x01, 0x4f, 0x71, 0x7a, 0xca, 0x61,
+	0xc0, 0x08, 0x89, 0x05, 0xc1, 0x54, 0x2c, 0x7d, 0x72, 0x67, 0x92, 0x31, 0xc1, 0xcc, 0x56, 0x01,
+	0x71, 0xae, 0xf3, 0xbb, 0x9d, 0x88, 0xb1, 0x28, 0xc5, 0x50, 0x96, 0xfd, 0xfc, 0x13, 0x14, 0x31,
+	0xc1, 0x5c, 0x20, 0x32, 0x51, 0x1d, 0xbb, 0xf6, 0x2a, 0x20, 0xcc, 0x33, 0x24, 0x62, 0x46, 0x75,
+	0x7d, 0x27, 0x60, 0x9c, 0x30, 0xee, 0xc9, 0x08, 0xaa, 0xa0, 0x6c, 0x55, 0x11, 0xf4, 0x11, 0xc7,
+	0x70, 0xba, 0xe7, 0x63, 0x81, 0xf6, 0x60, 0xc0, 0xe2, 0xb2, 0xb5, 0x1d, 0xb1, 0x88, 0xa9, 0xbe,
+	0xe2, 0x4b, 0x67, 0x1f, 0xaf, 0x4e, 0x31, 0x41, 0x19, 0x22, 0x25, 0xe7, 0x7d, 0x44, 0x62, 0xca,
+	0xa0, 0xfc, 0xab, 0x52, 0xbd, 0xef, 0x55, 0xd0, 0x1c, 0x5d, 0x4f, 0x6a, 0xee, 0x83, 0x46, 0x90,
+	0x61, 0x24, 0x58, 0x66, 0x19, 0x5d, 0xa3, 0xbf, 0x31, 0xb4, 0x2e, 0xcf, 0x06, 0x6d, 0xad, 0xec,
+	0x20, 0x0c, 0x33, 0xcc, 0xf9, 0xa1, 0xc8, 0x62, 0x1a, 0xb9, 0x25, 0xd0, 0x7c, 0x0b, 0xb6, 0xd5,
+	0x89, 0x02, 0x87, 0x9e, 0x60, 0x09, 0xa6, 0xdc, 0xaa, 0x76, 0x6b, 0xfd, 0xe6, 0x7e, 0xd7, 0x59,
+	0xb1, 0xcc, 0x19, 0x95, 0xc0, 0x23, 0x89, 0x73, 0x5b, 0xc1, 0xcd, 0x84, 0x89, 0x41, 0x23, 0x48,
+	0x51, 0x4c, 0x70, 0x68, 0xd5, 0x24, 0xc7, 0x8e, 0xa3, 0x4f, 0x2f, 0x9c, 0x70, 0xb4, 0x13, 0xce,
+	0x88, 0xc5, 0x74, 0xf8, 0xe2, 0xfc, 0xaa, 0x53, 0xf9, 0xf6, 0xbb, 0xd3, 0x8f, 0x62, 0x71, 0x9c,
+	0xfb, 0xc5, 0x39, 0xda, 0x44, 0xfd, 0x6f, 0xc0, 0xc3, 0x04, 0x8a, 0xd3, 0x09, 0xe6, 0xb2, 0x81,
+	0xbb, 0x25, 0xb7, 0xf9, 0x06, 0x6c, 0x4d, 0x31, 0x17, 0x31, 0x8d, 0x4a, 0xc5, 0x6b, 0xf2, 0x34,
+	0xfb, 0x96, 0xe2, 0x0f, 0x0a, 0xa6, 0xf5, 0x6e, 0x4e, 0x97, 0xc3, 0xde, 0x09, 0xa8, 0xbf, 0x63,
+	0x41, 0x92, 0x4f, 0xcc, 0x11, 0xa8, 0x23, 0xc2, 0x72, 0x2a, 0xb4, 0x6f, 0xcf, 0x0b, 0x6d, 0xbf,
+	0xae, 0x3a, 0x0f, 0x94, 0x12, 0x1e, 0x26, 0x4e, 0xcc, 0x20, 0x41, 0xe2, 0xd8, 0x19, 0x53, 0x71,
+	0x79, 0x36, 0x00, 0x7a, 0xac, 0x31, 0x15, 0xae, 0x6e, 0x35, 0x9f, 0x81, 0xed, 0x9c, 0xa6, 0x2c,
+	0x48, 0xbc, 0xc5, 0x4d, 0xb2, 0xaa, 0x5d, 0xa3, 0xbf, 0xe6, 0xb6, 0x54, 0xfe, 0xa8, 0x4c, 0xf7,
+	0xbe, 0x1a, 0xa0, 0xb5, 0x62, 0xa6, 0xd9, 0x06, 0xeb, 0x21, 0xa6, 0x8c, 0x28, 0x09, 0xae, 0x0a,
+	0x96, 0x94, 0x55, 0xef, 0xae, 0xec, 0x35, 0x68, 0xa4, 0x72, 0x50, 0xae, 0xd7, 0xf2, 0xe8, 0x96,
+	0x51, 0xca, 0x88, 0xe1, 0x5a, 0x41, 0xef, 0x96, 0xe8, 0xde, 0x8f, 0x2a, 0xd8, 0xbc, 0x61, 0xe1,
+	0x3f, 0x54, 0xbe, 0x07, 0xf7, 0x04, 0x13, 0x28, 0xf5, 0xee, 0xae, 0xb5, 0x29, 0x09, 0x0e, 0x94,
+	0x60, 0x17, 0x6c, 0xe9, 0x5d, 0x97, 0x8c, 0xb5, 0xff, 0x67, 0xdc, 0xd4, 0x14, 0x9a, 0xf3, 0x09,
+	0x00, 0x34, 0x27, 0x9e, 0x5f, 0xcc, 0xc6, 0xad, 0xf5, 0xae, 0xd1, 0xaf, 0xb9, 0x1b, 0x34, 0x27,
+	0x43, 0x99, 0x30, 0x3b, 0xa0, 0xc9, 0x05, 0xca, 0x84, 0x02, 0x58, 0x75, 0x59, 0x07, 0x32, 0x25,
+	0x11, 0xe6, 0x2b, 0xf0, 0xb0, 0xb8, 0x3e, 0x9e, 0x4c, 0x15, 0x6f, 0x65, 0xb1, 0xe4, 0x86, 0xc4,
+	0xb6, 0x8b, 0xea, 0xa1, 0x2a, 0x2e, 0x36, 0x3d, 0x1c, 0x9f, 0xcf, 0x6c, 0xe3, 0x62, 0x66, 0x1b,
+	0x7f, 0x66, 0xb6, 0xf1, 0x65, 0x6e, 0x57, 0x2e, 0xe6, 0x76, 0xe5, 0xe7, 0xdc, 0xae, 0x7c, 0x84,
+	0x4b, 0xf7, 0xbe, 0xd8, 0xc6, 0x80, 0x62, 0xf1, 0x99, 0x65, 0x89, 0x0c, 0xe0, 0xc9, 0xf2, 0xef,
+	0x80, 0x7c, 0x04, 0x7e, 0x5d, 0x3e, 0xfa, 0x97, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x8b, 0xec,
+	0xd1, 0x55, 0xed, 0x04, 0x00, 0x00,
 }
 
 func (m *Commitments) Marshal() (dAtA []byte, err error) {
@@ -661,148 +548,6 @@ func (m *VestingTokens) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *LegacyCommitments) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *LegacyCommitments) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *LegacyCommitments) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.RewardsByUsdcUnclaimed) > 0 {
-		for iNdEx := len(m.RewardsByUsdcUnclaimed) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.RewardsByUsdcUnclaimed[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x4a
-		}
-	}
-	if len(m.RewardsByEdenbUnclaimed) > 0 {
-		for iNdEx := len(m.RewardsByEdenbUnclaimed) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.RewardsByEdenbUnclaimed[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x42
-		}
-	}
-	if len(m.RewardsByEdenUnclaimed) > 0 {
-		for iNdEx := len(m.RewardsByEdenUnclaimed) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.RewardsByEdenUnclaimed[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x3a
-		}
-	}
-	if len(m.RewardsByElysUnclaimed) > 0 {
-		for iNdEx := len(m.RewardsByElysUnclaimed) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.RewardsByElysUnclaimed[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x32
-		}
-	}
-	if len(m.VestingTokens) > 0 {
-		for iNdEx := len(m.VestingTokens) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.VestingTokens[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	if len(m.Claimed) > 0 {
-		for iNdEx := len(m.Claimed) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Claimed[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if len(m.RewardsUnclaimed) > 0 {
-		for iNdEx := len(m.RewardsUnclaimed) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.RewardsUnclaimed[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.CommittedTokens) > 0 {
-		for iNdEx := len(m.CommittedTokens) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.CommittedTokens[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintCommitments(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.Creator) > 0 {
-		i -= len(m.Creator)
-		copy(dAtA[i:], m.Creator)
-		i = encodeVarintCommitments(dAtA, i, uint64(len(m.Creator)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func encodeVarintCommitments(dAtA []byte, offset int, v uint64) int {
 	offset -= sovCommitments(v)
 	base := offset
@@ -902,67 +647,6 @@ func (m *VestingTokens) Size() (n int) {
 	}
 	if m.VestStartedTimestamp != 0 {
 		n += 1 + sovCommitments(uint64(m.VestStartedTimestamp))
-	}
-	return n
-}
-
-func (m *LegacyCommitments) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Creator)
-	if l > 0 {
-		n += 1 + l + sovCommitments(uint64(l))
-	}
-	if len(m.CommittedTokens) > 0 {
-		for _, e := range m.CommittedTokens {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.RewardsUnclaimed) > 0 {
-		for _, e := range m.RewardsUnclaimed {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.Claimed) > 0 {
-		for _, e := range m.Claimed {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.VestingTokens) > 0 {
-		for _, e := range m.VestingTokens {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.RewardsByElysUnclaimed) > 0 {
-		for _, e := range m.RewardsByElysUnclaimed {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.RewardsByEdenUnclaimed) > 0 {
-		for _, e := range m.RewardsByEdenUnclaimed {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.RewardsByEdenbUnclaimed) > 0 {
-		for _, e := range m.RewardsByEdenbUnclaimed {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
-	}
-	if len(m.RewardsByUsdcUnclaimed) > 0 {
-		for _, e := range m.RewardsByUsdcUnclaimed {
-			l = e.Size()
-			n += 1 + l + sovCommitments(uint64(l))
-		}
 	}
 	return n
 }
@@ -1596,360 +1280,6 @@ func (m *VestingTokens) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipCommitments(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *LegacyCommitments) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowCommitments
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: LegacyCommitments: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: LegacyCommitments: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Creator", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Creator = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CommittedTokens", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.CommittedTokens = append(m.CommittedTokens, &CommittedTokens{})
-			if err := m.CommittedTokens[len(m.CommittedTokens)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RewardsUnclaimed", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RewardsUnclaimed = append(m.RewardsUnclaimed, types.Coin{})
-			if err := m.RewardsUnclaimed[len(m.RewardsUnclaimed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Claimed", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Claimed = append(m.Claimed, types.Coin{})
-			if err := m.Claimed[len(m.Claimed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field VestingTokens", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.VestingTokens = append(m.VestingTokens, &VestingTokens{})
-			if err := m.VestingTokens[len(m.VestingTokens)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RewardsByElysUnclaimed", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RewardsByElysUnclaimed = append(m.RewardsByElysUnclaimed, types.Coin{})
-			if err := m.RewardsByElysUnclaimed[len(m.RewardsByElysUnclaimed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RewardsByEdenUnclaimed", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RewardsByEdenUnclaimed = append(m.RewardsByEdenUnclaimed, types.Coin{})
-			if err := m.RewardsByEdenUnclaimed[len(m.RewardsByEdenUnclaimed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 8:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RewardsByEdenbUnclaimed", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RewardsByEdenbUnclaimed = append(m.RewardsByEdenbUnclaimed, types.Coin{})
-			if err := m.RewardsByEdenbUnclaimed[len(m.RewardsByEdenbUnclaimed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 9:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RewardsByUsdcUnclaimed", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowCommitments
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthCommitments
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.RewardsByUsdcUnclaimed = append(m.RewardsByUsdcUnclaimed, types.Coin{})
-			if err := m.RewardsByUsdcUnclaimed[len(m.RewardsByUsdcUnclaimed)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipCommitments(dAtA[iNdEx:])

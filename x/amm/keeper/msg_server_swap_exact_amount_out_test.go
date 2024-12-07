@@ -1,7 +1,7 @@
 package keeper_test
 
 import (
-	"cosmossdk.io/math"
+	sdkmath "cosmossdk.io/math"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -10,13 +10,13 @@ import (
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 )
 
-func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
+func (suite *AmmKeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 	for _, tc := range []struct {
 		desc              string
 		senderInitBalance sdk.Coins
-		swapFee           sdk.Dec
+		swapFee           sdkmath.LegacyDec
 		tokenIn           sdk.Coin
-		tokenInMax        math.Int
+		tokenInMax        sdkmath.Int
 		tokenOut          sdk.Coin
 		swapRoutes        []types.SwapAmountOutRoute
 		expSenderBalance  sdk.Coins
@@ -25,9 +25,9 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 		{
 			desc:              "successful execution with positive swap fee",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFee:           sdk.NewDecWithPrec(1, 2), // 1%
+			swapFee:           sdkmath.LegacyNewDecWithPrec(1, 2), // 1%
 			tokenIn:           sdk.NewInt64Coin(ptypes.Elys, 10204),
-			tokenInMax:        sdk.NewInt(10000000),
+			tokenInMax:        sdkmath.NewInt(10000000),
 			tokenOut:          sdk.NewInt64Coin(ptypes.BaseCurrency, 10000),
 			swapRoutes: []types.SwapAmountOutRoute{
 				{
@@ -41,9 +41,9 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 		{
 			desc:              "successful execution with zero swap fee",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFee:           sdk.ZeroDec(),
+			swapFee:           sdkmath.LegacyZeroDec(),
 			tokenIn:           sdk.NewInt64Coin(ptypes.Elys, 10102),
-			tokenInMax:        sdk.NewInt(10000000),
+			tokenInMax:        sdkmath.NewInt(10000000),
 			tokenOut:          sdk.NewInt64Coin(ptypes.BaseCurrency, 10000),
 			swapRoutes: []types.SwapAmountOutRoute{
 				{
@@ -57,9 +57,9 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 		{
 			desc:              "not available pool as route",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFee:           sdk.ZeroDec(),
+			swapFee:           sdkmath.LegacyZeroDec(),
 			tokenIn:           sdk.NewInt64Coin(ptypes.Elys, 10102),
-			tokenInMax:        sdk.NewInt(10000000),
+			tokenInMax:        sdkmath.NewInt(10000000),
 			tokenOut:          sdk.NewInt64Coin(ptypes.BaseCurrency, 10000),
 			swapRoutes: []types.SwapAmountOutRoute{
 				{
@@ -73,9 +73,9 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 		{
 			desc:              "multiple routes",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
-			swapFee:           sdk.ZeroDec(),
+			swapFee:           sdkmath.LegacyZeroDec(),
 			tokenIn:           sdk.NewInt64Coin(ptypes.BaseCurrency, 10206),
-			tokenInMax:        sdk.NewInt(10000000),
+			tokenInMax:        sdkmath.NewInt(10000000),
 			tokenOut:          sdk.NewInt64Coin("uusdt", 10000),
 			swapRoutes: []types.SwapAmountOutRoute{
 				{
@@ -96,9 +96,9 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 
 			// bootstrap accounts
 			sender := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
-			poolAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
+			poolAddr := types.NewPoolAddress(uint64(1))
 			treasuryAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
-			poolAddr2 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
+			poolAddr2 := types.NewPoolAddress(uint64(2))
 			treasuryAddr2 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 			poolCoins := sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)}
 			pool2Coins := sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin("uusdt", 1000000)}
@@ -120,15 +120,15 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 			// execute function
 			suite.app.AmmKeeper.SetDenomLiquidity(suite.ctx, types.DenomLiquidity{
 				Denom:     ptypes.Elys,
-				Liquidity: sdk.NewInt(2000000),
+				Liquidity: sdkmath.NewInt(2000000),
 			})
 			suite.app.AmmKeeper.SetDenomLiquidity(suite.ctx, types.DenomLiquidity{
 				Denom:     ptypes.BaseCurrency,
-				Liquidity: sdk.NewInt(1000000),
+				Liquidity: sdkmath.NewInt(1000000),
 			})
 			suite.app.AmmKeeper.SetDenomLiquidity(suite.ctx, types.DenomLiquidity{
 				Denom:     "uusdt",
-				Liquidity: sdk.NewInt(1000000),
+				Liquidity: sdkmath.NewInt(1000000),
 			})
 
 			pool := types.Pool{
@@ -143,14 +143,14 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 				PoolAssets: []types.PoolAsset{
 					{
 						Token:  poolCoins[0],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 					{
 						Token:  poolCoins[1],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 				},
-				TotalWeight: sdk.ZeroInt(),
+				TotalWeight: sdkmath.ZeroInt(),
 			}
 			pool2 := types.Pool{
 				PoolId:            2,
@@ -163,27 +163,28 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 				PoolAssets: []types.PoolAsset{
 					{
 						Token:  pool2Coins[0],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 					{
 						Token:  pool2Coins[1],
-						Weight: sdk.NewInt(10),
+						Weight: sdkmath.NewInt(10),
 					},
 				},
-				TotalWeight: sdk.ZeroInt(),
+				TotalWeight: sdkmath.ZeroInt(),
 			}
 			suite.app.AmmKeeper.SetPool(suite.ctx, pool)
 			suite.app.AmmKeeper.SetPool(suite.ctx, pool2)
+			suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
+			suite.Require().True(suite.VerifyPoolAssetWithBalance(2))
 
-			msgServer := keeper.NewMsgServerImpl(suite.app.AmmKeeper)
+			msgServer := keeper.NewMsgServerImpl(*suite.app.AmmKeeper)
 			resp, err := msgServer.SwapExactAmountOut(
-				sdk.WrapSDKContext(suite.ctx),
+				suite.ctx,
 				&types.MsgSwapExactAmountOut{
 					Sender:           sender.String(),
 					Routes:           tc.swapRoutes,
 					TokenOut:         tc.tokenOut,
 					TokenInMaxAmount: tc.tokenInMax,
-					Discount:         sdk.ZeroDec(),
 				})
 			if !tc.expPass {
 				suite.Require().Error(err)
@@ -191,6 +192,8 @@ func (suite *KeeperTestSuite) TestMsgServerSwapExactAmountOut() {
 				suite.Require().NoError(err)
 				suite.Require().Equal(resp.TokenInAmount.String(), tc.tokenIn.Amount.String())
 				suite.app.AmmKeeper.EndBlocker(suite.ctx)
+				suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
+				suite.Require().True(suite.VerifyPoolAssetWithBalance(2))
 
 				// check balance change on sender
 				balances := suite.app.BankKeeper.GetAllBalances(suite.ctx, sender)

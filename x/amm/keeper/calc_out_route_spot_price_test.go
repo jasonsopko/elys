@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	sdkmath "cosmossdk.io/math"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -8,7 +9,7 @@ import (
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 )
 
-func (suite *KeeperTestSuite) TestCalcOutRouteSpotPrice() {
+func (suite *AmmKeeperTestSuite) TestCalcOutRouteSpotPrice() {
 	poolInitBalance := sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)}
 	pool2InitBalance := sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)}
 	senderInitBalance := sdk.Coins{sdk.NewInt64Coin(ptypes.Elys, 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)}
@@ -19,7 +20,6 @@ func (suite *KeeperTestSuite) TestCalcOutRouteSpotPrice() {
 	// bootstrap accounts
 	sender := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 	poolAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
-	pool2Addr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 	treasuryAddr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 	treasury2Addr := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 
@@ -42,76 +42,71 @@ func (suite *KeeperTestSuite) TestCalcOutRouteSpotPrice() {
 	}
 	pool := types.Pool{
 		PoolId:            1,
-		Address:           poolAddr.String(),
+		Address:           types.NewPoolAddress(uint64(1)).String(),
 		RebalanceTreasury: treasuryAddr.String(),
 		PoolParams: types.PoolParams{
-			UseOracle:                   false,
-			ExternalLiquidityRatio:      sdk.NewDec(2),
-			WeightBreakingFeeMultiplier: sdk.ZeroDec(),
-			WeightBreakingFeeExponent:   sdk.NewDecWithPrec(25, 1), // 2.5
-			WeightRecoveryFeePortion:    sdk.NewDecWithPrec(10, 2), // 10%
-			ThresholdWeightDifference:   sdk.ZeroDec(),
-			SwapFee:                     sdk.ZeroDec(),
-			FeeDenom:                    ptypes.BaseCurrency,
+			UseOracle: false,
+			SwapFee:   sdkmath.LegacyZeroDec(),
+			FeeDenom:  ptypes.BaseCurrency,
 		},
 		TotalShares: sdk.Coin{},
 		PoolAssets: []types.PoolAsset{
 			{
 				Token:  poolInitBalance[0],
-				Weight: sdk.NewInt(10),
+				Weight: sdkmath.NewInt(10),
 			},
 			{
 				Token:  poolInitBalance[1],
-				Weight: sdk.NewInt(10),
+				Weight: sdkmath.NewInt(10),
 			},
 		},
-		TotalWeight: sdk.ZeroInt(),
+		TotalWeight: sdkmath.ZeroInt(),
 	}
 	pool2 := types.Pool{
 		PoolId:            2,
-		Address:           pool2Addr.String(),
+		Address:           types.NewPoolAddress(uint64(2)).String(),
 		RebalanceTreasury: treasury2Addr.String(),
 		PoolParams: types.PoolParams{
-			SwapFee:  sdk.ZeroDec(),
+			SwapFee:  sdkmath.LegacyZeroDec(),
 			FeeDenom: ptypes.BaseCurrency,
 		},
 		TotalShares: sdk.Coin{},
 		PoolAssets: []types.PoolAsset{
 			{
 				Token:  pool2InitBalance[0],
-				Weight: sdk.NewInt(10),
+				Weight: sdkmath.NewInt(10),
 			},
 			{
 				Token:  pool2InitBalance[1],
-				Weight: sdk.NewInt(10),
+				Weight: sdkmath.NewInt(10),
 			},
 		},
-		TotalWeight: sdk.ZeroInt(),
+		TotalWeight: sdkmath.ZeroInt(),
 	}
 	suite.app.AmmKeeper.SetPool(suite.ctx, pool)
 	suite.app.AmmKeeper.SetPool(suite.ctx, pool2)
 
-	tokenOut := sdk.NewCoin(ptypes.BaseCurrency, sdk.NewInt(100))
+	tokenOut := sdk.NewCoin(ptypes.BaseCurrency, sdkmath.NewInt(100))
 	routes := []*types.SwapAmountOutRoute{{PoolId: 1, TokenInDenom: ptypes.Elys}}
-	spotPrice, _, _, _, _, _, _, _, err := suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, routes, sdk.ZeroDec(), sdk.ZeroDec())
+	spotPrice, _, _, _, _, _, _, _, err := suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, routes, sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
 	suite.Require().NoError(err)
 	suite.Require().NotZero(spotPrice)
 
-	tokenOut = sdk.NewCoin("uusda", sdk.NewInt(100))
+	tokenOut = sdk.NewCoin("uusda", sdkmath.NewInt(100))
 	routes = []*types.SwapAmountOutRoute{
 		{PoolId: 2, TokenInDenom: ptypes.BaseCurrency},
 		{PoolId: 1, TokenInDenom: ptypes.Elys},
 	}
-	spotPrice, _, _, _, _, _, _, _, err = suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, routes, sdk.ZeroDec(), sdk.ZeroDec())
+	spotPrice, _, _, _, _, _, _, _, err = suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, routes, sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
 	suite.Require().NoError(err)
 	suite.Require().NotZero(spotPrice)
 
 	// Test no routes
-	_, _, _, _, _, _, _, _, err = suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, nil, sdk.ZeroDec(), sdk.ZeroDec())
+	_, _, _, _, _, _, _, _, err = suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, nil, sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
 	suite.Require().Error(err)
 
 	// Test invalid pool
 	routes = []*types.SwapAmountOutRoute{{PoolId: 9999, TokenInDenom: "denom2"}}
-	_, _, _, _, _, _, _, _, err = suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, routes, sdk.ZeroDec(), sdk.ZeroDec())
+	_, _, _, _, _, _, _, _, err = suite.app.AmmKeeper.CalcOutRouteSpotPrice(suite.ctx, tokenOut, routes, sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec())
 	suite.Require().Error(err)
 }

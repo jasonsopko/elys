@@ -53,11 +53,6 @@ func CmdUpdateVestingInfo() *cobra.Command {
 				return err
 			}
 
-			argEpochIdentifier, err := cmd.Flags().GetString(FlagEpochIdentifier)
-			if err != nil {
-				return err
-			}
-
 			argNumEpochs, err := cmd.Flags().GetString(FlagNumEpochs)
 			if err != nil {
 				return err
@@ -69,6 +64,11 @@ func CmdUpdateVestingInfo() *cobra.Command {
 			}
 
 			argNumMaxVestings, err := cmd.Flags().GetString(FlagNumMaxVestings)
+			if err != nil {
+				return err
+			}
+
+			expedited, err := cmd.Flags().GetBool(FlagExpedited)
 			if err != nil {
 				return err
 			}
@@ -98,7 +98,6 @@ func CmdUpdateVestingInfo() *cobra.Command {
 				govAddress.String(),
 				argBaseDenom,
 				argVestingDenom,
-				argEpochIdentifier,
 				numEpochs,
 				vestNowFactor,
 				maxVestings,
@@ -117,7 +116,7 @@ func CmdUpdateVestingInfo() *cobra.Command {
 				return err
 			}
 
-			govMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{msg}, deposit, signer.String(), metadata, title, summary)
+			govMsg, err := v1.NewMsgSubmitProposal([]sdk.Msg{&msg}, deposit, signer.String(), metadata, title, summary, expedited)
 			if err != nil {
 				return err
 			}
@@ -128,8 +127,8 @@ func CmdUpdateVestingInfo() *cobra.Command {
 
 	cmd.Flags().String(FlagBaseDenom, "", "base denom")
 	cmd.Flags().String(FlagVestingDenom, "", "vesting-denom")
-	cmd.Flags().String(FlagEpochIdentifier, "", "epoch-identifier")
 	cmd.Flags().String(FlagNumEpochs, "", "num-epochs")
+	cmd.Flags().Bool(FlagExpedited, false, "expedited")
 	cmd.Flags().String(FlagVestNowFactor, "", "vest-now-factor")
 	cmd.Flags().String(FlagNumMaxVestings, "", "num-max-vestings")
 	cmd.Flags().String(cli.FlagTitle, "", "title of proposal")
@@ -138,7 +137,6 @@ func CmdUpdateVestingInfo() *cobra.Command {
 	cmd.Flags().String(cli.FlagDeposit, "", "deposit of proposal")
 	_ = cmd.MarkFlagRequired(FlagBaseDenom)
 	_ = cmd.MarkFlagRequired(FlagVestingDenom)
-	_ = cmd.MarkFlagRequired(FlagEpochIdentifier)
 	_ = cmd.MarkFlagRequired(FlagNumEpochs)
 	_ = cmd.MarkFlagRequired(FlagVestNowFactor)
 	_ = cmd.MarkFlagRequired(FlagNumMaxVestings)

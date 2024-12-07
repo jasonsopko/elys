@@ -1,19 +1,14 @@
 package keeper_test
 
 import (
-	"testing"
+	sdkmath "cosmossdk.io/math"
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	simapp "github.com/elys-network/elys/app"
 	"github.com/elys-network/elys/x/masterchef/types"
-	"github.com/stretchr/testify/require"
 )
 
-func TestUserRewardInfo(t *testing.T) {
-	app := simapp.InitElysTestApp(true)
-	ctx := app.BaseApp.NewContext(true, tmproto.Header{})
+func (suite *MasterchefKeeperTestSuite) TestUserRewardInfo() {
 
 	user1 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
 	user2 := sdk.AccAddress(ed25519.GenPrivKey().PubKey().Address())
@@ -22,37 +17,37 @@ func TestUserRewardInfo(t *testing.T) {
 			User:          user1.String(),
 			PoolId:        1,
 			RewardDenom:   "reward1",
-			RewardDebt:    sdk.ZeroDec(),
-			RewardPending: sdk.ZeroDec(),
+			RewardDebt:    sdkmath.LegacyZeroDec(),
+			RewardPending: sdkmath.LegacyZeroDec(),
 		},
 		{
 			User:          user1.String(),
 			PoolId:        1,
 			RewardDenom:   "reward2",
-			RewardDebt:    sdk.ZeroDec(),
-			RewardPending: sdk.ZeroDec(),
+			RewardDebt:    sdkmath.LegacyZeroDec(),
+			RewardPending: sdkmath.LegacyZeroDec(),
 		},
 		{
 			User:          user2.String(),
 			PoolId:        2,
 			RewardDenom:   "reward2",
-			RewardDebt:    sdk.ZeroDec(),
-			RewardPending: sdk.ZeroDec(),
+			RewardDebt:    sdkmath.LegacyZeroDec(),
+			RewardPending: sdkmath.LegacyZeroDec(),
 		},
 	}
 	for _, rewardInfo := range userRewardInfos {
-		app.MasterchefKeeper.SetUserRewardInfo(ctx, rewardInfo)
+		suite.app.MasterchefKeeper.SetUserRewardInfo(suite.ctx, rewardInfo)
 
 	}
 	for _, rewardInfo := range userRewardInfos {
-		info, found := app.MasterchefKeeper.GetUserRewardInfo(ctx, rewardInfo.GetUserAccount(), rewardInfo.PoolId, rewardInfo.RewardDenom)
-		require.True(t, found)
-		require.Equal(t, info, rewardInfo)
+		info, found := suite.app.MasterchefKeeper.GetUserRewardInfo(suite.ctx, rewardInfo.GetUserAccount(), rewardInfo.PoolId, rewardInfo.RewardDenom)
+		suite.Require().True(found)
+		suite.Require().Equal(info, rewardInfo)
 	}
-	rewardInfosStored := app.MasterchefKeeper.GetAllUserRewardInfos(ctx)
-	require.Len(t, rewardInfosStored, 3)
+	rewardInfosStored := suite.app.MasterchefKeeper.GetAllUserRewardInfos(suite.ctx)
+	suite.Require().Len(rewardInfosStored, 3)
 
-	app.MasterchefKeeper.RemoveUserRewardInfo(ctx, userRewardInfos[0].GetUserAccount(), userRewardInfos[0].PoolId, userRewardInfos[0].RewardDenom)
-	rewardInfosStored = app.MasterchefKeeper.GetAllUserRewardInfos(ctx)
-	require.Len(t, rewardInfosStored, 2)
+	suite.app.MasterchefKeeper.RemoveUserRewardInfo(suite.ctx, userRewardInfos[0].GetUserAccount(), userRewardInfos[0].PoolId, userRewardInfos[0].RewardDenom)
+	rewardInfosStored = suite.app.MasterchefKeeper.GetAllUserRewardInfos(suite.ctx)
+	suite.Require().Len(rewardInfosStored, 2)
 }

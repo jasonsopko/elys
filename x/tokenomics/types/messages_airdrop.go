@@ -6,13 +6,6 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-const (
-	TypeMsgCreateAirdrop = "create_airdrop"
-	TypeMsgUpdateAirdrop = "update_airdrop"
-	TypeMsgDeleteAirdrop = "delete_airdrop"
-	TypeMsgClaimAirdrop  = "claim_airdrop"
-)
-
 var _ sdk.Msg = &MsgCreateAirdrop{}
 
 func NewMsgCreateAirdrop(
@@ -29,31 +22,13 @@ func NewMsgCreateAirdrop(
 	}
 }
 
-func (msg *MsgCreateAirdrop) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgCreateAirdrop) Type() string {
-	return TypeMsgCreateAirdrop
-}
-
-func (msg *MsgCreateAirdrop) GetSigners() []sdk.AccAddress {
-	authority, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{authority}
-}
-
-func (msg *MsgCreateAirdrop) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgCreateAirdrop) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid authority address (%s)", err)
+	}
+	if len(msg.Intent) == 0 {
+		return errorsmod.Wrap(sdkerrors.ErrUnknownRequest, "intent cannot be empty")
 	}
 	return nil
 }
@@ -74,32 +49,27 @@ func NewMsgUpdateAirdrop(
 	}
 }
 
-func (msg *MsgUpdateAirdrop) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgUpdateAirdrop) Type() string {
-	return TypeMsgUpdateAirdrop
-}
-
-func (msg *MsgUpdateAirdrop) GetSigners() []sdk.AccAddress {
-	authority, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{authority}
-}
-
-func (msg *MsgUpdateAirdrop) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgUpdateAirdrop) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid authority address (%s)", err)
 	}
+
+	// Validate Intent is not empty
+	if len(msg.Intent) == 0 {
+		return errorsmod.Wrap(sdkerrors.ErrUnknownRequest, "intent cannot be empty")
+	}
+
+	// Validate Amount is positive
+	if msg.Amount <= 0 {
+		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, "amount must be positive")
+	}
+
+	// Validate Expiry
+	if msg.Expiry <= 0 {
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "expiry must be a positive timestamp")
+	}
+
 	return nil
 }
 
@@ -115,32 +85,17 @@ func NewMsgDeleteAirdrop(
 	}
 }
 
-func (msg *MsgDeleteAirdrop) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgDeleteAirdrop) Type() string {
-	return TypeMsgDeleteAirdrop
-}
-
-func (msg *MsgDeleteAirdrop) GetSigners() []sdk.AccAddress {
-	authority, err := sdk.AccAddressFromBech32(msg.Authority)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{authority}
-}
-
-func (msg *MsgDeleteAirdrop) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
-
 func (msg *MsgDeleteAirdrop) ValidateBasic() error {
 	_, err := sdk.AccAddressFromBech32(msg.Authority)
 	if err != nil {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid authority address (%s)", err)
 	}
+
+	// Validate Intent is not empty
+	if len(msg.Intent) == 0 {
+		return errorsmod.Wrap(sdkerrors.ErrUnknownRequest, "intent cannot be empty")
+	}
+
 	return nil
 }
 
@@ -152,27 +107,6 @@ func NewMsgClaimAirdrop(
 	return &MsgClaimAirdrop{
 		Sender: sender,
 	}
-}
-
-func (msg *MsgClaimAirdrop) Route() string {
-	return RouterKey
-}
-
-func (msg *MsgClaimAirdrop) Type() string {
-	return TypeMsgClaimAirdrop
-}
-
-func (msg *MsgClaimAirdrop) GetSigners() []sdk.AccAddress {
-	authority, err := sdk.AccAddressFromBech32(msg.Sender)
-	if err != nil {
-		panic(err)
-	}
-	return []sdk.AccAddress{authority}
-}
-
-func (msg *MsgClaimAirdrop) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
 }
 
 func (msg *MsgClaimAirdrop) ValidateBasic() error {
