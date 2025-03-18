@@ -179,14 +179,14 @@ func (suite *AmmKeeperTestSuite) TestSwapExactAmountIn() {
 			swapFeeOut:          sdkmath.LegacyZeroDec(),
 			tokenIn:             sdk.NewInt64Coin("uusda", 10000),
 			tokenOutMin:         sdkmath.ZeroInt(),
-			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9944),
+			tokenOut:            sdk.NewInt64Coin(ptypes.BaseCurrency, 9950),
 			weightBalanceBonus:  sdkmath.LegacyZeroDec(),
 			isOraclePool:        true,
 			useNewRecipient:     false,
-			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009944)},
+			expSenderBalance:    sdk.Coins{sdk.NewInt64Coin("uusda", 990000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1009950)},
 			expRecipientBalance: sdk.Coins{},
-			expPoolBalance:      sdk.Coins{sdk.NewInt64Coin("uusda", 1009997), sdk.NewInt64Coin(ptypes.BaseCurrency, 990056)},
-			expTreasuryBalance:  sdk.Coins{sdk.NewInt64Coin("uusda", 1000003), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
+			expPoolBalance:      sdk.Coins{sdk.NewInt64Coin("uusda", 1010000), sdk.NewInt64Coin(ptypes.BaseCurrency, 990050)},
+			expTreasuryBalance:  sdk.Coins{sdk.NewInt64Coin("uusda", 1000000), sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
 			expPass:             true,
 			errMsg:              "",
 		},
@@ -312,7 +312,7 @@ func (suite *AmmKeeperTestSuite) TestSwapExactAmountIn() {
 			suite.app.AmmKeeper.SetPool(suite.ctx, pool)
 			suite.Require().True(suite.VerifyPoolAssetWithBalance(1))
 
-			tokenOut, err := suite.app.AmmKeeper.InternalSwapExactAmountIn(suite.ctx, sender, recipient, pool, tc.tokenIn, tc.tokenOut.Denom, tc.tokenOutMin, tc.swapFeeIn)
+			tokenOut, err := suite.app.AmmKeeper.InternalSwapExactAmountIn(suite.ctx, sender, recipient, pool, tc.tokenIn, tc.tokenOut.Denom, tc.tokenOutMin, tc.swapFeeIn, sdkmath.LegacyZeroDec())
 			if !tc.expPass {
 				suite.Require().Error(err)
 				suite.Require().Contains(err.Error(), tc.errMsg)

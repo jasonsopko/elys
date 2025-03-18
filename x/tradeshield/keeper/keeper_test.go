@@ -17,9 +17,9 @@ import (
 	aptypes "github.com/elys-network/elys/x/assetprofile/types"
 	leveragelpmodulekeeper "github.com/elys-network/elys/x/leveragelp/keeper"
 	leveragelpmoduletypes "github.com/elys-network/elys/x/leveragelp/types"
-	oracletypes "github.com/elys-network/elys/x/oracle/types"
 	ptypes "github.com/elys-network/elys/x/parameter/types"
 	"github.com/elys-network/elys/x/perpetual/types"
+	oracletypes "github.com/ojo-network/ojo/x/oracle/types"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -204,7 +204,7 @@ func (suite *TradeshieldKeeperTestSuite) SetPerpetualPool(poolId uint64) (types.
 	_, err := leveragelpmodulekeeper.NewMsgServerImpl(*suite.app.LeveragelpKeeper).AddPool(ctx, &enablePoolMsg)
 	suite.Require().NoError(err)
 
-	pool := types.NewPool(ammPool)
+	pool := types.NewPool(ammPool, math.LegacyMustNewDecFromStr("11.5"))
 	k.SetPool(ctx, pool)
 
 	return pool, poolCreator, ammPool

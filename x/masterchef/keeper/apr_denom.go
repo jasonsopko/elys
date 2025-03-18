@@ -70,17 +70,22 @@ func (k Keeper) CalculateApr(ctx sdk.Context, query *types.QueryAprRequest) (mat
 		}
 	} else if query.Denom == ptypes.BaseCurrency {
 		if query.WithdrawType == commitmenttypes.EarnType_USDC_PROGRAM {
-			params := k.stableKeeper.GetParams(ctx)
-			res, err := k.stableKeeper.BorrowRatio(ctx, &stabletypes.QueryBorrowRatioRequest{})
+			borrowPool, found := k.stableKeeper.GetPoolByDenom(ctx, query.Denom)
+			if !found {
+				return math.LegacyZeroDec(), errorsmod.Wrap(types.ErrPoolNotFound, "pool not found")
+			}
+			res, err := k.stableKeeper.BorrowRatio(ctx, &stabletypes.QueryBorrowRatioRequest{
+				PoolId: stabletypes.UsdcPoolId,
+			})
 			if err != nil {
 				return math.LegacyZeroDec(), err
 			}
-			apr := params.InterestRate.Mul(res.BorrowRatio)
+			apr := borrowPool.InterestRate.Mul(res.BorrowRatio)
 			return apr, nil
 		} else {
 			// Elys staking, Eden committed, EdenB committed.
-			// Get 7 days average rewards
-			usdcAmount := k.GetAvgStakerFeesCollected(ctx)
+			// Get x days average rewards
+			usdcAmount := k.GetAvgStakerFeesCollected(ctx, int(query.Days))
 			if usdcAmount.IsZero() {
 				return math.LegacyZeroDec(), nil
 			}
