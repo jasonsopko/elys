@@ -5,9 +5,10 @@ import (
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	ptypes "github.com/elys-network/elys/x/parameter/types"
-	"github.com/elys-network/elys/x/stablestake/keeper"
-	"github.com/elys-network/elys/x/stablestake/types"
+	ptypes "github.com/elys-network/elys/v6/x/parameter/types"
+	"github.com/elys-network/elys/v6/x/stablestake/keeper"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
+	"github.com/osmosis-labs/osmosis/osmomath"
 )
 
 func (suite *KeeperTestSuite) TestMsgServerBond() {
@@ -18,7 +19,16 @@ func (suite *KeeperTestSuite) TestMsgServerBond() {
 		expSenderBalance  sdk.Coins
 		expSenderCommit   sdk.Coin
 		expPass           bool
+		setup             func()
 	}{
+		{
+			desc:              "bonding more than allowed",
+			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000_000_00)},
+			bondAmount:        math.NewInt(1000_000_0),
+			expSenderBalance:  sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 990000)}.Sort(),
+			expSenderCommit:   sdk.NewInt64Coin(types.GetShareDenomForPool(1), 10000),
+			expPass:           false,
+		},
 		{
 			desc:              "successful bonding process",
 			senderInitBalance: sdk.Coins{sdk.NewInt64Coin(ptypes.BaseCurrency, 1000000)},
@@ -75,9 +85,8 @@ func (suite *KeeperTestSuite) TestMsgServerBond() {
 				suite.Require().Equal(commitments.CommittedTokens[0].Amount.String(), tc.expSenderCommit.Amount.String())
 				suite.Require().Equal(commitments.CommittedTokens[0].Denom, tc.expSenderCommit.Denom)
 
-				total := suite.app.StablestakeKeeper.AllTVL(suite.ctx, suite.app.OracleKeeper)
-				suite.Require().Equal(total, math.LegacyMustNewDecFromStr("0.01"))
-
+				total := suite.app.StablestakeKeeper.AllTVL(suite.ctx)
+				suite.Require().Equal(total, osmomath.MustNewBigDecFromStr("0.01"))
 			}
 		})
 	}

@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ammtypes "github.com/elys-network/elys/x/amm/types"
-	stablestaketypes "github.com/elys-network/elys/x/stablestake/types"
-	"github.com/elys-network/elys/x/tier/types"
+	ammtypes "github.com/elys-network/elys/v6/x/amm/types"
+	stablestaketypes "github.com/elys-network/elys/v6/x/stablestake/types"
+	"github.com/elys-network/elys/v6/x/tier/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -54,8 +54,8 @@ func (k Keeper) GetUsersPoolData(goCtx context.Context, req *types.QueryGetUsers
 					continue
 				}
 				redemptionRate := k.stablestakeKeeper.CalculateRedemptionRateForPool(ctx, borrowPool)
-				tokenPrice := k.oracleKeeper.GetAssetPriceFromDenom(ctx, borrowPool.GetDepositDenom())
-				fiatValue := commitment.Amount.ToLegacyDec().Mul(redemptionRate).Mul(tokenPrice)
+				tokenPrice := k.oracleKeeper.GetDenomPrice(ctx, borrowPool.GetDepositDenom())
+				fiatValue := commitment.GetBigDecAmount().Mul(redemptionRate).Mul(tokenPrice)
 
 				u.Pools = append(u.Pools, &types.Pool{
 					Pool:      borrowPool.DepositDenom,
@@ -100,7 +100,7 @@ func (k Keeper) GetUsersPoolData(goCtx context.Context, req *types.QueryGetUsers
 				}
 
 				info := k.amm.PoolExtraInfo(ctx, pool, types.OneDay)
-				fiatValue := commitment.Amount.ToLegacyDec().Mul(info.LpTokenPrice).QuoInt(ammtypes.OneShare)
+				fiatValue := commitment.GetBigDecAmount().Mul(info.GetBigDecLpTokenPrice()).Quo(ammtypes.OneShareBigDec)
 
 				poolID := strconv.FormatUint(pool.PoolId, 10)
 

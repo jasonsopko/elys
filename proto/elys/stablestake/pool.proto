@@ -5,7 +5,7 @@ import "gogoproto/gogo.proto";
 import "cosmos_proto/cosmos.proto";
 import "cosmos/base/v1beta1/coin.proto";
 
-option go_package = "github.com/elys-network/elys/x/stablestake/types";
+option go_package = "github.com/elys-network/elys/v6/x/stablestake/types";
 
 message Pool {
   string deposit_denom = 1;
@@ -39,7 +39,7 @@ message Pool {
     (gogoproto.customtype) = "cosmossdk.io/math.LegacyDec",
     (gogoproto.nullable) = false
   ];
-  string total_value = 8 [
+  string net_amount = 8 [
     (cosmos_proto.scalar) = "cosmos.Int",
     (gogoproto.customtype) = "cosmossdk.io/math.Int",
     (gogoproto.nullable) = false

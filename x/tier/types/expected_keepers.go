@@ -3,20 +3,22 @@ package types
 import (
 	"context"
 
+	"github.com/osmosis-labs/osmosis/osmomath"
+
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	ammtypes "github.com/elys-network/elys/x/amm/types"
-	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
-	commitmenttypes "github.com/elys-network/elys/x/commitment/types"
-	estakingtypes "github.com/elys-network/elys/x/estaking/types"
-	leveragelptypes "github.com/elys-network/elys/x/leveragelp/types"
-	mastercheftypes "github.com/elys-network/elys/x/masterchef/types"
-	oracletypes "github.com/elys-network/elys/x/oracle/types"
-	perpetualtypes "github.com/elys-network/elys/x/perpetual/types"
-	stablestaketypes "github.com/elys-network/elys/x/stablestake/types"
-	tradeshieldtypes "github.com/elys-network/elys/x/tradeshield/types"
+	ammtypes "github.com/elys-network/elys/v6/x/amm/types"
+	assetprofiletypes "github.com/elys-network/elys/v6/x/assetprofile/types"
+	commitmenttypes "github.com/elys-network/elys/v6/x/commitment/types"
+	estakingtypes "github.com/elys-network/elys/v6/x/estaking/types"
+	leveragelptypes "github.com/elys-network/elys/v6/x/leveragelp/types"
+	mastercheftypes "github.com/elys-network/elys/v6/x/masterchef/types"
+	oracletypes "github.com/elys-network/elys/v6/x/oracle/types"
+	perpetualtypes "github.com/elys-network/elys/v6/x/perpetual/types"
+	stablestaketypes "github.com/elys-network/elys/v6/x/stablestake/types"
+	tradeshieldtypes "github.com/elys-network/elys/v6/x/tradeshield/types"
 )
 
 // AccountKeeper defines the expected account keeper used for simulations (noalias)
@@ -36,8 +38,8 @@ type BankKeeper interface {
 
 type OracleKeeper interface {
 	GetAssetInfo(ctx sdk.Context, denom string) (val oracletypes.AssetInfo, found bool)
-	GetAssetPrice(ctx sdk.Context, asset string) (oracletypes.Price, bool)
-	GetAssetPriceFromDenom(ctx sdk.Context, denom string) math.LegacyDec
+	GetAssetPrice(ctx sdk.Context, asset string) (math.LegacyDec, bool)
+	GetDenomPrice(ctx sdk.Context, denom string) osmomath.BigDec
 	GetPriceFeeder(ctx sdk.Context, feeder sdk.AccAddress) (val oracletypes.PriceFeeder, found bool)
 }
 
@@ -74,13 +76,13 @@ type AmmKeeper interface {
 	CalcInRouteSpotPrice(ctx sdk.Context,
 		tokenIn sdk.Coin,
 		routes []*ammtypes.SwapAmountInRoute,
-		discount math.LegacyDec,
-		overrideSwapFee math.LegacyDec,
-	) (math.LegacyDec, math.LegacyDec, sdk.Coin, math.LegacyDec, math.LegacyDec, sdk.Coin, math.LegacyDec, math.LegacyDec, error)
+		discount osmomath.BigDec,
+		overrideSwapFee osmomath.BigDec,
+	) (osmomath.BigDec, osmomath.BigDec, sdk.Coin, osmomath.BigDec, osmomath.BigDec, sdk.Coin, osmomath.BigDec, osmomath.BigDec, error)
 	Balance(goCtx context.Context, req *ammtypes.QueryBalanceRequest) (*ammtypes.QueryBalanceResponse, error)
-	GetEdenDenomPrice(ctx sdk.Context, baseCurrency string) math.LegacyDec
-	CalculateUSDValue(ctx sdk.Context, denom string, amount math.Int) math.LegacyDec
-	CalcAmmPrice(ctx sdk.Context, denom string, decimal uint64) math.LegacyDec
+	GetEdenDenomPrice(ctx sdk.Context, baseCurrency string) osmomath.BigDec
+	CalculateUSDValue(ctx sdk.Context, denom string, amount math.Int) osmomath.BigDec
+	CalcAmmPrice(ctx sdk.Context, denom string, decimal uint64) osmomath.BigDec
 }
 
 type EstakingKeeper interface {
@@ -106,9 +108,8 @@ type StablestakeKeeper interface {
 	GetParams(ctx sdk.Context) (params stablestaketypes.Params)
 	GetDebt(ctx sdk.Context, addr sdk.AccAddress, poolId uint64) stablestaketypes.Debt
 	UpdateInterestAndGetDebt(ctx sdk.Context, addr sdk.AccAddress, poolId uint64, borrowingForPool uint64) stablestaketypes.Debt
-	CalculateRedemptionRateByDenom(ctx sdk.Context, denom string) math.LegacyDec
 	GetPool(ctx sdk.Context, poolId uint64) (pool stablestaketypes.Pool, found bool)
-	CalculateRedemptionRateForPool(ctx sdk.Context, pool stablestaketypes.Pool) math.LegacyDec
+	CalculateRedemptionRateForPool(ctx sdk.Context, pool stablestaketypes.Pool) osmomath.BigDec
 }
 
 type TradeshieldKeeper interface {

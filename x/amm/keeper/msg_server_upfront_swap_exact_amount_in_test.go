@@ -5,8 +5,8 @@ import (
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	"github.com/elys-network/elys/x/amm/types"
-	ptypes "github.com/elys-network/elys/x/parameter/types"
+	"github.com/elys-network/elys/v6/x/amm/types"
+	ptypes "github.com/elys-network/elys/v6/x/parameter/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +27,7 @@ func (suite *AmmKeeperTestSuite) TestUpFrontSwapExactAmountIn() {
 					Sender:            "cosmos1xv9tklw7d82sezh9haa573wufgy59vmwe6xxe5",
 					Routes:            []types.SwapAmountInRoute{},
 					TokenIn:           sdk.NewCoin("tokenA", sdkmath.NewInt(100)),
-					TokenOutMinAmount: sdkmath.Int(sdkmath.LegacyMustNewDecFromStr("50")),
+					TokenOutMinAmount: sdkmath.NewInt(50),
 				}
 				_, err := suite.app.AmmKeeper.UpFrontSwapExactAmountIn(suite.ctx, msg)
 				return err

@@ -5,7 +5,8 @@ import (
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/elys-network/elys/x/stablestake/types"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
+	"github.com/osmosis-labs/osmosis/osmomath"
 )
 
 func (k Keeper) GetAllPools(ctx sdk.Context) (pools []types.Pool) {
@@ -24,7 +25,7 @@ func (k Keeper) GetAllPools(ctx sdk.Context) (pools []types.Pool) {
 	return
 }
 
-// GetPools get pool as types.Pool
+// GetPool get pool as types.Pool
 func (k Keeper) GetPool(ctx sdk.Context, poolId uint64) (pool types.Pool, found bool) {
 	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 
@@ -41,6 +42,11 @@ func (k Keeper) SetPool(ctx sdk.Context, pool types.Pool) {
 	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 	b := k.cdc.MustMarshal(&pool)
 	store.Set(types.GetPoolKey(pool.Id), b)
+}
+
+func (k Keeper) DeletePool(ctx sdk.Context, poolId uint64) {
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	store.Delete(types.GetPoolKey(poolId))
 }
 
 func (k Keeper) GetPoolByDenom(ctx sdk.Context, denom string) (types.Pool, bool) {
@@ -60,29 +66,14 @@ func (k Keeper) GetPoolByDenom(ctx sdk.Context, denom string) (types.Pool, bool)
 	return types.Pool{}, false
 }
 
-func (k Keeper) CalculateRedemptionRateForPool(ctx sdk.Context, pool types.Pool) math.LegacyDec {
+func (k Keeper) CalculateRedemptionRateForPool(ctx sdk.Context, pool types.Pool) osmomath.BigDec {
 	totalShares := k.bk.GetSupply(ctx, types.GetShareDenomForPool(pool.Id))
 
 	if totalShares.Amount.IsZero() {
-		return math.LegacyZeroDec()
+		return osmomath.ZeroBigDec()
 	}
 
-	return pool.TotalValue.ToLegacyDec().Quo(totalShares.Amount.ToLegacyDec())
-}
-
-func (k Keeper) CalculateRedemptionRateByDenom(ctx sdk.Context, denom string) math.LegacyDec {
-	pool, found := k.GetPoolByDenom(ctx, denom)
-	if !found {
-		return math.LegacyZeroDec()
-	}
-
-	totalShares := k.bk.GetSupply(ctx, types.GetShareDenomForPool(pool.Id))
-
-	if totalShares.Amount.IsZero() {
-		return math.LegacyZeroDec()
-	}
-
-	return pool.TotalValue.ToLegacyDec().Quo(totalShares.Amount.ToLegacyDec())
+	return pool.GetBigDecNetAmount().Quo(osmomath.BigDecFromSDKInt(totalShares.Amount))
 }
 
 func (k Keeper) GetLatestPool(ctx sdk.Context) (val types.Pool, found bool) {
@@ -107,7 +98,7 @@ func (k Keeper) GetNextPoolId(ctx sdk.Context) uint64 {
 	return latestPool.Id + 1
 }
 
-// IterateLiquidty iterates over all LiquidityPools and performs a
+// IterateLiquidityPools iterates over all LiquidityPools and performs a
 // callback.
 func (k Keeper) IterateLiquidityPools(ctx sdk.Context, handlerFn func(pool types.Pool) (stop bool)) {
 	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
@@ -141,4 +132,18 @@ func (k Keeper) HasPoolByDenom(ctx sdk.Context, depositDenom string) bool {
 	}
 
 	return false
+}
+
+func (k Keeper) GetMaxBondableAmount(ctx sdk.Context, asset string) math.Int {
+	allPoolIds := k.leverageLpKeeper.GetEnabledPoolIds(ctx)
+	amount := math.ZeroInt()
+	for _, poolId := range allPoolIds {
+		snapshot := k.ammKeeper.GetPoolWithAccountedBalance(ctx, poolId)
+		for _, poolAsset := range snapshot.PoolAssets {
+			if poolAsset.Token.Denom == asset {
+				amount = amount.Add(poolAsset.Token.Amount)
+			}
+		}
+	}
+	return amount
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/elys-network/elys/x/amm/types"
+	"github.com/elys-network/elys/v6/x/amm/types"
 )
 
 func (k msgServer) ExitPool(goCtx context.Context, msg *types.MsgExitPool) (*types.MsgExitPoolResponse, error) {
@@ -29,8 +29,8 @@ func (k msgServer) ExitPool(goCtx context.Context, msg *types.MsgExitPool) (*typ
 
 	return &types.MsgExitPoolResponse{
 		TokenOut:           exitCoins,
-		WeightBalanceRatio: weightBalanceBonus,
-		SwapFee:            swapFee,
-		Slippage:           slippage,
+		WeightBalanceRatio: weightBalanceBonus.Dec(),
+		SwapFee:            swapFee.Dec(),
+		Slippage:           slippage.Dec(),
 	}, nil
 }

@@ -6,10 +6,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
-	ptypes "github.com/elys-network/elys/x/parameter/types"
-	"github.com/elys-network/elys/x/stablestake/keeper"
-	"github.com/elys-network/elys/x/stablestake/types"
+	assetprofiletypes "github.com/elys-network/elys/v6/x/assetprofile/types"
+	ptypes "github.com/elys-network/elys/v6/x/parameter/types"
+	"github.com/elys-network/elys/v6/x/stablestake/keeper"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
 )
 
 func (suite *KeeperTestSuite) TestUnbond() {
@@ -107,7 +107,7 @@ func (suite *KeeperTestSuite) TestUnbond() {
 			suite.Require().NoError(err)
 
 			pool, _ := suite.app.StablestakeKeeper.GetPool(suite.ctx, 1)
-			pool.TotalValue = math.NewInt(5000_000)
+			pool.NetAmount = math.NewInt(5000_000)
 			pool.MaxLeverageRatio = math.LegacyMustNewDecFromStr("0.8")
 			pool.MaxWithdrawRatio = tc.maxWithdrawRatio
 			suite.app.StablestakeKeeper.SetPool(suite.ctx, pool)

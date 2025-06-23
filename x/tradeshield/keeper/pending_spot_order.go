@@ -8,12 +8,13 @@ import (
 	sdkmath "cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
+	"github.com/osmosis-labs/osmosis/osmomath"
 
 	"cosmossdk.io/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
-	ammtypes "github.com/elys-network/elys/x/amm/types"
-	"github.com/elys-network/elys/x/tradeshield/types"
+	ammtypes "github.com/elys-network/elys/v6/x/amm/types"
+	"github.com/elys-network/elys/v6/x/tradeshield/types"
 )
 
 // GetPendingSpotOrderCount get the total number of pendingSpotOrder
@@ -208,7 +209,7 @@ func (k Keeper) ExecuteStopLossOrder(ctx sdk.Context, order types.SpotOrder) (*a
 		return nil, errorsmod.Wrapf(types.ErrZeroMarketPrice, "denom in: %s, denom out: %s", order.OrderAmount.Denom, order.OrderTargetDenom)
 	}
 
-	if marketPrice.GT(order.OrderPrice) {
+	if marketPrice.GT(order.GetBigDecOrderPrice()) {
 		// skip the order
 		return nil, nil
 	}
@@ -253,7 +254,7 @@ func (k Keeper) ExecuteLimitSellOrder(ctx sdk.Context, order types.SpotOrder) (*
 		return nil, errorsmod.Wrapf(types.ErrZeroMarketPrice, "denom in: %s, denom out: %s", order.OrderAmount.Denom, order.OrderTargetDenom)
 	}
 
-	if marketPrice.LT(order.OrderPrice) {
+	if marketPrice.LT(order.GetBigDecOrderPrice()) {
 		// skip the order
 		return nil, nil
 	}
@@ -275,21 +276,21 @@ func (k Keeper) ExecuteLimitSellOrder(ctx sdk.Context, order types.SpotOrder) (*
 		MinAmount: sdk.NewCoin(order.OrderTargetDenom, sdkmath.ZeroInt()),
 		MaxAmount: order.OrderAmount,
 	})
+	if err != nil {
+		return res, err
+	}
 
 	params := k.GetParams(ctx)
-	expectedAmount := marketPrice.Mul(order.OrderAmount.Amount.ToLegacyDec())
-	gotAmount := res.Amount.Amount.ToLegacyDec()
-	tolerance := sdkmath.LegacyZeroDec()
+	expectedAmount := marketPrice.Mul(osmomath.BigDecFromSDKInt(order.OrderAmount.Amount))
+	gotAmount := osmomath.BigDecFromSDKInt(res.Amount.Amount)
+	tolerance := osmomath.ZeroBigDec()
 
 	if gotAmount.LT(expectedAmount) {
 		tolerance = (expectedAmount.Sub(gotAmount)).Quo(expectedAmount)
 	}
 
-	if tolerance.GT(params.Tolerance) {
+	if tolerance.GT(params.GetBigDecTolerance()) {
 		return res, errorsmod.Wrapf(types.ErrHighTolerance, "tolerance: %s", tolerance)
-	}
-	if err != nil {
-		return res, err
 	}
 
 	// Remove the order from the pending order list
@@ -311,7 +312,7 @@ func (k Keeper) ExecuteLimitBuyOrder(ctx sdk.Context, order types.SpotOrder) (*a
 		return nil, errorsmod.Wrapf(types.ErrZeroMarketPrice, "denom in: %s, denom out: %s", order.OrderAmount.Denom, order.OrderTargetDenom)
 	}
 
-	if marketPrice.GT(order.OrderPrice) {
+	if marketPrice.GT(order.GetBigDecOrderPrice()) {
 		// skip the order
 		return nil, nil
 	}
@@ -333,21 +334,21 @@ func (k Keeper) ExecuteLimitBuyOrder(ctx sdk.Context, order types.SpotOrder) (*a
 		MinAmount: sdk.NewCoin(order.OrderTargetDenom, sdkmath.ZeroInt()),
 		MaxAmount: order.OrderAmount,
 	})
+	if err != nil {
+		return res, err
+	}
 
 	params := k.GetParams(ctx)
-	expectedAmount := order.OrderAmount.Amount.ToLegacyDec().Quo(marketPrice)
-	gotAmount := res.Amount.Amount.ToLegacyDec()
-	tolerance := sdkmath.LegacyZeroDec()
+	expectedAmount := osmomath.BigDecFromSDKInt(order.OrderAmount.Amount).Quo(marketPrice)
+	gotAmount := osmomath.BigDecFromSDKInt(res.Amount.Amount)
+	tolerance := osmomath.ZeroBigDec()
 
 	if gotAmount.LT(expectedAmount) {
 		tolerance = (expectedAmount.Sub(gotAmount)).Quo(expectedAmount)
 	}
 
-	if tolerance.GT(params.Tolerance) {
+	if tolerance.GT(params.GetBigDecTolerance()) {
 		return res, errorsmod.Wrapf(types.ErrHighTolerance, "tolerance: %s", tolerance)
-	}
-	if err != nil {
-		return res, err
 	}
 
 	// Remove the order from the pending order list

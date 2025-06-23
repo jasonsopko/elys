@@ -5,9 +5,9 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/elys-network/elys/testutil/sample"
-	"github.com/elys-network/elys/x/stablestake/keeper"
-	"github.com/elys-network/elys/x/stablestake/types"
+	"github.com/elys-network/elys/v6/testutil/sample"
+	"github.com/elys-network/elys/v6/x/stablestake/keeper"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
 )
 
 func (suite *KeeperTestSuite) TestMsgServerAddPool() {
@@ -28,7 +28,7 @@ func (suite *KeeperTestSuite) TestMsgServerAddPool() {
 				InterestRateIncrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				InterestRateDecrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				HealthGainFactor:     sdkmath.LegacyMustNewDecFromStr("0.01"),
-				TotalValue:           sdkmath.ZeroInt(),
+				NetAmount:            sdkmath.ZeroInt(),
 				MaxLeverageRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				MaxWithdrawRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				Id:                   2,
@@ -47,7 +47,7 @@ func (suite *KeeperTestSuite) TestMsgServerAddPool() {
 				InterestRateIncrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				InterestRateDecrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				HealthGainFactor:     sdkmath.LegacyMustNewDecFromStr("0.01"),
-				TotalValue:           sdkmath.ZeroInt(),
+				NetAmount:            sdkmath.ZeroInt(),
 				MaxLeverageRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				MaxWithdrawRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				Id:                   2,
@@ -66,7 +66,7 @@ func (suite *KeeperTestSuite) TestMsgServerAddPool() {
 				InterestRateIncrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				InterestRateDecrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				HealthGainFactor:     sdkmath.LegacyMustNewDecFromStr("0.01"),
-				TotalValue:           sdkmath.ZeroInt(),
+				NetAmount:            sdkmath.ZeroInt(),
 				MaxLeverageRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				MaxWithdrawRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				Id:                   2,

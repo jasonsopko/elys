@@ -7,7 +7,7 @@ import (
 
 	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/elys-network/elys/x/leveragelp/types"
+	"github.com/elys-network/elys/v6/x/leveragelp/types"
 )
 
 // Increase collateral, repay with additional collateral, update debt, liability and health
@@ -49,7 +49,7 @@ func (k Keeper) ProcessAddCollateral(ctx sdk.Context, address string, id uint64,
 	if err != nil {
 		return err
 	}
-	position.PositionHealth = positionHealth
+	position.PositionHealth = positionHealth.Dec()
 
 	// Update Liabilities
 	debt := k.stableKeeper.UpdateInterestAndGetDebt(ctx, position.GetPositionAddress(), position.BorrowPoolId, position.AmmPoolId)

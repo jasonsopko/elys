@@ -4,8 +4,8 @@ import (
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	"github.com/elys-network/elys/x/stablestake/keeper"
-	"github.com/elys-network/elys/x/stablestake/types"
+	"github.com/elys-network/elys/v6/x/stablestake/keeper"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,7 +26,7 @@ func (suite *KeeperTestSuite) TestBorrowRatio() {
 			},
 			setup: func(ctx sdk.Context, k keeper.Keeper) {
 				pool := types.Pool{
-					TotalValue:   sdkmath.NewInt(1000),
+					NetAmount:    sdkmath.NewInt(1000),
 					DepositDenom: "token",
 					Id:           1,
 				}
@@ -39,9 +39,9 @@ func (suite *KeeperTestSuite) TestBorrowRatio() {
 			},
 			expectedError: nil,
 			expectedResp: &types.QueryBorrowRatioResponse{
-				TotalDeposit: sdkmath.NewInt(1000),
-				TotalBorrow:  sdkmath.NewInt(500),
-				BorrowRatio:  sdkmath.LegacyNewDecWithPrec(5, 1), // 0.5
+				NetAmount:   sdkmath.NewInt(1000),
+				TotalBorrow: sdkmath.NewInt(500),
+				BorrowRatio: sdkmath.LegacyNewDecWithPrec(5, 1), // 0.5
 			},
 		},
 		{
@@ -58,7 +58,7 @@ func (suite *KeeperTestSuite) TestBorrowRatio() {
 			},
 			setup: func(ctx sdk.Context, k keeper.Keeper) {
 				pool := types.Pool{
-					TotalValue:   sdkmath.ZeroInt(),
+					NetAmount:    sdkmath.ZeroInt(),
 					DepositDenom: "token",
 					Id:           1,
 				}
@@ -66,9 +66,9 @@ func (suite *KeeperTestSuite) TestBorrowRatio() {
 			},
 			expectedError: nil,
 			expectedResp: &types.QueryBorrowRatioResponse{
-				TotalDeposit: sdkmath.ZeroInt(),
-				TotalBorrow:  sdkmath.NewInt(-500),
-				BorrowRatio:  sdkmath.LegacyZeroDec(),
+				NetAmount:   sdkmath.ZeroInt(),
+				TotalBorrow: sdkmath.NewInt(-500),
+				BorrowRatio: sdkmath.LegacyZeroDec(),
 			},
 		},
 	}

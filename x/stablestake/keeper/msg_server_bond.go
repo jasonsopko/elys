@@ -2,14 +2,13 @@ package keeper
 
 import (
 	"context"
-
-	sdkmath "cosmossdk.io/math"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	assetprofiletypes "github.com/elys-network/elys/x/assetprofile/types"
-	ptypes "github.com/elys-network/elys/x/parameter/types"
-	"github.com/elys-network/elys/x/stablestake/types"
+	assetprofiletypes "github.com/elys-network/elys/v6/x/assetprofile/types"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
+	"github.com/osmosis-labs/osmosis/osmomath"
 )
 
 func (k msgServer) Bond(goCtx context.Context, msg *types.MsgBond) (*types.MsgBondResponse, error) {
@@ -17,6 +16,11 @@ func (k msgServer) Bond(goCtx context.Context, msg *types.MsgBond) (*types.MsgBo
 	pool, found := k.GetPool(ctx, msg.PoolId)
 	if !found {
 		return nil, types.ErrPoolNotFound
+	}
+	updatedNetAmount := pool.NetAmount.Add(msg.Amount)
+	maxBondable := k.GetMaxBondableAmount(ctx, pool.DepositDenom)
+	if updatedNetAmount.GT(maxBondable) {
+		return nil, fmt.Errorf("vault cannot have more than the max bondable amount %s (current %s)", maxBondable.String(), pool.NetAmount.String())
 	}
 
 	creator := sdk.MustAccAddressFromBech32(msg.Creator)
@@ -32,9 +36,9 @@ func (k msgServer) Bond(goCtx context.Context, msg *types.MsgBond) (*types.MsgBo
 	shareDenom := types.GetShareDenomForPool(pool.Id)
 	// Initial case
 	if redemptionRate.IsZero() {
-		redemptionRate = sdkmath.LegacyOneDec()
+		redemptionRate = osmomath.OneBigDec()
 	}
-	shareAmount := depositCoin.Amount.ToLegacyDec().Quo(redemptionRate).RoundInt()
+	shareAmount := osmomath.BigDecFromSDKInt(depositCoin.Amount).Quo(redemptionRate).Dec().RoundInt()
 	shareCoins := sdk.NewCoins(sdk.NewCoin(shareDenom, shareAmount))
 
 	err = k.bk.MintCoins(ctx, types.ModuleName, shareCoins)
@@ -49,11 +53,15 @@ func (k msgServer) Bond(goCtx context.Context, msg *types.MsgBond) (*types.MsgBo
 
 	_, found = k.assetProfileKeeper.GetEntry(ctx, shareDenom)
 	if !found {
+		depositDenomProfile, found := k.assetProfileKeeper.GetEntryByDenom(ctx, depositDenom)
+		if !found {
+			return nil, fmt.Errorf("deposit denom (%s) profile not found", depositCoin)
+		}
 		// Set an entity to assetprofile
 		entry := assetprofiletypes.Entry{
 			Authority:                authtypes.NewModuleAddress(types.ModuleName).String(),
 			BaseDenom:                shareDenom,
-			Decimals:                 ptypes.BASE_DECIMAL,
+			Decimals:                 depositDenomProfile.Decimals,
 			Denom:                    shareDenom,
 			Path:                     "",
 			IbcChannelId:             "",
@@ -81,7 +89,7 @@ func (k msgServer) Bond(goCtx context.Context, msg *types.MsgBond) (*types.MsgBo
 		return nil, err
 	}
 
-	pool.TotalValue = pool.TotalValue.Add(msg.Amount)
+	pool.NetAmount = updatedNetAmount
 	k.SetPool(ctx, pool)
 
 	if k.hooks != nil {

@@ -6,11 +6,11 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ptypes "github.com/elys-network/elys/x/parameter/types"
+	ptypes "github.com/elys-network/elys/v6/x/parameter/types"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/elys-network/elys/testutil/sample"
-	"github.com/elys-network/elys/x/amm/types"
+	"github.com/elys-network/elys/v6/testutil/sample"
+	"github.com/elys-network/elys/v6/x/amm/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,6 +65,32 @@ func TestMsgUpFromSwapExactAmountIn_ValidateBasic(t *testing.T) {
 				TokenOutMinAmount: math.NewInt(1),
 			},
 			err: errors.New("token in is zero"),
+		},
+		{
+			name: "Invalid routes with same Input and Output denom",
+			msg: types.MsgUpFrontSwapExactAmountIn{
+				Sender: sample.AccAddress(),
+				Routes: []types.SwapAmountInRoute{
+					{TokenOutDenom: "uusdc"},
+					{TokenOutDenom: "uusdc"},
+					{TokenOutDenom: "uelys"},
+				},
+				TokenIn:           sdk.Coin{Denom: ptypes.ATOM, Amount: math.NewInt(10)},
+				TokenOutMinAmount: math.NewInt(1),
+			},
+			err: errors.New("has the same input and output denom as the previous route"),
+		},
+		{
+			name: "Valid multiple routes",
+			msg: types.MsgUpFrontSwapExactAmountIn{
+				Sender: sample.AccAddress(),
+				Routes: []types.SwapAmountInRoute{
+					{TokenOutDenom: "uusdc"},
+					{TokenOutDenom: "uelys"},
+				},
+				TokenIn:           sdk.Coin{Denom: ptypes.ATOM, Amount: math.NewInt(10)},
+				TokenOutMinAmount: math.NewInt(1),
+			},
 		},
 	}
 	for _, tt := range tests {

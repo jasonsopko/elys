@@ -6,8 +6,8 @@ import (
 	sdkmath "cosmossdk.io/math"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/elys-network/elys/x/stablestake/keeper"
-	"github.com/elys-network/elys/x/stablestake/types"
+	"github.com/elys-network/elys/v6/x/stablestake/keeper"
+	"github.com/elys-network/elys/v6/x/stablestake/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +30,7 @@ func (suite *KeeperTestSuite) TestUpdatePool() {
 				InterestRateIncrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				InterestRateDecrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				HealthGainFactor:     sdkmath.LegacyMustNewDecFromStr("0.01"),
-				TotalValue:           sdkmath.OneInt(),
+				NetAmount:            sdkmath.OneInt(),
 				MaxLeverageRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				Id:                   1,
 			},
@@ -47,7 +47,7 @@ func (suite *KeeperTestSuite) TestUpdatePool() {
 				InterestRateIncrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				InterestRateDecrease: sdkmath.LegacyMustNewDecFromStr("0.01"),
 				HealthGainFactor:     sdkmath.LegacyMustNewDecFromStr("0.01"),
-				TotalValue:           sdkmath.OneInt(),
+				NetAmount:            sdkmath.OneInt(),
 				MaxLeverageRatio:     sdkmath.LegacyMustNewDecFromStr("0.1"),
 				Id:                   1,
 			},
