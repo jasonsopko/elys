@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -52,9 +53,9 @@ func (k msgServer) AddExternalRewardDenom(goCtx context.Context, msg *types.MsgA
 	}
 
 	if index != -1 && !msg.Supported {
-		params.SupportedRewardDenoms = append(
-			params.SupportedRewardDenoms[:index],
-			params.SupportedRewardDenoms[index+1:]...,
+		params.SupportedRewardDenoms = slices.Delete(
+			params.SupportedRewardDenoms, index,
+			index+1,
 		)
 	}
 
@@ -220,4 +221,17 @@ func (k msgServer) UpdatePoolMultipliers(goCtx context.Context, msg *types.MsgUp
 	k.Keeper.UpdatePoolMultipliers(ctx, msg.PoolMultipliers)
 
 	return &types.MsgUpdatePoolMultipliersResponse{}, nil
+}
+
+func (k msgServer) ToggleTakerFeeSwapAndBurn(goCtx context.Context, msg *types.MsgToggleTakerFeeSwapAndBurn) (*types.MsgToggleTakerFeeSwapAndBurnResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	takerManager := k.GetParams(ctx).TakerManager
+
+	if takerManager != msg.Sender {
+		return nil, errorsmod.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", takerManager, msg.Sender)
+	}
+
+	k.ProcessTakerFee(ctx)
+
+	return &types.MsgToggleTakerFeeSwapAndBurnResponse{}, nil
 }

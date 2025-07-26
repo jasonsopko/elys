@@ -76,8 +76,6 @@ import (
 	leveragelpmoduletypes "github.com/elys-network/elys/v6/x/leveragelp/types"
 	masterchefmodule "github.com/elys-network/elys/v6/x/masterchef"
 	masterchefmoduletypes "github.com/elys-network/elys/v6/x/masterchef/types"
-	oraclemodule "github.com/elys-network/elys/v6/x/oracle"
-	oracletypes "github.com/elys-network/elys/v6/x/oracle/types"
 	parametermodule "github.com/elys-network/elys/v6/x/parameter"
 	parametermoduletypes "github.com/elys-network/elys/v6/x/parameter/types"
 	perpetualmodule "github.com/elys-network/elys/v6/x/perpetual"
@@ -90,6 +88,8 @@ import (
 	tokenomicsmoduletypes "github.com/elys-network/elys/v6/x/tokenomics/types"
 	tradeshieldmodule "github.com/elys-network/elys/v6/x/tradeshield"
 	tradeshieldmoduletypes "github.com/elys-network/elys/v6/x/tradeshield/types"
+	oraclemodule "github.com/ojo-network/ojo/x/oracle"
+	oracletypes "github.com/ojo-network/ojo/x/oracle/types"
 )
 
 // module account permissions
@@ -264,6 +264,7 @@ func orderBeginBlockers() []string {
 		ibcexported.ModuleName,
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
+		packetforwardtypes.ModuleName,
 		genutiltypes.ModuleName,
 		authz.ModuleName,
 		feegrant.ModuleName,
@@ -287,7 +288,6 @@ func orderBeginBlockers() []string {
 		tradeshieldmoduletypes.ModuleName,
 		wasmTypes.ModuleName,
 		ibchookstypes.ModuleName,
-		packetforwardtypes.ModuleName,
 	}
 }
 
@@ -309,6 +309,7 @@ func orderEndBlockers() []string {
 		ibcexported.ModuleName,
 		ibctransfertypes.ModuleName,
 		icatypes.ModuleName,
+		packetforwardtypes.ModuleName,
 		capabilitytypes.ModuleName,
 		authtypes.ModuleName,
 		banktypes.ModuleName,
@@ -340,7 +341,6 @@ func orderEndBlockers() []string {
 		tradeshieldmoduletypes.ModuleName,
 		wasmTypes.ModuleName,
 		ibchookstypes.ModuleName,
-		packetforwardtypes.ModuleName,
 
 		// Must be called after estaking and masterchef
 		ccvconsumertypes.ModuleName,

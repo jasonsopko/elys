@@ -3,14 +3,19 @@ package keeper_test
 import (
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	oracletypes "github.com/elys-network/elys/v6/x/oracle/types"
 	ptypes "github.com/elys-network/elys/v6/x/parameter/types"
 	"github.com/elys-network/elys/v6/x/tradeshield/keeper"
 	"github.com/elys-network/elys/v6/x/tradeshield/types"
+	oracletypes "github.com/ojo-network/ojo/x/oracle/types"
 )
 
 func (suite *TradeshieldKeeperTestSuite) TestMsgServerExecuteOrder() {
 	addr := suite.AddAccounts(3, nil)
+
+	perpParams := suite.app.PerpetualKeeper.GetParams(suite.ctx)
+	perpParams.EnabledPools = []uint64{1}
+	err := suite.app.PerpetualKeeper.SetParams(suite.ctx, &perpParams)
+	suite.Require().NoError(err)
 
 	testCases := []struct {
 		name                  string
@@ -23,9 +28,15 @@ func (suite *TradeshieldKeeperTestSuite) TestMsgServerExecuteOrder() {
 			"spot order not found",
 			func() *types.MsgExecuteOrders {
 				return &types.MsgExecuteOrders{
-					Creator:           addr[2].String(),
-					SpotOrderIds:      []uint64{1},
-					PerpetualOrderIds: []uint64{1},
+					Creator:      addr[2].String(),
+					SpotOrderIds: []uint64{1},
+					PerpetualOrders: []types.PerpetualOrderKey{
+						{
+							OwnerAddress: addr[2].String(),
+							PoolId:       1,
+							OrderId:      1,
+						},
+					},
 				}
 			},
 			func() {},
@@ -46,9 +57,15 @@ func (suite *TradeshieldKeeperTestSuite) TestMsgServerExecuteOrder() {
 				suite.Require().NoError(err)
 
 				return &types.MsgExecuteOrders{
-					Creator:           addr[2].String(),
-					SpotOrderIds:      []uint64{1},
-					PerpetualOrderIds: []uint64{1},
+					Creator:      addr[2].String(),
+					SpotOrderIds: []uint64{1},
+					PerpetualOrders: []types.PerpetualOrderKey{
+						{
+							OwnerAddress: addr[2].String(),
+							PoolId:       1,
+							OrderId:      1,
+						},
+					},
 				}
 			},
 			func() {},
@@ -75,15 +92,14 @@ func (suite *TradeshieldKeeperTestSuite) TestMsgServerExecuteOrder() {
 				suite.app.OracleKeeper.SetPrice(suite.ctx, oracletypes.Price{
 					Asset:     "ATOM",
 					Price:     math.LegacyNewDec(5),
-					Source:    "elys",
 					Provider:  oracleProvider.String(),
 					Timestamp: uint64(suite.ctx.BlockTime().Unix()),
 				})
 
 				return &types.MsgExecuteOrders{
-					Creator:           addr[2].String(),
-					SpotOrderIds:      []uint64{1},
-					PerpetualOrderIds: []uint64{},
+					Creator:         addr[2].String(),
+					SpotOrderIds:    []uint64{1},
+					PerpetualOrders: []types.PerpetualOrderKey{},
 				}
 			},
 			func() {
@@ -138,15 +154,20 @@ func (suite *TradeshieldKeeperTestSuite) TestMsgServerExecuteOrder() {
 				suite.app.OracleKeeper.SetPrice(suite.ctx, oracletypes.Price{
 					Asset:     "ATOM",
 					Price:     math.LegacyNewDec(10),
-					Source:    "elys",
 					Provider:  oracleProvider.String(),
 					Timestamp: uint64(suite.ctx.BlockTime().Unix()),
 				})
 
 				return &types.MsgExecuteOrders{
-					Creator:           addr[2].String(),
-					SpotOrderIds:      []uint64{},
-					PerpetualOrderIds: []uint64{1},
+					Creator:      addr[2].String(),
+					SpotOrderIds: []uint64{},
+					PerpetualOrders: []types.PerpetualOrderKey{
+						{
+							OwnerAddress: addr[2].String(),
+							PoolId:       1,
+							OrderId:      1,
+						},
+					},
 				}
 			},
 			func() {
@@ -213,16 +234,15 @@ func (suite *TradeshieldKeeperTestSuite) TestMsgServerExecuteOrder() {
 				suite.app.OracleKeeper.SetPrice(suite.ctx, oracletypes.Price{
 					Asset:     "ATOM",
 					Price:     math.LegacyNewDec(5),
-					Source:    "elys",
 					Provider:  oracleProvider.String(),
 					Timestamp: uint64(suite.ctx.BlockTime().Unix()),
 				})
 
 				// Return message with both order IDs
 				return &types.MsgExecuteOrders{
-					Creator:           addr[2].String(),
-					SpotOrderIds:      []uint64{1, 2}, // Both orders exist but second will fail during execution
-					PerpetualOrderIds: []uint64{},
+					Creator:         addr[2].String(),
+					SpotOrderIds:    []uint64{1, 2}, // Both orders exist but second will fail during execution
+					PerpetualOrders: []types.PerpetualOrderKey{},
 				}
 			},
 			func() {

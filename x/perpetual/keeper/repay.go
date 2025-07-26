@@ -8,12 +8,26 @@ import (
 )
 
 // Repay ammPool has to be pointer because RemoveFromPoolBalance updates pool assets
-func (k Keeper) Repay(ctx sdk.Context, mtp *types.MTP, pool *types.Pool, ammPool *ammtypes.Pool, returnAmount math.Int, payingLiabilities math.Int, closingRatio math.LegacyDec, baseCurrency string) error {
+func (k Keeper) Repay(ctx sdk.Context, mtp *types.MTP, pool *types.Pool, ammPool *ammtypes.Pool, returnAmount math.Int, payingLiabilities math.Int, closingRatio math.LegacyDec, baseCurrency string, perpFees *types.PerpetualFees, repayAmount math.Int) error {
 	if returnAmount.IsPositive() {
-		returnCoins := sdk.NewCoins(sdk.NewCoin(mtp.CustodyAsset, returnAmount))
-		err := k.SendFromAmmPool(ctx, ammPool, mtp.GetAccountAddress(), returnCoins)
+		ammPoolAddr, err := sdk.AccAddressFromBech32(ammPool.Address)
 		if err != nil {
 			return err
+		}
+
+		// send fees to masterchef and taker collection address
+		totalFees, err := k.SendFeesToPoolRevenueAndTakerCollection(ctx, ammPoolAddr, mtp.Address, repayAmount, mtp.CustodyAsset, ammPool, perpFees, returnAmount)
+		if err != nil {
+			return err
+		}
+
+		// to prevent zero return amount
+		if totalFees.LT(returnAmount) {
+			returnCoins := sdk.NewCoins(sdk.NewCoin(mtp.CustodyAsset, returnAmount.Sub(totalFees)))
+			err = k.SendFromAmmPool(ctx, ammPool, mtp.GetAccountAddress(), returnCoins)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -45,7 +59,7 @@ func (k Keeper) Repay(ctx sdk.Context, mtp *types.MTP, pool *types.Pool, ammPool
 		k.DestroyMTP(ctx, *mtp)
 	} else {
 		// update mtp health
-		mtp.MtpHealth, err = k.GetMTPHealth(ctx, *mtp, *ammPool, baseCurrency)
+		mtp.MtpHealth, err = k.GetMTPHealth(ctx, *mtp)
 		if err != nil {
 			return err
 		}
